@@ -1,0 +1,44 @@
+cuda_visible_devices: "5"
+device: gpu
+
+logger_name: df_logger_cw.csv
+model_name: Extended_Anneal
+type_model: GAT 
+baseline: False #Always False for attention graphs
+type_graph: max 
+binarized: False
+multi_layer: True
+
+data_paths:
+  path_logger: /scratch/mbugueno/HomoGraphs_GovReports/
+  results_folder: /home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/
+  root_graph_dataset: /scratch/datasets/AttnGraphs_GovReports/
+
+load_data_paths:
+  in_path: "/scratch/datasets/GovReport-Sum/"
+  data_train: "" #"articles-training-byarticle-20181122.xml"
+  labels_train: "" #"ground-truth-training-byarticle-20181122.xml"
+  data_test: "" #"articles-test-byarticle-20181207.xml"
+  labels_test: "" #"ground-truth-test-byarticle-20181207.xml"
+  with_val: True
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  dropout: 0.2
+  dim_features : [64, 128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
+
+batch_size: 32
+with_cw: True
+max_len: 1000
+
+trainer_args:
+  max_epochs: 50
+  enable_progress_bar: False
+  #accumulate_grad_batches: 4
+
+early_args:
+  patience: 5
+  min_delta: 0.001  

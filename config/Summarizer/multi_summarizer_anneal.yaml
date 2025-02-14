@@ -1,0 +1,41 @@
+
+cuda_visible_devices: "6"
+device: gpu
+
+path_models: /scratch/mbugueno/HomoGraphs_GovReports/
+file_to_save: MHASummarizer
+logger_name: Extended_Anneal
+logger_file: df_logger_cw.csv
+num_executions: 5
+
+data_paths:
+  in_path: "/scratch/datasets/GovReport-Sum/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  embed_dim: 384 #sentence transformer
+  num_heads: 4
+  multi_layer: True
+  hidden_dim : 384
+  intermediate: True
+  temperature_scheduler : "anneal_decrease"
+  temperature_step: 0.0004 #per batch
+  attn_dropout: 0.1  #default 0.0
+  
+batch_size: 32
+max_len: 1000
+with_cw: True #or False
+
+trainer_args:
+  max_epochs: 20
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001  

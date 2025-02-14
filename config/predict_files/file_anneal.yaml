@@ -1,0 +1,24 @@
+
+cuda_visible_devices: "7"
+device: gpu
+
+model_name: Extended_Anneal
+logger_name: df_logger_cw.csv
+type_graph: max 
+saving_file: False
+binarized: True
+
+data_paths:
+  path_logger: /scratch/mbugueno/HomoGraphs_GovReports/
+  results_folder: /home/mbugueno/AttGraphs/GNN_Results_Summarizer/
+  root_graph_dataset: /scratch/datasets/AttnGraphs_GovReports/
+
+load_data_paths:
+  in_path: "/scratch/datasets/GovReport-Sum/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True
+
+max_len: 1000
