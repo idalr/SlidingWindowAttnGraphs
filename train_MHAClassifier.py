@@ -70,10 +70,10 @@ def main_run(config_file , settings_file):
         ## TRAINING SETUP
         model_params["max_len"]=max_len
         model_params["path_invert_vocab_sent"]= config_file["data_paths"]["in_path"]
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended(**model_params)
-        else:
-            model_lightning= MHAClassifier(**model_params)
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended(**model_params)
+        #else:
+        model_lightning= MHAClassifier(**model_params)
 
         early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_models+logger_name, filename=logger_name+"-{epoch:02d}-{Val_f1-ma:.2f}")

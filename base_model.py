@@ -133,7 +133,7 @@ class Classifier_Lighting(pl.LightningModule):
 
 class MHAClassifier(Classifier_Lighting):
     def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, 
-                 intermediate=False, num_heads=4, dropout=False, class_weights=[], 
+                 intermediate=False, num_heads=4, dropout=False, class_weights=[],
                  temperature_scheduler=None, temperature_step=None, attn_dropout=0.0,
                  path_invert_vocab_sent = "", activation_attention="softmax"):
         #print ("Creating Classifier Model")
