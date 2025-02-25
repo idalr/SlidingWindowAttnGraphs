@@ -90,10 +90,10 @@ def main_run(config_file , settings_file):
         print(f"Training time: {train_time:.2f} secs")  
 
         # load best checkpoint
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        else:
-            model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #else:
+        model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
             
         print ("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print ("Temperature of loaded model:", model_lightning.temperature)
