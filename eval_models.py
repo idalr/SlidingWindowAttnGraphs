@@ -46,23 +46,101 @@ def eval_results(preds, all_labels, num_classes, partition, print_results=True):
 
 
 def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode="local"):
+
+    # TODO: filter masked window before calculating threshold
+    ## do not use specific value because each activation function has different masked value
+
     if mode=="global":
         input_tensor = torch.reshape(input_tensor, (-1,))
         max, mean, std = torch.max(input_tensor), torch.mean(input_tensor), torch.std(input_tensor, unbiased)
     elif mode == "local":
         max, mean, std = torch.max(input_tensor, dim=1).values, torch.mean(input_tensor, dim=1), torch.std(input_tensor, dim=1)
 
+    # TODO: have to make sure that max, mean, std is positive, otherwise with neg degree_std, mean filter will be higher than max
     if type=="mean":
         min_value = mean - std*-degree_std  ### negative degree_std for less tolerance at filtering
-      
     elif type=="max":
         min_value = max - std*degree_std
-
     else:
         #print ("No threshold was calculated.")
-        return max, mean, std, (-1e9 + 1)
+        return max, mean, std, None
         
     return max, mean, std, min_value
+
+def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, df=None, print_samples=0,
+                           degree_std=0.5, color='viridis'):
+    '''
+    experimenting from the previous function `filtering_matrices` but without any filter
+    :param full_attn_weights:
+    :param all_article_identifiers:
+    :param list_valid_sents:
+    :param df: either None or a pd.DataFrame (cols = article_id, article_title, article_text, article_label)
+    :return:
+    '''
+
+    print("\nGenerating Graphs Objects based on Full Attention Weights")
+
+    # set up
+    cropped_matrices = []
+    total_edges = []
+    total_nodes = []
+    printed = 0
+    index = 0
+
+    for doc_att in full_attn_weights:
+        cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
+        cropped_matrices.append(cropped_matrix)
+
+        total_edges.append(list_valid_sents[index] ** 2)
+        total_nodes.append(list_valid_sents[index])
+
+        max_v, mean, std, _ = get_threshold(cropped_matrices, degree_std, type=None)
+
+
+        if printed < print_samples and len(cropped_matrix) >= 10:
+            print("====================================")
+            try:
+                ide_article = all_article_identifiers[index].item()
+            except: # is this for Summarization?
+                ide_article = all_article_identifiers[index]
+
+            print("\nDocument ID: ", ide_article, "-- #Sentences: ", list_valid_sents[index])
+
+            # printing text
+            # try:
+            #     print("Source text:\n", df[df['article_id'] == ide_article]['article_text'].values[0])
+            # except: # for Summarization
+            #     source_text = clean_tokenization_sent(df[df['Article_ID'] == ide_article]['Cleaned_Article'].values[0],
+            #                                           "text")
+            #     print("Source text:\n", source_text)
+            #     if len(source_text)!=list_valid_sents[index]:
+            #         print ("WARNING: Number of sentences in source text and attention weights do not match")
+            #         print ("Stopping evaluation...")
+            #         break
+
+            f, axarr = plt.subplots(1, 2, figsize=(20, 4.5))
+            axarr[0].matshow(cropped_matrix.cpu().detach().numpy(), vmin=0, vmax=max_v.max(), cmap=color)
+            axarr[0].set_title('Full Attention Weights')
+
+            n, bins, patches = axarr[1].hist(torch.reshape(cropped_matrix, (-1,)).cpu().detach().numpy().flatten(),
+                                                 bins=25, color='b', histtype='bar', density=True)
+            y = ((1 / (np.sqrt(2 * np.pi) * std.mean().cpu().numpy())) * np.exp(-0.5 * (1 / std.mean().cpu().numpy() * (bins - mean.mean().cpu().numpy())) ** 2))
+            axarr[1].plot(bins, y, '--')
+            axarr[1].set_title('Attention Weights Distribution')
+            axarr[1].axvline(mean.mean().cpu().numpy(), color='g', linestyle='-', label='Mean', lw=3)
+            axarr[1].axvline(mean.mean().cpu().numpy() - degree_std * std.mean().cpu().numpy(), color='r',
+                                 linestyle='--', label='Mean filter', lw=3)
+            axarr[1].axvline(max_v.mean().cpu().numpy() - degree_std * std.mean().cpu().numpy(), color='c',
+                                 linestyle='--', label='Max filter', lw=3)
+            axarr[1].legend()
+            plt.show()
+
+            printed += 1
+        index += 1
+
+    print("Done.")
+    return cropped_matrices, total_nodes, total_edges
+
 
 
 def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, df=None, print_samples=0, degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local", color=None):
@@ -209,6 +287,10 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
         return filtered_matrices, total_nodes, total_edges
 
 def filtering_matrices_old(full_attn_weights, all_article_identifiers, df=None, print_samples=0, degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local", color=None):
+    '''
+    using zeros to get valid_sents
+    '''
+
     filtered_matrices=[]
     cropped_matrices=[]
     total_edges = []
@@ -362,7 +444,8 @@ def filtering_matrices_old(full_attn_weights, all_article_identifiers, df=None, 
 
 
 def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local"):
-
+    # TODO: check if need to change because of sliding window
+    ## modify this cropped_matrix
     cropped_matrix = doc_att[:valid_sents,:valid_sents]
             
     if with_filtering:

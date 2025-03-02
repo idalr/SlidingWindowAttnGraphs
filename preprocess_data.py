@@ -28,8 +28,8 @@ def load_data(in_path, data_train, labels_train, data_test, labels_test, with_va
             return df_train, df_val, df_test
         else:
             print("Loading from Processed folder")
-            df_train = pd.read_csv(in_path+"/Processed/df_train.csv")
-            df_test = pd.read_csv(in_path+"/Processed/df_test.csv")
+            df_train = pd.read_csv(in_path+"Processed/df_train.csv")
+            df_test = pd.read_csv(in_path+"Processed/df_test.csv")
             return df_train, df_test  
 
     except:
