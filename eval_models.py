@@ -45,7 +45,7 @@ def eval_results(preds, all_labels, num_classes, partition, print_results=True):
     return acc, f1_all
 
 
-def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode="local"):
+def get_threshold(input_tensor, no_valid_sent, degree_std= 1, unbiased=True, type="mean", mode="local"):
 
     # TODO: filter masked window before calculating threshold
     ## do not use specific value because each activation function has different masked value
@@ -66,6 +66,41 @@ def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode=
         return max, mean, std, None
         
     return max, mean, std, min_value
+
+def get_sliding_window_threshold(input_tensor, no_valid_sent, degree_std= 1, window=30, unbiased=True, type="mean", mode="local"):
+    window_size = max(2, np.ceil(window/100*no_valid_sent))
+    idx = torch.arange(no_valid_sent)
+    window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > torch.tensor(window_size).unsqueeze(-1).view(-1, 1)
+    window_mask = window_mask.to(device=input_tensor.device)
+
+    if mode == 'global':
+        max_val, mean_val, std_val = torch.max(input_tensor[window_mask]), torch.mean(input_tensor[window_mask]), torch.std(input_tensor[window_mask], unbiased=unbiased)
+    elif mode == 'local':
+        # break down in local chunks
+        input_chunks = torch.chunk(input_tensor, chunks=no_valid_sent, dim=-1)
+        window_chunks = torch.chunk(window_mask, chunks=no_valid_sent, dim=-1)
+        # loop over each chunk and get local values
+        local_mean = []
+        local_max = []
+        local_std = []
+        for i,w in zip(input_chunks, window_chunks):
+            local_mean.append(i[w].mean())
+            local_max.append(i[w].max())
+            local_std.append(i[w].std())
+        # stack up
+        mean_val = torch.stack(local_mean)
+        max_val = torch.stack(local_max)
+        std_val = torch.stack(local_std, unbiased=unbiased)
+
+    if type=="mean":
+        min_val = mean_val - std_val*-degree_std  ### negative degree_std for less tolerance at filtering
+    elif type=="max":
+        min_val = max_val - std_val*degree_std
+    else:
+        #print ("No threshold was calculated.")
+        return max_val, mean_val, std_val, None
+    return max_val, mean_val, std_val, min_val
+
 
 def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, df=None, print_samples=0,
                            degree_std=0.5, color='viridis'):
@@ -94,19 +129,20 @@ def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
         total_edges.append(list_valid_sents[index] ** 2)
         total_nodes.append(list_valid_sents[index])
 
-        max_v, mean, std, _ = get_threshold(cropped_matrices, degree_std, type=None)
+        max_v, mean, std, _ = get_sliding_window_threshold(cropped_matrix, list_valid_sents[index], degree_std, type=None)
 
 
         if printed < print_samples and len(cropped_matrix) >= 10:
             print("====================================")
-            try:
-                ide_article = all_article_identifiers[index].item()
-            except: # is this for Summarization?
-                ide_article = all_article_identifiers[index]
+            # get doc id
+            ###try:
+            ide_article = all_article_identifiers[index].item()
+            # except: # is this for Summarization?
+            #     ide_article = all_article_identifiers[index]
 
             print("\nDocument ID: ", ide_article, "-- #Sentences: ", list_valid_sents[index])
 
-            # printing text
+            # print text
             # try:
             #     print("Source text:\n", df[df['article_id'] == ide_article]['article_text'].values[0])
             # except: # for Summarization
