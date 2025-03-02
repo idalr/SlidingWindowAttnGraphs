@@ -67,6 +67,15 @@ for i, doc in enumerate(df_full_train['article_text']):
 max_len = max(sent_lengths)  # Maximum number of sentences in a document
 print ("max number of sentences in document:", max_len)
 
+sent_lengths_test=[]
+for i, doc in enumerate(df_test['article_text']):
+    sent_in_doc = sent_tokenize(doc)
+    if len(sent_in_doc)==0:
+        print ("Empty doc en:", i)
+    sent_lengths_test.append(len(sent_in_doc))
+max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
+print ("max number of sentences in document:", max_len_test)
+
 path_models = "/HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
@@ -130,6 +139,8 @@ dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_ty
 
 print("Filtering matrices...")
 
+# TODO: check why using filter = "mean" and filter = "max" result in the same plot (although deletions are different)
+
 filtering=True
 num_print = 5
 filter = "mean"
@@ -143,7 +154,7 @@ filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full
 
 # Test
 filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
-                                                                                                all_article_identifiers_test, sent_lengths,
+                                                                                                all_article_identifiers_test, sent_lengths_test,
                                                                                                 df_test, print_samples=num_print,
                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter, granularity=granularity)
 
@@ -154,7 +165,7 @@ filter = "max"
 
 print(f'Filtering type: {filter}')
 
-max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths_test,
                                                                             df_full_train, print_samples=num_print,
                                                                             degree_std=std, with_filtering=filtering,
                                                                             filtering_type=filter, granularity=granularity)
