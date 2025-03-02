@@ -37,7 +37,7 @@ from sentence_transformers import SentenceTransformer
 os.environ["CUDA_VISIBLE_DEVICES"]='0'
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
-in_path = "HyperNews/"
+in_path = "datasets/HyperNews/"
 
 data_train = "articles-training-byarticle-20181122.xml"
 labels_train = "ground-truth-training-byarticle-20181122.xml"
