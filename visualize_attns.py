@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from preprocess_data import load_data
 from base_model import MHAClassifier, MHAClassifier_extended
-from eval_models import retrieve_parameters, eval_results, not_filtering_matrices, and_filtering_matrices
+from eval_models import retrieve_parameters, eval_results, not_filtering_matrices, filtering_matrices
 from data_loaders import create_loaders
 # from graph_data_loaders import AttentionGraphs
 
@@ -71,7 +71,7 @@ for i, doc in enumerate(df_test['article_text']):
 max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
 print ("max number of sentences in document:", max_len_test)
 
-# mini run
+# # mini run
 # df_full_train = df_full_train.head(50)
 # df_test = df_test.head(50)
 # sent_lengths = sent_lengths[:50]
@@ -145,13 +145,13 @@ filter_type = "mean"
 print(f'Filtering type: {filter_type}')
 
 # Train
-filtered_matrices, total_nodes, total_edges, deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
                                                                             df_full_train, print_samples=num_print,
                                                                             degree_std=std, with_filtering=filtering,
                                                                             filtering_type=filter_type, granularity=granularity)
 
 # Test
-filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = and_filtering_matrices(full_attn_weights_test,
+filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,
                                                                                                 df_test, print_samples=num_print,
                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
@@ -161,12 +161,12 @@ filter_type = "max"
 print(f'Filtering type: {filter_type}')
 
 # Train
-max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
                                                                             df_full_train, print_samples=num_print,
                                                                             degree_std=std, filtering_type=filter_type, granularity=granularity)
 
 # Test
-max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = and_filtering_matrices(full_attn_weights_test,
+max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,
                                                                                                 df_test, print_samples=num_print,
                                                                                                 degree_std=std, filtering_type=filter_type, granularity=granularity)
