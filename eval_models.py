@@ -44,11 +44,16 @@ def eval_results(preds, all_labels, num_classes, partition, print_results=True):
 
     return acc, f1_all
 
+def get_window_mask(input_tensor, no_valid_sent, window=30):
+    # for one 2-dim tensor
+    window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100).clamp(min=2)
+    idx = torch.arange(no_valid_sent)
+    window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > torch.tensor(window_size).unsqueeze(-1).view(-1, 1)
+    window_mask = window_mask.to(device=input_tensor.device)
+    return window_mask
 
-def get_threshold(input_tensor, no_valid_sent, degree_std= 1, unbiased=True, type="mean", mode="local"):
 
-    # TODO: filter masked window before calculating threshold
-    ## do not use specific value because each activation function has different masked value
+def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode="local"):
 
     if mode=="global":
         input_tensor = torch.reshape(input_tensor, (-1,))
@@ -56,7 +61,6 @@ def get_threshold(input_tensor, no_valid_sent, degree_std= 1, unbiased=True, typ
     elif mode == "local":
         max, mean, std = torch.max(input_tensor, dim=1).values, torch.mean(input_tensor, dim=1), torch.std(input_tensor, dim=1)
 
-    # TODO: have to make sure that max, mean, std is positive, otherwise with neg degree_std, mean filter will be higher than max
     if type=="mean":
         min_value = mean - std*-degree_std  ### negative degree_std for less tolerance at filtering
     elif type=="max":
@@ -67,30 +71,26 @@ def get_threshold(input_tensor, no_valid_sent, degree_std= 1, unbiased=True, typ
         
     return max, mean, std, min_value
 
-def get_sliding_window_threshold(input_tensor, no_valid_sent, degree_std= 1, window=30, unbiased=True, type="mean", mode="local"):
-    window_size = max(2, np.ceil(window/100*no_valid_sent))
-    idx = torch.arange(no_valid_sent)
-    window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > torch.tensor(window_size).unsqueeze(-1).view(-1, 1)
-    window_mask = window_mask.to(device=input_tensor.device)
+def get_sliding_window_threshold(input_tensor, window_mask, degree_std= 1, unbiased=True, type="mean", mode="local"):
 
     if mode == 'global':
-        max_val, mean_val, std_val = torch.max(input_tensor[window_mask]), torch.mean(input_tensor[window_mask]), torch.std(input_tensor[window_mask], unbiased=unbiased)
+        max_val, mean_val, std_val = torch.max(input_tensor[~window_mask]), torch.mean(input_tensor[~window_mask]), torch.std(input_tensor[~window_mask], unbiased=unbiased)
     elif mode == 'local':
         # break down in local chunks
-        input_chunks = torch.chunk(input_tensor, chunks=no_valid_sent, dim=-1)
-        window_chunks = torch.chunk(window_mask, chunks=no_valid_sent, dim=-1)
+        input_chunks = torch.chunk(input_tensor, chunks=input_tensor.shape[0], dim=-1)
+        window_chunks = torch.chunk(window_mask, chunks=input_tensor.shape[0], dim=-1)
         # loop over each chunk and get local values
         local_mean = []
         local_max = []
         local_std = []
         for i,w in zip(input_chunks, window_chunks):
-            local_mean.append(i[w].mean())
-            local_max.append(i[w].max())
-            local_std.append(i[w].std())
+            local_mean.append(i[~w].mean())
+            local_max.append(i[~w].max())
+            local_std.append(i[~w].std())
         # stack up
         mean_val = torch.stack(local_mean)
         max_val = torch.stack(local_max)
-        std_val = torch.stack(local_std, unbiased=unbiased)
+        std_val = torch.stack(local_std)
 
     if type=="mean":
         min_val = mean_val - std_val*-degree_std  ### negative degree_std for less tolerance at filtering
@@ -129,8 +129,8 @@ def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
         total_edges.append(list_valid_sents[index] ** 2)
         total_nodes.append(list_valid_sents[index])
 
-        max_v, mean, std, _ = get_sliding_window_threshold(cropped_matrix, list_valid_sents[index], degree_std, type=None)
-
+        window_mask = get_window_mask(cropped_matrix,list_valid_sents[index])
+        max_v, mean, std, _ = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std, type=None, mode='local')
 
         if printed < print_samples and len(cropped_matrix) >= 10:
             print("====================================")
@@ -158,8 +158,12 @@ def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
             axarr[0].matshow(cropped_matrix.cpu().detach().numpy(), vmin=0, vmax=max_v.max(), cmap=color)
             axarr[0].set_title('Full Attention Weights')
 
-            n, bins, patches = axarr[1].hist(torch.reshape(cropped_matrix, (-1,)).cpu().detach().numpy().flatten(),
-                                                 bins=25, color='b', histtype='bar', density=True)
+            # convert to array and only use values in sliding window
+            cropped_array = torch.reshape(cropped_matrix, (-1,)).cpu().detach().numpy().flatten()
+            window_array = torch.reshape(window_mask, (-1,)).cpu().detach().numpy().flatten()
+            valid_array = cropped_array[~window_array]
+
+            n, bins, patches = axarr[1].hist(valid_array, bins=25, color='b', histtype='bar', density=True)
             y = ((1 / (np.sqrt(2 * np.pi) * std.mean().cpu().numpy())) * np.exp(-0.5 * (1 / std.mean().cpu().numpy() * (bins - mean.mean().cpu().numpy())) ** 2))
             axarr[1].plot(bins, y, '--')
             axarr[1].set_title('Attention Weights Distribution')
