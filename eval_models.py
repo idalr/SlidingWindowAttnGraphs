@@ -63,31 +63,33 @@ def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode=
         
     return max, mean, std, min_value
 
-# def get_window_mask(input_tensor, no_valid_sent, window=30):
-#     # for one 2-dim tensor
-#     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
-#     if no_valid_sent > 5: # cannot use pad value
-#         window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100)
-#         idx = torch.arange(no_valid_sent)
-#         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
-#         window_mask = window_mask.to(device=input_tensor.device)
-#         return window_mask
-#     else:
-#         return torch.zeros_like(input_tensor, dtype=torch.bool)
-
-def get_sliding_window_threshold(input_tensor, no_valid_sent, window = 30, degree_std= 1, unbiased=True, type="mean", mode="local"):
-
-    # get window_mask
+def get_window_mask(input_tensor, no_valid_sent, window=30):
+    # for one 2-dim tensor
+    # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
     if no_valid_sent > 5: # cannot use pad value
         window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100)
         idx = torch.arange(no_valid_sent)
         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
+        if no_valid_sent > input_tensor.shape[0]:
+            window_mask = window_mask[: input_tensor.shape[0], :input_tensor.shape[1]]
         window_mask = window_mask.to(device=input_tensor.device)
+        return window_mask
     else:
-        window_mask = torch.zeros_like(input_tensor, dtype=torch.bool)
+        return torch.zeros_like(input_tensor, dtype=torch.bool)
 
-    if no_valid_sent > input_tensor.shape[0]:
-        window_mask = window_mask[: input_tensor.shape[0], :input_tensor.shape[1]]
+def get_sliding_window_threshold(input_tensor, window_mask, degree_std= 1, unbiased=True, type="mean", mode="local"):
+
+    # # get window_mask
+    # if no_valid_sent > 5: # cannot use pad value
+    #     window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100)
+    #     idx = torch.arange(no_valid_sent)
+    #     window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
+    #     window_mask = window_mask.to(device=input_tensor.device)
+    # else:
+    #     window_mask = torch.zeros_like(input_tensor, dtype=torch.bool)
+    #
+    # if no_valid_sent > input_tensor.shape[0]:
+    #     window_mask = window_mask[: input_tensor.shape[0], :input_tensor.shape[1]]
 
     # get threshold
     if mode == 'global':
@@ -113,8 +115,8 @@ def get_sliding_window_threshold(input_tensor, no_valid_sent, window = 30, degre
         min_val = max_val - std_val*degree_std
     else:
         #print ("No threshold was calculated.")
-        return max_val, mean_val, std_val, None, window_mask
-    return max_val, mean_val, std_val, min_val, window_mask
+        return max_val, mean_val, std_val, None
+    return max_val, mean_val, std_val, min_val
 
 
 def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, df=None, print_samples=0,
@@ -133,10 +135,12 @@ def not_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
         cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
         cropped_matrices.append(cropped_matrix)
 
+        window_mask = get_window_mask(cropped_matrix, list_valid_sents[index])
+
         total_edges.append(list_valid_sents[index] ** 2)
         total_nodes.append(list_valid_sents[index])
 
-        max_v, mean, std, _, window_mask = get_sliding_window_threshold(cropped_matrix, list_valid_sents[index], degree_std, type=None)
+        max_v, mean, std, _, window_mask = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std, type=None)
 
         if printed < print_samples and len(cropped_matrix) >= 10:
             print("====================================")
@@ -205,6 +209,8 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
         cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
         cropped_matrices.append(cropped_matrix)
 
+        window_mask = get_window_mask(cropped_matrix, list_valid_sents[index])
+
         # get alternative filtering
         if filtering_type == "mean":
             alternative = "max"
@@ -212,9 +218,9 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
             alternative = "mean"
 
         # try:
-        max_v, mean, std, threshold_min, window_mask = get_sliding_window_threshold(cropped_matrix, list_valid_sents[index],
-                                                                                    degree_std, type=filtering_type, mode=granularity)
-        _, _, _, alter_threshold_min, _ = get_sliding_window_threshold(cropped_matrix, list_valid_sents[index], degree_std,
+        max_v, mean, std, threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
+                                                                       type=filtering_type, mode=granularity)
+        _, _, _, other_threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
                                                                     type=alternative, mode=granularity)
         # except: # not sure why it could break...
         #     print("Error in calculating threshold")
@@ -229,12 +235,13 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
             other_filtered_matrix = torch.Tensor(cropped_matrix.size())
             for i in range(cropped_matrix.size(0)):
                 filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
-                other_filtered_matrix[i] = torch.where(cropped_matrix[i] < alter_threshold_min[i], 0., cropped_matrix[i])
+                other_filtered_matrix[i] = torch.where(cropped_matrix[i] < other_threshold_min[i], 0., cropped_matrix[i])
             num_dropped = len(cropped_matrix) ** 2 - torch.count_nonzero(filtered_matrix).item()
         else: # "global"
-            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
+            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())
+            other_filtered_matrix = torch.where(cropped_matrix < other_threshold_min, 0., cropped_matrix.double())
             num_dropped = torch.count_nonzero(torch.reshape((cropped_matrix < threshold_min), (-1,)).int()).item()
-            other_filtered_matrix = torch.where(cropped_matrix < alter_threshold_min, 0., cropped_matrix.double())
+
 
         deletions.append(num_dropped)
         total_edges.append(torch.count_nonzero(filtered_matrix).item())
@@ -292,9 +299,9 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
             axarr[3].plot(bins, y, '--')
             axarr[3].set_title('Attention Weights Distribution')
             axarr[3].axvline(mean.mean().cpu().numpy(), color='g', linestyle='-', label='Mean', lw=3)
-            axarr[3].axvline(mean.mean().cpu().numpy() - degree_std * std.mean().cpu().numpy(), color='r',
+            axarr[3].axvline(mean.mean().cpu().numpy() - std.mean().cpu().numpy() * -degree_std, color='r',
                                  linestyle='--', label='Mean filter', lw=3)
-            axarr[3].axvline(max_v.mean().cpu().numpy() - degree_std * std.mean().cpu().numpy(), color='c',
+            axarr[3].axvline(max_v.mean().cpu().numpy() - std.mean().cpu().numpy() * degree_std, color='c',
                                  linestyle='--', label='Max filter', lw=3)
             axarr[3].legend()
             plt.show()
