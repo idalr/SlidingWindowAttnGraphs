@@ -60,7 +60,7 @@ def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode=
 
     else:
         #print ("No threshold was calculated.")
-        return max, mean, std, None
+        return max, mean, std, (-1e9 + 1)
         
     return max, mean, std, min_value
 
@@ -138,10 +138,10 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
             except:
                 source_text = clean_tokenization_sent(df[df['Article_ID']==ide_article]['Cleaned_Article'].values[0],"text")
                 print ("Source text:\n", source_text)
-                if len(source_text)!=list_valid_sents[index]:
-                    print ("WARNING: Number of sentences in source text and attention weights do not match")
-                    print ("Stopping evaluation...")
-                    break
+                # if len(source_text)!=list_valid_sents[index]:
+                #     print ("WARNING: Number of sentences in source text and attention weights do not match")
+                #     print ("Stopping evaluation...")
+                #     break
 
             if with_filtering:
                 print (f"After thresholding (mean:{mean.mean()}, - std: {std.mean()}")

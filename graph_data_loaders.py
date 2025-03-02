@@ -46,18 +46,22 @@ class AttentionGraphs(Dataset):
 
     def process(self):
         self.data = pd.read_csv(self.raw_paths[0]).reset_index() 
-        all_doc_as_ids = self.data['doc_as_ids']
+        all_doc_as_ids = self.data['doc_as_ids'].apply(pd.eval)
         all_labels = self.data['label']
         all_article_identifiers = self.data['article_id']
 
+        list_valid_sents = [(doc_as_ids != 0).sum() for doc_as_ids in all_doc_as_ids]  ##
+
         if self.filter_type is not None:
             filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(self.input_matrices, 
-                                                                                    all_article_identifiers, degree_std=self.K, 
+                                                                                    all_article_identifiers,
+                                                                                    list_valid_sents, degree_std=self.K,
                                                                                     with_filtering=True, 
                                                                                     filtering_type=self.filter_type)
         else:
-            filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers, degree_std=self.K, 
-                                                                                    with_filtering=False)
+            filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,
+                                                                             list_valid_sents, degree_std=self.K,
+                                                                             with_filtering=False)
 
 
         if self.test:
