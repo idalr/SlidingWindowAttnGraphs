@@ -28,7 +28,7 @@ model_arch_args:
   temperature_scheduler : None #="anneal_decrease", temperature_step=0.1
   attn_dropout: 0.1  #default 0.0
   # TODO: pass percentage or None, and list it as arg where needed
-  window: True # 30 percent length # min_window_size = 2
+  window: 30 # None or percent # min_window_size = 2
   
 batch_size: 32
 with_cw: True #or False
