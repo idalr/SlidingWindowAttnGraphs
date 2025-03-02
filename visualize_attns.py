@@ -72,11 +72,10 @@ max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a docume
 print ("max number of sentences in document:", max_len_test)
 
 # mini run
-df_full_train = df_full_train.head(50)
-df_test = df_test.head(50)
-sent_lengths = sent_lengths[:50]
-sent_lengths_test = sent_lengths_test[:50]
-
+# df_full_train = df_full_train.head(50)
+# df_test = df_test.head(50)
+# sent_lengths = sent_lengths[:50]
+# sent_lengths_test = sent_lengths_test[:50]
 
 path_models = "/HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
@@ -101,8 +100,6 @@ path_dataset = path_root+"/raw/"
 
 filename="post_predict_train_documents.csv"
 filename_test= "post_predict_test_documents.csv"
-
-'''
 
 print ("\nCreating file for PyG dataset in:", path_dataset)
 post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
@@ -129,55 +126,54 @@ for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_label
     }
 post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
 print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
-'''
 
 print("Visualize attentions...")
 
 std = 0.5
-num_print = 3 #5
+num_print = 5
 granularity= "local"
 
-# # not filtering
-# filtered_matrices, total_nodes, total_edges = not_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-#                                                                             df_full_train, print_samples=num_print, degree_std=std)
-#
-# filtered_matrices_test, total_nodes_test, total_edges_test = not_filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
-#                                                                             df_test, print_samples=num_print, degree_std=std)
+# not filtering
+filtered_matrices, total_nodes, total_edges = not_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+                                                                            df_full_train, print_samples=num_print, degree_std=std)
+
+filtered_matrices_test, total_nodes_test, total_edges_test = not_filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
+                                                                            df_test, print_samples=num_print, degree_std=std)
 
 filtering=True
-# filter_type = "mean"
-
-# print(f'Filtering type: {filter_type}')
-# filtered_matrices, total_nodes, total_edges, deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-#                                                                             df_full_train, print_samples=num_print,
-#                                                                             degree_std=std, with_filtering=filtering,
-#                                                                             filtering_type=filter_type, granularity=granularity)
-#
-# # Test
-# filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = and_filtering_matrices(full_attn_weights_test,
-#                                                                                                 all_article_identifiers_test, sent_lengths_test,
-#                                                                                                 df_test, print_samples=num_print,
-#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-
-
-filter_type = "max"
-
+filter_type = "mean"
 print(f'Filtering type: {filter_type}')
 
-max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths_test,
+# Train
+filtered_matrices, total_nodes, total_edges, deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
                                                                             df_full_train, print_samples=num_print,
                                                                             degree_std=std, with_filtering=filtering,
                                                                             filtering_type=filter_type, granularity=granularity)
 
 # Test
-# max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = and_filtering_matrices(full_attn_weights_test,
-#                                                                                                 all_article_identifiers_test, sent_lengths_test,
-#                                                                                                 df_test, print_samples=num_print,
-#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-#
+filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = and_filtering_matrices(full_attn_weights_test,
+                                                                                                all_article_identifiers_test, sent_lengths_test,
+                                                                                                df_test, print_samples=num_print,
+                                                                                                degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
 
-# plt.hist(x=[deletions, deletions_test, max_deletions, max_deletions_test], bins=50, color=['blue', 'lightblue', 'red', 'orange'])
-# plt.xlim(0, 7500)
-# plt.legend(["Mean - Train", "Mean - Test", "Max - Train", "Max - Test"])
-# plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
-# plt.show()
+
+filter_type = "max"
+print(f'Filtering type: {filter_type}')
+
+# Train
+max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+                                                                            df_full_train, print_samples=num_print,
+                                                                            degree_std=std, filtering_type=filter_type, granularity=granularity)
+
+# Test
+max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = and_filtering_matrices(full_attn_weights_test,
+                                                                                                all_article_identifiers_test, sent_lengths_test,
+                                                                                                df_test, print_samples=num_print,
+                                                                                                degree_std=std, filtering_type=filter_type, granularity=granularity)
+
+
+plt.hist(x=[deletions, deletions_test, max_deletions, max_deletions_test], bins=50, color=['blue', 'lightblue', 'red', 'orange'])
+plt.xlim(0, 7500)
+plt.legend(["Mean - Train", "Mean - Test", "Max - Train", "Max - Test"])
+plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
+plt.show()

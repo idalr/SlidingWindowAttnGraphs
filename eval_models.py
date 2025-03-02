@@ -47,7 +47,7 @@ def eval_results(preds, all_labels, num_classes, partition, print_results=True):
 def get_window_mask(input_tensor, no_valid_sent, window=30):
     # for one 2-dim tensor
     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
-    if no_valid_sent > 5:
+    if no_valid_sent > 5: # cannot use pad value because
         window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100).clamp(min=2)
         idx = torch.arange(no_valid_sent)
         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > torch.tensor(window_size).unsqueeze(-1).view(-1, 1)
@@ -206,7 +206,6 @@ def and_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
     printed = 0
     index = 0
     for doc_att in full_attn_weights:
-        # TODO: fix bug cropped_matrix sometimes has too much attention
         cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
         cropped_matrices.append(cropped_matrix)
 
@@ -215,7 +214,7 @@ def and_filtering_matrices(full_attn_weights, all_article_identifiers, list_vali
         # get alternative filtering
         if filtering_type == "mean":
             alternative = "max"
-        else:
+        elif filtering_type == 'max':
             alternative = "mean"
 
         # try:

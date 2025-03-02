@@ -73,7 +73,7 @@ class MultiHeadSelfAttention(nn.Module):
 
 
 class SlidingWindowMultiHeadSelfAttention(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
+    def __init__(self, input_dim, embed_dim, num_heads, window_size=30, temperature=1, dropout=0.0, activation_attention="softmax"):
         super().__init__()
         assert embed_dim % num_heads == 0, "Embedding dimension must be 0 module wrt the number of heads."
 
@@ -102,7 +102,7 @@ class SlidingWindowMultiHeadSelfAttention(nn.Module):
         idx = torch.arange(seq_length, device=src_key_padding_mask.device)
         window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1) # if masked window, then True
         padding_mask = (matrix_mask == pad_value) # if padded, then True
-        merged_mask = window_mask & padding_mask # if at least one True then True
+        merged_mask = window_mask | padding_mask # if at least one True then True
         matrix_mask[merged_mask] = pad_value # apply pad value
 
         return matrix_mask
@@ -193,7 +193,7 @@ class MHAClassifier(Classifier_Lighting):
                  intermediate=False, num_heads=4, dropout=False, class_weights=[],
                  temperature_scheduler=None, temperature_step=None, attn_dropout=0.0,
                  path_invert_vocab_sent = "", activation_attention="softmax",
-                 window=True):
+                 window=30):
         #print ("Creating Classifier Model")
         super(MHAClassifier, self).__init__()
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -201,14 +201,17 @@ class MHAClassifier(Classifier_Lighting):
             param.requires_grad = False
             
         #print ("Attention method:", activation_attention)
-        # sliding window MHA
-        if window:
-            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
-                                                num_heads, window_size=30, temperature=1, dropout=attn_dropout,
-                                                activation_attention=activation_attention)
         # full MHA
+        if window:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, window_size=30, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
+        # sliding window MHA
         else:
-            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim, num_heads, temperature=1, dropout=attn_dropout, activation_attention=activation_attention)
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
         self.num_classes = num_classes
         self.embed_dim = embed_dim
         if not intermediate:
