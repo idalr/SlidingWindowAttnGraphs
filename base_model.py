@@ -98,22 +98,14 @@ class SlidingWindowMultiHeadSelfAttention(nn.Module):
     def create_sliding_window_mask(self, src_key_padding_mask, matrix_mask, seq_length, min_window_size=2, pad_value=-1e9):
 
         lens_valid_sent = (src_key_padding_mask == 0).sum(dim=1)
-
-        # TODO: < 5, full_attn
-        ## if no. valid sentences less than 5, (for at least window_size =2), then full MHA
-        # full_attn = lens_valid_sent < 5
-        # if full_attn.any():
-        #     return torch.zeros_like(matrix_mask)
-
         window_sizes = torch.ceil(lens_valid_sent*self.window_size/100).long().clamp(min=min_window_size)
         idx = torch.arange(seq_length, device=src_key_padding_mask.device)
-        window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1)
+        window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1) # if masked window, then True
+        padding_mask = (matrix_mask == pad_value) # if padded, then True
+        merged_mask = window_mask & padding_mask # if at least one True then True
+        matrix_mask[merged_mask] = pad_value # apply pad value
 
-        sliding_mask = torch.where(window_mask, pad_value, 0)
-        padding_mask = (matrix_mask == pad_value)
-        sliding_mask[padding_mask] = pad_value
-
-        return sliding_mask
+        return matrix_mask
 
     def forward(self, x, src_key_padding_mask, matrix_mask, temperature=None):
         batch_size, seq_length, _ = x.size()
