@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from preprocess_data import load_data
 from base_model import MHAClassifier, MHAClassifier_extended
-from eval_models import retrieve_parameters, eval_results, filtering_matrices, not_filtering_matrices
+from eval_models import retrieve_parameters, eval_results, not_filtering_matrices, and_filtering_matrices
 from data_loaders import create_loaders
 # from graph_data_loaders import AttentionGraphs
 
@@ -45,11 +45,6 @@ labels_test = "ground-truth-test-byarticle-20181207.xml"
 
 batch_size = 32
 num_classes = 2
-std = 0.5
-num_print = 5
-granularity= "local"
-filter_type = "mean"
-filtering=True
 
 
 df_full_train, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test)
@@ -136,58 +131,51 @@ post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", in
 print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
 '''
 
-#####
-'''
-dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t,
-                          path_invert_vocab_sent='HyperNews/', degree=0.5, test=False)
-dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test,
-                               path_invert_vocab_sent='HyperNews/', degree=0.5, test=True)
-'''
+print("Visualize attentions...")
 
-print("Filtering matrices...")
+std = 0.5
+num_print = 3 #5
+granularity= "local"
 
-# not filtering
-filtered_matrices, total_nodes, total_edges = not_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-                                                                            df_full_train, print_samples=num_print, degree_std=std)
-
-# TODO: check why using filter = "mean" and filter = "max" result in the same plot (although deletions are different)
-
-# filtering=True
-# num_print = 5
-# filter = "mean"
+# # not filtering
+# filtered_matrices, total_nodes, total_edges = not_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+#                                                                             df_full_train, print_samples=num_print, degree_std=std)
 #
-# print(f'Filtering type: {filter}')
-#
-# filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+# filtered_matrices_test, total_nodes_test, total_edges_test = not_filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
+#                                                                             df_test, print_samples=num_print, degree_std=std)
+
+filtering=True
+# filter_type = "mean"
+
+# print(f'Filtering type: {filter_type}')
+# filtered_matrices, total_nodes, total_edges, deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
 #                                                                             df_full_train, print_samples=num_print,
 #                                                                             degree_std=std, with_filtering=filtering,
-#                                                                             filtering_type=filter, granularity=granularity)
+#                                                                             filtering_type=filter_type, granularity=granularity)
 #
 # # Test
-# filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
+# filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = and_filtering_matrices(full_attn_weights_test,
 #                                                                                                 all_article_identifiers_test, sent_lengths_test,
 #                                                                                                 df_test, print_samples=num_print,
-#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter, granularity=granularity)
-#
-#
-# filtering=True
-# num_print = 5
-# filter = "max"
-#
-# print(f'Filtering type: {filter}')
-#
-# max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths_test,
-#                                                                             df_full_train, print_samples=num_print,
-#                                                                             degree_std=std, with_filtering=filtering,
-#                                                                             filtering_type=filter, granularity=granularity)
-#
-# # Test
-# max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
-#                                                                                                 all_article_identifiers_test, sent_lengths,
+#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+
+
+filter_type = "max"
+
+print(f'Filtering type: {filter_type}')
+
+max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = and_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths_test,
+                                                                            df_full_train, print_samples=num_print,
+                                                                            degree_std=std, with_filtering=filtering,
+                                                                            filtering_type=filter_type, granularity=granularity)
+
+# Test
+# max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = and_filtering_matrices(full_attn_weights_test,
+#                                                                                                 all_article_identifiers_test, sent_lengths_test,
 #                                                                                                 df_test, print_samples=num_print,
-#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter, granularity=granularity)
+#                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
 #
-#
+
 # plt.hist(x=[deletions, deletions_test, max_deletions, max_deletions_test], bins=50, color=['blue', 'lightblue', 'red', 'orange'])
 # plt.xlim(0, 7500)
 # plt.legend(["Mean - Train", "Mean - Test", "Max - Train", "Max - Test"])
