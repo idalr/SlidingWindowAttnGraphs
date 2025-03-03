@@ -11,9 +11,9 @@ type_graph: full #sliding_window #full
 normalized: False
 
 data_paths:
-  path_logger: /HomoGraphs_HND/ #/scratch/mbugueno/HomoGraphs_HND/
-  results_folder: /AttGraphs/GNN_Results_Classifier/Attention/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
-  root_graph_dataset: /AttnGraphs_HND/ #/scratch/datasets/AttnGraphs_HND/
+  path_logger: HomoGraphs_HND/ #/scratch/mbugueno/HomoGraphs_HND/
+  results_folder: AttGraphs/GNN_Results_Classifier/Attention/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  root_graph_dataset: AttnGraphs_HND/ #/scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:
   in_path: "datasets/HyperNews/" #"/scratch/datasets/HyperNews/"
