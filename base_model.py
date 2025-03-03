@@ -201,12 +201,12 @@ class MHAClassifier(Classifier_Lighting):
             param.requires_grad = False
             
         #print ("Attention method:", activation_attention)
-        # full MHA
+        # sliding window MHA
         if window:
             self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
                                                                  embed_dim, num_heads, window_size=30, temperature=1,
                                                                  dropout=attn_dropout, activation_attention=activation_attention)
-        # sliding window MHA
+        # full MHA
         else:
             self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
                                                     num_heads, temperature=1, dropout=attn_dropout,
