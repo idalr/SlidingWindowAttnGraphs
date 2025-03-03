@@ -73,9 +73,9 @@ def main_run(config_file , settings_file):
     filename="post_predict_train_documents.csv"
     filename_test= "post_predict_test_documents.csv" 
 
-    try:
+    try: # TODO: look at the current error, Line 78 : FileNotFoundError: [Errno 2] No such file or directory: 'vocab_sentences.csv'
         if config_file["baseline"]:
-            dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='') 
+            dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='')
             dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic, path_invert_vocab_sent='', test=True)
         else:
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)  
@@ -91,6 +91,8 @@ def main_run(config_file , settings_file):
             print ("\n-- No class weights specificied --\n")
             calculated_cw = None
 
+    # TODO: look at the current error, Line 147 : OSError: Cannot save file into a non-existent directory: '\AttnGraphs_HND\Heuristic\order\raw'
+    # TODO: look at the current error, Line 62 : filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,....; ValueError: too many values to unpack (expected 3)
     except:
         print ("Error loading dataset - No Graph Dataset found")
         print ("\nCreating new dataset from pre-trained MHA model")
