@@ -7,7 +7,7 @@ logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp
 type_model: GAT #GCN
 baseline: False #Always False for learned graphs
-type_graph: sliding_window #full
+type_graph: full #sliding_window #full
 normalized: False
 
 data_paths:
@@ -27,7 +27,7 @@ model_arch_args:
   num_classes: 2
   lr: 0.001
   dropout: 0.2
-  dim_features : [128] #[128, 256]
+  dim_features : [64] #[128, 256]
   n_layers: [2] #[1, 2, 3]
   num_runs: 2 #5
 
@@ -35,7 +35,7 @@ batch_size: 32
 with_cw: True
 
 trainer_args:
-  max_epochs: 20 #50
+  max_epochs: 10 #50
   enable_progress_bar: False
 
 early_args:
