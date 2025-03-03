@@ -73,8 +73,10 @@ class AttentionGraphs(Dataset):
         for doc_ids, filtered, label in tqdm(zip(all_doc_as_ids, filtered_matrices, all_labels), total=len(all_doc_as_ids)):
 
             # doc_ids= [int(element) for element in doc_ids[1:-1].split(",")]
-            doc_ids= [element for element in doc_ids[1:-1]]
-            doc_ids= torch.tensor(doc_ids)
+            # TODO: ask Margarita about this
+            ## doc_ids= [element for element in doc_ids[1:-1]] # would lose its first token!
+            doc_ids = [element for element in doc_ids if element != 0] # array to list
+            doc_ids= torch.tensor(doc_ids) # list to tensor
 
             # try:
             #     valid_sents= (doc_ids == 0).nonzero()[0]
@@ -83,10 +85,8 @@ class AttentionGraphs(Dataset):
             #     valid_sents = len(doc_ids)
             #     cropped_doc = doc_ids
 
-# TODO: next debugging
-
             no_valid_sents = list_valid_sents[ide]
-            cropped_doc = doc_ids[no_valid_sents]
+            cropped_doc = doc_ids[:no_valid_sents]
 
             """"calculating node features"""
             sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')

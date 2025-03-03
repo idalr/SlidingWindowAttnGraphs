@@ -429,8 +429,10 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
 #                 axarr[3].plot(bins, y, '--')
 #                 axarr[3].set_title('Attention Weights Distribution')
 #                 axarr[3].axvline(mean.mean().cpu().numpy(), color='g', linestyle='-', label='Mean', lw=3)
-#                 axarr[3].axvline(mean.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='r', linestyle='--', label='Mean filter', lw=3)
-#                 axarr[3].axvline(max_v.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='c', linestyle='--', label='Max filter', lw=3)
+                # TODO: ask Margarita about this
+                ## this does not match get_threshold
+                ##  axarr[3].axvline(mean.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='r', linestyle='--', label='Mean filter', lw=3)
+                ##  axarr[3].axvline(max_v.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='c', linestyle='--', label='Max filter', lw=3)
 #                 axarr[3].legend()
 #                 plt.show()
 #
