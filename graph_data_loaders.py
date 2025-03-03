@@ -50,16 +50,16 @@ class AttentionGraphs(Dataset):
         all_labels = self.data['label']
         all_article_identifiers = self.data['article_id']
 
-        list_valid_sents = [(doc_as_ids != 0).sum() for doc_as_ids in all_doc_as_ids]  ##
+        list_valid_sents = [(doc_as_ids != 0).sum() for doc_as_ids in all_doc_as_ids]
 
         if self.filter_type is not None:
-            filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(self.input_matrices, 
+            filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(self.input_matrices,
                                                                                     all_article_identifiers,
                                                                                     list_valid_sents, degree_std=self.K,
                                                                                     with_filtering=True, 
                                                                                     filtering_type=self.filter_type)
         else:
-            filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,
+            filtered_matrices, total_nodes, total_edges, _ = filtering_matrices(self.input_matrices, all_article_identifiers,
                                                                              list_valid_sents, degree_std=self.K,
                                                                              with_filtering=False)
 
@@ -72,15 +72,21 @@ class AttentionGraphs(Dataset):
         ide=0
         for doc_ids, filtered, label in tqdm(zip(all_doc_as_ids, filtered_matrices, all_labels), total=len(all_doc_as_ids)):
 
-            doc_ids= [int(element) for element in doc_ids[1:-1].split(",")]
+            # doc_ids= [int(element) for element in doc_ids[1:-1].split(",")]
+            doc_ids= [element for element in doc_ids[1:-1]]
             doc_ids= torch.tensor(doc_ids)
 
-            try:
-                valid_sents= (doc_ids == 0).nonzero()[0]
-                cropped_doc = doc_ids[:valid_sents]
-            except:
-                valid_sents = len(doc_ids)
-                cropped_doc = doc_ids
+            # try:
+            #     valid_sents= (doc_ids == 0).nonzero()[0]
+            #     cropped_doc = doc_ids[:valid_sents]
+            # except:
+            #     valid_sents = len(doc_ids)
+            #     cropped_doc = doc_ids
+
+# TODO: next debugging
+
+            no_valid_sents = list_valid_sents[ide]
+            cropped_doc = doc_ids[no_valid_sents]
 
             """"calculating node features"""
             sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
