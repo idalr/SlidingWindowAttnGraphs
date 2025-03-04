@@ -102,7 +102,7 @@ class AttentionGraphs(Dataset):
                                                                                     with_filtering=True, 
                                                                                     filtering_type=self.filter_type)
         else:
-            filtered_matrices, total_nodes, total_edges, _ = filtering_matrices(self.input_matrices, all_article_identifiers,
+            filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,
                                                                              list_valid_sents, degree_std=self.K,
                                                                              with_filtering=False)
 
@@ -149,7 +149,6 @@ class AttentionGraphs(Dataset):
             orig_source_list = []
             orig_target_list = []
             edge_attrs = []
-            # TODO: next debugging
             for i in range(len(filtered)):
                 for j in range(len(filtered)):
                     if filtered[i,j]!=0 and i!=j: #no self loops
