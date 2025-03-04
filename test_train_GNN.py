@@ -139,9 +139,9 @@ def main_run(config_file , settings_file):
         max_len = max(sent_lengths)  # Maximum number of sentences in a document
 
         ############################################################################# mini run
-        df_full_train = df_full_train.head(50)
-        df_test = df_test.head(50)
-        sent_lengths = sent_lengths[:50]
+        # df_full_train = df_full_train.head(50)
+        # df_test = df_test.head(50)
+        # sent_lengths = sent_lengths[:50]
         # sent_lengths_test = sent_lengths_test[:50]
         ############################################################################# mini run
 
@@ -215,7 +215,8 @@ def main_run(config_file , settings_file):
             if type_graph=="full":
                 filter_type=None
             else:
-                filter_type=type_graph
+                pass
+                # filter_type=type_graph
 
             start_creation = time.time()
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t, 
@@ -228,13 +229,14 @@ def main_run(config_file , settings_file):
 
         #### save creation time + base model results in file_results
         if config_file["baseline"]:
-            with open(file_results+'.txt', 'a') as f:
-                print ("================================================", file=f)
-                print ("Graph Creation Time:", model_name, file=f)
-                print ("================================================", file=f)
-                print ("[TRAIN] Dataset creation time: ", creation_train, file=f)    
-                print ("[TEST] Dataset creation time: ", creation_test, file=f)  
-                f.close()                     
+            pass
+            # with open(file_results+'.txt', 'a') as f:
+            #     print ("================================================", file=f)
+            #     print ("Graph Creation Time:", model_name, file=f)
+            #     print ("================================================", file=f)
+            #     print ("[TRAIN] Dataset creation time: ", creation_train, file=f)
+            #     print ("[TEST] Dataset creation time: ", creation_test, file=f)
+            #     f.close()
 
         else:
             with open(file_results+'.txt', 'a') as f:
@@ -294,36 +296,35 @@ def main_run(config_file , settings_file):
                     
                     if type_model=="GAT":
                         model = GAT_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)    
-                                         
-                    elif type_model=="GCN":  
-                        model = GCN_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)  
-                    
-                    else: 
-                        print ("Type of GNN model not supported: No GNN was intended")                      
-                        return                    
+                    #
+                    # elif type_model=="GCN":
+                    #     model = GCN_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)
+                    #
+                    # else:
+                    #     print ("Type of GNN model not supported: No GNN was intended")
+                    #     return
                     
                     early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
 
                     path_for_savings = path_models+type_model+graph_construction # if config_file["baseline"] else path_models+type_model
 
                     if config_file["normalized"]:
-                        checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings, 
-                                                              filename=type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_norm_run"+str(i)+"-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
-                        wandb_logger = WandbLogger(name=model_name+'2'+type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_norm_run"+str(i), save_dir=path_for_savings+"_norm", project=project_name)
-                    
+                        pass
+                        # checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings,
+                        #                                       filename=type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_norm_run"+str(i)+"-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
+                        # wandb_logger = WandbLogger(name=model_name+'2'+type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_norm_run"+str(i), save_dir=path_for_savings+"_norm", project=project_name)
+                        #
 
                     else:
                         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings, 
                                                               filename=type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_run"+str(i)+"-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
                         wandb_logger = WandbLogger(name=model_name+'2'+type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+graph_construction+"_run"+str(i), save_dir=path_for_savings, project=project_name)
 
-                    print(torch.cuda.is_available())
-
                     trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger, 
                                          **config_file["trainer_args"])
 
-                    train_loader, val_loader, test_loader = partitions(dataset, dataset_test, config_file["batch_size"])
-                    start = time.time()
+                    train_loader, val_loader, test_loader = partitions(dataset, dataset_test, bs=config_file["batch_size"])
+                    starti = time.time()
                     
                     trainer.fit(model, train_loader, val_loader)
 
