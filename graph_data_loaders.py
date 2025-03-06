@@ -9,64 +9,21 @@ from base_model import MHASummarizer_extended, MHASummarizer, retrieve_from_dict
 
 
 
-# class AttentionGraphs(Dataset):
-#     def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', degree=0, test=False, transform=None, normalized=False, pre_transform=None): #filename is df_raw del dataset
-#         ### df_train, df_test, max_len, batch_size tambien en init?
-#         """
-#         root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
-#         """
-#         self.test = test
-#         self.filename = filename #a crear post predict
-#         self.filter_type = filter_type
-#         self.K = degree
-#         self.input_matrices = input_matrices
-#         sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
-#         self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
-#         self.normalized = normalized
-#         super(AttentionGraphs, self).__init__(root, transform, pre_transform)
-
 class AttentionGraphs(Dataset):
-    def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', degree=0, test=False,
-                 transform=None, normalized=False, pre_transform=None):
+    def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', degree=0, test=False, transform=None, normalized=False, pre_transform=None): #filename is df_raw del dataset
+        ### df_train, df_test, max_len, batch_size tambien en init?
+        """
+        root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
+        """
         self.test = test
-        self.filename = filename
+        self.filename = filename #a crear post predict
         self.filter_type = filter_type
         self.K = degree
         self.input_matrices = input_matrices
-
-        # Ensure the root is an absolute path
-        self.root = os.path.abspath(root)
-        # Create the full path for the filename (relative to the root folder)
-        raw_folder_path = os.path.join(self.root, "raw")
-        self.filename = os.path.join(raw_folder_path, filename)
-        # Normalize paths to ensure correct separators on different OS (Windows/Unix)
-        self.filename = os.path.normpath(self.filename)
-
-        # Check if the raw folder exists
-        if not os.path.exists(raw_folder_path):
-            raise FileNotFoundError(f"Raw folder {raw_folder_path} not found!")
-        # Check if the file exists at the computed path
-        if not os.path.exists(self.filename):
-            raise FileNotFoundError(f"File {self.filename} not found!")
-
-        # Handling path for vocab_sentences.csv
-        if path_invert_vocab_sent:
-            vocab_sentences_path = os.path.join(path_invert_vocab_sent, "vocab_sentences.csv")
-        else:
-            # If path_invert_vocab_sent is empty, we look for the file in the same directory as `this.csv`
-            vocab_sentences_path = os.path.join(raw_folder_path, "vocab_sentences.csv")
-        # Normalize the vocab_sentences path
-        vocab_sentences_path = os.path.normpath(vocab_sentences_path)
-        # Read the CSV and process the data
-        if not os.path.exists(vocab_sentences_path):
-            raise FileNotFoundError(f"Vocab Sentences file not found at {vocab_sentences_path}")
-
-        sent_dict_disk = pd.read_csv(vocab_sentences_path)
-        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
+        self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
         self.normalized = normalized
-
-        # Call the superclass initialization
-        super(AttentionGraphs, self).__init__(self.root, transform, pre_transform)
+        super(AttentionGraphs, self).__init__(root, transform, pre_transform)
 
     @property
     def raw_file_names(self):
