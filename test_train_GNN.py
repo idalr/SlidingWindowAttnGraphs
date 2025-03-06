@@ -92,6 +92,11 @@ def main_run(config_file , settings_file):
     filename="post_predict_train_documents.csv"
     filename_test= "post_predict_test_documents.csv"
 
+    # TODO: problem with AttentionGraph
+    ## calling already processed files shouldn't need path/to/vocab, so none has to be passed, just have to call data in /processed/data.pt
+    ## if no processed files, then call the vocab and process data from /raw/data.csv
+    ## have to dig into torch_geometric.Dataset to properly define class property
+
     # # TODO: look at the current error, Line 78 : FileNotFoundError: [Errno 2] No such file or directory: 'vocab_sentences.csv'
     # try:
     #     if config_file["baseline"]:
@@ -112,8 +117,6 @@ def main_run(config_file , settings_file):
     #         print ("\n-- No class weights specificied --\n")
     #         calculated_cw = None
 
-    # TODO: look at the current error, Line 147 : OSError: Cannot save file into a non-existent directory: '\AttnGraphs_HND\Heuristic\order\raw'
-    # TODO: look at the current error, Line 75 : AttributeError: 'numpy.ndarray' object has no attribute 'split'
     # except:
     if config_file: # temperary, so no try-except at the moment!
         print ("Error loading dataset - No Graph Dataset found")
@@ -327,6 +330,8 @@ def main_run(config_file , settings_file):
                     starti = time.time()
                     
                     trainer.fit(model, train_loader, val_loader)
+
+                    # TODO: debug because val-f1-ma = 1.00
 
                     print ("\n----------- Run #"+str(i)+"-----------\n", file=f)   
                     print ("\nTraining stopped on epoch:", trainer.callbacks[0].stopped_epoch, file=f)
