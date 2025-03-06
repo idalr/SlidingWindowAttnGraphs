@@ -6,7 +6,7 @@ from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 from preprocess_data import load_data
 from base_model import MHAClassifier
-from eval_models import retrieve_parameters, eval_results, sw_not_filtering_matrices, sw_filtering_matrices
+from eval_models import retrieve_parameters, eval_results, filtering_matrices, sw_not_filtering_matrices, sw_filtering_matrices
 from data_loaders import create_loaders
 
 os.environ["CUDA_VISIBLE_DEVICES"]='0'
@@ -47,16 +47,16 @@ for i, doc in enumerate(df_test['article_text']):
 max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
 print ("max number of sentences in document:", max_len_test)
 
-# # mini run
-# df_full_train = df_full_train.head(50)
-# df_test = df_test.head(50)
-# sent_lengths = sent_lengths[:50]
-# sent_lengths_test = sent_lengths_test[:50]
+# mini run
+df_full_train = df_full_train.head(50)
+df_test = df_test.head(50)
+sent_lengths = sent_lengths[:50]
+sent_lengths_test = sent_lengths_test[:50]
 
 path_models = "/HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
-model_name= "Extended_NoTemp"
+model_name= "Extended_NoTemp_100" #"Extended_NoTemp"
 path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 loader_train, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_full_train, df_test, max_len, batch_size, with_val=False,
                                                                           tokenizer_from_scratch=False, path_ckpt=in_path)
@@ -71,37 +71,37 @@ print("Evaluating predictions...")
 acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
 acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
-path_root="/AttnGraphs_HND/"+model_name+"/Attention/full"
-path_dataset = path_root+"/raw/"
-
-filename="post_predict_train_documents.csv"
-filename_test= "post_predict_test_documents.csv"
-
-print ("\nCreating file for PyG dataset in:", path_dataset)
-post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
-
-for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
-    post_predict_train_docs.loc[len(post_predict_train_docs)] = {
-    "article_id": article_id.item(),
-    "label": label.item(),
-    "doc_as_ids": doc_as_ids.tolist()
-    }
-post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
-print ("Finished and saved in:", path_dataset+"post_predict_train_documents.csv")
-
-
-post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
-
-for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
-    post_predict_test_docs.loc[len(post_predict_test_docs)] = {
-    "article_id": article_id.item(),
-    "label": label.item(),
-    "doc_as_ids": doc_as_ids.tolist()
-    }
-post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
-print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
+# path_root="/AttnGraphs_HND/"+model_name+"/Attention/full"
+# path_dataset = path_root+"/raw/"
+#
+# filename="post_predict_train_documents.csv"
+# filename_test= "post_predict_test_documents.csv"
+#
+# print ("\nCreating file for PyG dataset in:", path_dataset)
+# post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+# post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
+#
+# for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
+#     post_predict_train_docs.loc[len(post_predict_train_docs)] = {
+#     "article_id": article_id.item(),
+#     "label": label.item(),
+#     "doc_as_ids": doc_as_ids.tolist()
+#     }
+# post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
+# print ("Finished and saved in:", path_dataset+"post_predict_train_documents.csv")
+#
+#
+# post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+# post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
+#
+# for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+#     post_predict_test_docs.loc[len(post_predict_test_docs)] = {
+#     "article_id": article_id.item(),
+#     "label": label.item(),
+#     "doc_as_ids": doc_as_ids.tolist()
+#     }
+# post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
+# print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
 
 print("Visualize attentions...")
 
@@ -121,17 +121,16 @@ filter_type = "mean"
 print(f'Filtering type: {filter_type}')
 
 # Train
-filtered_matrices, total_nodes, total_edges, deletions = sw_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
+filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
                                                                             df_full_train, print_samples=num_print,
                                                                             degree_std=std, with_filtering=filtering,
                                                                             filtering_type=filter_type, granularity=granularity)
 
 # Test
-filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = sw_filtering_matrices(full_attn_weights_test,
+filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,
                                                                                                 df_test, print_samples=num_print,
                                                                                                 degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-
 
 filter_type = "max"
 print(f'Filtering type: {filter_type}')
