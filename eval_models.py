@@ -64,6 +64,8 @@ def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode=
     return max, mean, std, min_value
 
 def get_window_mask(input_tensor, no_valid_sent, window=30):
+    # TODO: how to not rely on predefine-window size...maybe get the window size from the model?
+    ## or find the way to pass window size from somewhere else
     # for one 2-dim tensor
     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
     if no_valid_sent > 5: # cannot use pad value
@@ -75,7 +77,7 @@ def get_window_mask(input_tensor, no_valid_sent, window=30):
         window_mask = window_mask.to(device=input_tensor.device)
         return window_mask
     else:
-        return torch.zeros_like(input_tensor, dtype=torch.bool)
+        return torch.zeros_like(input_tensor, dtype=torch.bool) # no mask when window is larger than the cropped_matrix
 
 def get_sliding_window_threshold(input_tensor, window_mask, degree_std= 1, unbiased=True, type="mean", mode="local"):
 
@@ -217,6 +219,8 @@ def sw_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid
         elif filtering_type == 'max':
             alternative = "mean"
 
+        # TODO: sanity check, if window outputs are really applied correctly, and no other outputs appear
+
         # try:
         max_v, mean, std, threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
                                                                        type=filtering_type, mode=granularity)
@@ -230,6 +234,7 @@ def sw_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid
         #     print(doc_att)
         #     break
 
+        # TODO: check filtered_matrices if window is applied correctly - check that nothing outside the window would ever exceed threshold!
         if granularity == "local":
             filtered_matrix = torch.Tensor(cropped_matrix.size())
             other_filtered_matrix = torch.Tensor(cropped_matrix.size())
@@ -378,17 +383,17 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
 
         if printed<print_samples and len(cropped_matrix)>=10:
             print ("====================================")
-            try:
-                ide_article= all_article_identifiers[index].item()
-            except:
-                ide_article= all_article_identifiers[index]
+            # try:
+            ide_article= all_article_identifiers[index].item()
+            # except:
+            #     ide_article= all_article_identifiers[index]
 
             print ("\nDocument ID: ", ide_article, "-- #Sentences: ", list_valid_sents[index])
-            try:
-                print ("Source text:\n", df[df['article_id']==ide_article]['article_text'].values[0])
-            except:
-                source_text = clean_tokenization_sent(df[df['Article_ID']==ide_article]['Cleaned_Article'].values[0],"text")
-                print ("Source text:\n", source_text)
+            # try:
+            #     print ("Source text:\n", df[df['article_id']==ide_article]['article_text'].values[0])
+            # except:
+            #     source_text = clean_tokenization_sent(df[df['Article_ID']==ide_article]['Cleaned_Article'].values[0],"text")
+            #     print ("Source text:\n", source_text)
                 # if len(source_text)!=list_valid_sents[index]:
                 #     print ("WARNING: Number of sentences in source text and attention weights do not match")
                 #     print ("Stopping evaluation...")
@@ -430,9 +435,9 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
                 axarr[3].set_title('Attention Weights Distribution')
                 axarr[3].axvline(mean.mean().cpu().numpy(), color='g', linestyle='-', label='Mean', lw=3)
                 # TODO: ask Margarita about this
-                ## this does not match get_threshold
-                ##  axarr[3].axvline(mean.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='r', linestyle='--', label='Mean filter', lw=3)
-                ##  axarr[3].axvline(max_v.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='c', linestyle='--', label='Max filter', lw=3)
+                ## this does not match calucation in get_threshold
+                axarr[3].axvline(mean.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='r', linestyle='--', label='Mean filter', lw=3)
+                axarr[3].axvline(max_v.mean().cpu().numpy()- degree_std* std.mean().cpu().numpy(), color='c', linestyle='--', label='Max filter', lw=3)
                 axarr[3].legend()
                 plt.show()
 

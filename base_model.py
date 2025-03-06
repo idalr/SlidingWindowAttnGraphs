@@ -73,7 +73,7 @@ class MultiHeadSelfAttention(nn.Module):
 
 
 class SlidingWindowMultiHeadSelfAttention(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads, window_size=30, temperature=1, dropout=0.0, activation_attention="softmax"):
+    def __init__(self, input_dim, embed_dim, num_heads, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
         super().__init__()
         assert embed_dim % num_heads == 0, "Embedding dimension must be 0 module wrt the number of heads."
 
@@ -189,13 +189,13 @@ class Classifier_Lighting(pl.LightningModule):
 
 
 class MHAClassifier(Classifier_Lighting):
-    def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, 
+    def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, window,
                  intermediate=False, num_heads=4, dropout=False, class_weights=[],
                  temperature_scheduler=None, temperature_step=None, attn_dropout=0.0,
-                 path_invert_vocab_sent = "", activation_attention="softmax",
-                 window=30):
+                 path_invert_vocab_sent = "", activation_attention="softmax"):
         #print ("Creating Classifier Model")
         super(MHAClassifier, self).__init__()
+        self.window = window
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
@@ -204,7 +204,7 @@ class MHAClassifier(Classifier_Lighting):
         # sliding window MHA
         if window:
             self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
-                                                                 embed_dim, num_heads, window_size=30, temperature=1,
+                                                                 embed_dim, num_heads, window_size=self.window, temperature=1,
                                                                  dropout=attn_dropout, activation_attention=activation_attention)
         # full MHA
         else:
