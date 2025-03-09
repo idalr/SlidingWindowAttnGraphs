@@ -42,9 +42,19 @@ class AttentionGraphs_debug(Dataset):
         self.filter_type = filter_type
         self.K = degree
         self.input_matrices = input_matrices
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
-        self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
+        if path_invert_vocab_sent:
+            sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
+            self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
         self.normalized = normalized
+
+        # # Ensure the root is an absolute path
+        self.root = os.path.abspath(root)
+        # # Create the full path for the filename (relative to the root folder)
+        raw_folder_path = os.path.join(self.root, "raw")
+        self.filename = os.path.join(raw_folder_path, filename)
+        # # Normalize paths to ensure correct separators on different OS (Windows/Unix)
+        self.filename = os.path.normpath(self.filename)
+
         super(AttentionGraphs_debug, self).__init__(root, transform, pre_transform)
 
     # TODO: also explore relative dir
@@ -99,12 +109,14 @@ class AttentionGraphs_debug(Dataset):
     @property
     def raw_file_names(self):
         """ If this file exists in raw_dir, the download is not triggered. """
+        """ list of files in the raw_dir which needs to be found in order to skip the download."""
         return self.filename  # +".csv"
 
 
     @property
     def processed_file_names(self):
         """ If these files are found in raw_dir, processing is skipped"""
+        """A list of files in the processed_dir which needs to be found in order to skip the processing."""
         self.data = pd.read_csv(self.raw_paths[0]).reset_index()
 
         if self.test:
@@ -297,8 +309,9 @@ filename_test= "post_predict_test_documents.csv"
 ################ try
 # TODO: look at the current error
 ##  FileNotFoundError: [Errno 2] No such file or directory: 'vocab_sentences.csv'
-###dataset = AttentionGraphs_debug(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)
-###dataset_test = AttentionGraphs_debug(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
+dataset = AttentionGraphs_debug(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)
+dataset_test = AttentionGraphs_debug(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
+print("Processed Data is called.")
 
 ################ except
 print ("Type graph:", type_graph)

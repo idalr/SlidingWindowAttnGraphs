@@ -20,19 +20,32 @@ class AttentionGraphs(Dataset):
         self.filter_type = filter_type
         self.K = degree
         self.input_matrices = input_matrices
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
-        self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
+        if path_invert_vocab_sent:
+            sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
+            self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
         self.normalized = normalized
+
+        # Ensure the root is an absolute path
+        self.root = os.path.abspath(root)
+        # Create the full path for the filename (relative to the root folder)
+        raw_folder_path = os.path.join(self.root, "raw")
+        self.filename = os.path.join(raw_folder_path, filename)
+        # Normalize paths to ensure correct separators on different OS (Windows/Unix)
+        self.filename = os.path.normpath(self.filename)
+
         super(AttentionGraphs, self).__init__(root, transform, pre_transform)
 
     @property
     def raw_file_names(self):
         """ If this file exists in raw_dir, the download is not triggered. """
-        return self.filename #+".csv"
+        """ list of files in the raw_dir which needs to be found in order to skip the download."""
+        return self.filename  # +".csv"
+
 
     @property
     def processed_file_names(self):
         """ If these files are found in raw_dir, processing is skipped"""
+        """A list of files in the processed_dir which needs to be found in order to skip the processing."""
         self.data = pd.read_csv(self.raw_paths[0]).reset_index()
 
         if self.test:
@@ -45,7 +58,7 @@ class AttentionGraphs(Dataset):
         pass
 
     def process(self):
-        self.data = pd.read_csv(self.raw_paths[0]).reset_index() 
+        self.data = pd.read_csv(self.raw_paths[0]).reset_index()
         all_doc_as_ids = self.data['doc_as_ids'].apply(pd.eval)
         all_labels = self.data['label']
         all_article_identifiers = self.data['article_id']
@@ -56,34 +69,26 @@ class AttentionGraphs(Dataset):
             filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(self.input_matrices,
                                                                                     all_article_identifiers,
                                                                                     list_valid_sents, degree_std=self.K,
-                                                                                    with_filtering=True, 
+                                                                                    with_filtering=True,
                                                                                     filtering_type=self.filter_type)
         else:
             filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,
-                                                                             list_valid_sents, degree_std=self.K,
-                                                                             with_filtering=False)
-
+                                                                         list_valid_sents, degree_std=self.K,
+                                                                         with_filtering=False)
 
         if self.test:
-            print ("[Test] Creating Graphs Objects...")
-        else: 
-            print ("[Train] Creating Graphs Objects...")
+            print("[Test] Creating Graphs Objects...")
+        else:
+            print("[Train] Creating Graphs Objects...")
 
-        ide=0
+        ide = 0
         for doc_ids, filtered, label in tqdm(zip(all_doc_as_ids, filtered_matrices, all_labels), total=len(all_doc_as_ids)):
 
             # doc_ids= [int(element) for element in doc_ids[1:-1].split(",")]
             # TODO: ask Margarita about this
             ## doc_ids= [element for element in doc_ids[1:-1]] # would lose its first token!
-            doc_ids = [element for element in doc_ids if element != 0] # array to list
-            doc_ids= torch.tensor(doc_ids) # list to tensor
-
-            # try:
-            #     valid_sents= (doc_ids == 0).nonzero()[0]
-            #     cropped_doc = doc_ids[:valid_sents]
-            # except:
-            #     valid_sents = len(doc_ids)
-            #     cropped_doc = doc_ids
+            doc_ids = [element for element in doc_ids if element != 0]  # array to list
+            doc_ids = torch.tensor(doc_ids)  # list to tensor
 
             no_valid_sents = list_valid_sents[ide]
             cropped_doc = doc_ids[:no_valid_sents]
@@ -92,14 +97,14 @@ class AttentionGraphs(Dataset):
             sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
             for name, param in sent_model.named_parameters():
                 param.requires_grad = False
-                
-            node_fea=[]
+
+            node_fea = []
             for sent in cropped_doc:
                 node_fea.append(sent_model.encode(self.invert_vocab_sent[sent.item()]))
 
             """"calculating edges"""
-            #for id in cropped_doc:
-            match_ids = {k: v.item() for k, v in zip(range(len(filtered)),cropped_doc)}
+            # for id in cropped_doc:
+            match_ids = {k: v.item() for k, v in zip(range(len(filtered)), cropped_doc)}
 
             source_list = []
             target_list = []
@@ -108,22 +113,21 @@ class AttentionGraphs(Dataset):
             edge_attrs = []
             for i in range(len(filtered)):
                 for j in range(len(filtered)):
-                    if filtered[i,j]!=0 and i!=j: #no self loops
+                    if filtered[i, j] != 0 and i != j:  # no self loops
                         orig_source_list.append(match_ids[i])
                         orig_target_list.append(match_ids[j])
-                        source_list.append(i) #requires int from 0 to len
-                        target_list.append(j) #requires int from 0 to len
-                        edge_attrs.append(filtered[i,j].item())  # attention weight -- as calculated by trained model -- TRY NORMALIZATION
+                        source_list.append(i)  # requires int from 0 to len
+                        target_list.append(j)  # requires int from 0 to len
+                        edge_attrs.append(filtered[i, j].item())  # attention weight -- as calculated by trained model -- TRY NORMALIZATION
 
-            
-            #reverse edges for all heuristics            
-            final_source = source_list+target_list
-            final_target = target_list+source_list
-            indexes=[final_source,final_target]       
-            edge_attrs = edge_attrs+edge_attrs ### for reverse edge attributes (same weight - simetric matrix)     
-            #indexes=[source_list,target_list]
+            # reverse edges for all heuristics
+            final_source = source_list + target_list
+            final_target = target_list + source_list
+            indexes = [final_source, final_target]
+            edge_attrs = edge_attrs + edge_attrs  ### for reverse edge attributes (same weight - simetric matrix)
+            # indexes=[source_list,target_list]
 
-            all_indexes=torch.tensor(indexes).long()
+            all_indexes = torch.tensor(indexes).long()
             edge_attrs = torch.tensor(edge_attrs).float()
 
             if self.normalized:
@@ -139,31 +143,29 @@ class AttentionGraphs(Dataset):
                     print ("all_indexes", all_indexes.shape[1])
                 """
                 if all_indexes.shape[1] != 0:
-                    num_sent= torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
+                    num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
                     adj_matrix = torch.zeros(num_sent, num_sent)
                     for i in range(len(all_indexes[0])):
                         adj_matrix[all_indexes[0][i], all_indexes[1][i]] = edge_attrs[i]
                     for row in range(len(adj_matrix)):
-                        adj_matrix[row] = adj_matrix[row]/adj_matrix[row].max()
+                        adj_matrix[row] = adj_matrix[row] / adj_matrix[row].max()
 
                     temp = adj_matrix.reshape(-1)
                     edge_attrs = temp[temp.nonzero()].reshape(-1)
 
-            else:
-                pass
+                else:
+                    pass
 
-            node_fea=torch.tensor(node_fea).float() 
+            node_fea = torch.tensor(node_fea).float()
             generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=edge_attrs, y=torch.tensor(label).int())
             generated_data.article_id = torch.tensor(all_article_identifiers[ide])
-            generated_data.orig_edge_index = torch.tensor([orig_source_list,orig_target_list]).long()
-            
+            generated_data.orig_edge_index = torch.tensor([orig_source_list, orig_target_list]).long()
+
             if self.test:
                 torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
             else:
                 torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
-            
-            ide+=1
-
+            ide += 1
 
     def len(self):
         return self.data.shape[0]   ##tamaño del dataset
@@ -171,14 +173,12 @@ class AttentionGraphs(Dataset):
     def get(self, idx):
         """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
         if self.test:
-            data = torch.load(os.path.join(self.processed_dir, 
+            data = torch.load(os.path.join(self.processed_dir,
                                  f'data_test_{idx}.pt'))
         else:
-            data = torch.load(os.path.join(self.processed_dir, 
-                                 f'data_{idx}.pt'))        
+            data = torch.load(os.path.join(self.processed_dir,
+                                 f'data_{idx}.pt'))
         return data
-    
-
 
 
 
