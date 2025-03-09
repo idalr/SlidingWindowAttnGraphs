@@ -33,7 +33,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def main_run(config_file , settings_file):
     os.environ["CUDA_VISIBLE_DEVICES"]= "0" #config_file["cuda_visible_devices"]
     logger_name = "df_logger_cw.csv" # config_file["logger_name"] #"df_logger_cw.csv"
-    model_name = "Extended_NoTemp" # config_file["model_name"]  #Extended_Anneal
+    model_name = "Extended_NoTemp_100" # config_file["model_name"]  #Extended_Anneal
     type_model = "GAT" # config_file["type_model"] #GAT or GCN
 
     root_graph = "AttnGraphs_HND/" # config_file["data_paths"]["root_graph_dataset"] #"/scratch/datasets/AttnGraphs_HND/"
@@ -97,60 +97,19 @@ def main_run(config_file , settings_file):
     ## if no processed files, then call the vocab and process data from /raw/data.csv
     ## have to dig into torch_geometric.Dataset to properly define class property
 
-    # # TODO: look at the current error, Line 78 : FileNotFoundError: [Errno 2] No such file or directory: 'vocab_sentences.csv'
-    # try:
-    #     if config_file["baseline"]:
-    #         pass
-    #         # dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='')
-    #         # dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic, path_invert_vocab_sent='', test=True)
-    #     else:
-    #         dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)
-    #         dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
-    #
-    #     df_full_train, _ = load_data(**config_file["load_data_paths"])
-    #     if config_file["with_cw"]:
-    #         my_class_weights, labels_counter = get_class_weights(df_full_train)
-    #         calculated_cw = my_class_weights
-    #         print ("\nClass weights - from training partition:", my_class_weights)
-    #         print ("Class counter:", labels_counter)
-    #     else:
-    #         print ("\n-- No class weights specificied --\n")
-    #         calculated_cw = None
-
-    # except:
-    if config_file: # temperary, so no try-except at the moment!
-        print ("Error loading dataset - No Graph Dataset found")
-        print ("\nCreating new dataset from pre-trained MHA model")
-        print ("Pre-trained model:", model_name)
+    try:
         if config_file["baseline"]:
             pass
-            # print ("Heuristic:", heuristic)
-        else: 
-            print ("Type graph:", type_graph)
+            # dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='')
+            # dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic, path_invert_vocab_sent='', test=True)
+        else:
+            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)
+            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
 
-        print ("Root graph:", path_root)
-        
-        print ("Loading data...")
-        df_full_train, df_test = load_data(**config_file["load_data_paths"])
+            # Cause error, in order to test if Exception also runs
+            error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
 
-        sent_lengths=[]
-        for i, doc in enumerate(df_full_train['article_text']):
-            sent_in_doc = sent_tokenize(doc)
-            if len(sent_in_doc)==0:
-                print ("Empty doc en:", i)
-            sent_lengths.append(len(sent_in_doc))
-        max_len = max(sent_lengths)  # Maximum number of sentences in a document
-
-        ############################################################################# mini run
-        # df_full_train = df_full_train.head(50)
-        # df_test = df_test.head(50)
-        # sent_lengths = sent_lengths[:50]
-        # sent_lengths_test = sent_lengths_test[:50]
-        ############################################################################# mini run
-
-        loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
-                                                                                               tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-        
+        df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
             my_class_weights, labels_counter = get_class_weights(df_full_train)
             calculated_cw = my_class_weights
@@ -160,103 +119,145 @@ def main_run(config_file , settings_file):
             print ("\n-- No class weights specificied --\n")
             calculated_cw = None
 
-        if config_file["baseline"]:
-            model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
-        else:
-            print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
-            model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
-            print ("Done")
-
-        preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
-        preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
-
-        print("Done with predicting")
-        
-        if not config_file["baseline"]:
-            acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
-            acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test") 
-
-        path_dataset = path_root+"/raw/"
-
-        print ("\nCreating files for PyG dataset in:", path_dataset)
-
-        post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-        post_predict_train_docs.to_csv(path_dataset+filename, index=False)
-        for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
-            post_predict_train_docs.loc[len(post_predict_train_docs)] = {
-            "article_id": article_id.item(),
-            "label": label.item(), 
-            "doc_as_ids": doc_as_ids.tolist()
-            }
-        post_predict_train_docs.to_csv(path_dataset+filename, index=False)
-        print ("Finished and saved in:", path_dataset+filename)
-
-        post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-        post_predict_test_docs.to_csv(path_dataset+filename_test, index=False)
-        for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
-            post_predict_test_docs.loc[len(post_predict_test_docs)] = {
-            "article_id": article_id.item(),
-            "label": label.item(), 
-            "doc_as_ids": doc_as_ids.tolist()
-            }
-        post_predict_test_docs.to_csv(path_dataset+filename_test, index=False)
-        print ("Finished and saved in:", path_dataset+filename_test)
-
-        #### create data.pt 
-        if config_file["baseline"]:
-            pass
-            # start_creation = time.time()
-            # dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic,
-            #                           path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], test=False)
-            # creation_train = time.time()-start_creation
-            # start_creation = time.time()
-            # dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic,
-            #                                path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], test=True)
-            # creation_test = time.time()-start_creation
-
-        else:    
-            if type_graph=="full":
-                filter_type=None
-            else:
+    except:
+        if config_file: # temperary, so no try-except at the moment!
+            print ("Error loading dataset - No Graph Dataset found")
+            print ("\nCreating new dataset from pre-trained MHA model")
+            print ("Pre-trained model:", model_name)
+            if config_file["baseline"]:
                 pass
-                # filter_type=type_graph
+            # print ("Heuristic:", heuristic)
+            else:
+                print ("Type graph:", type_graph)
 
-            start_creation = time.time()
-            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t, 
+            print ("Root graph:", path_root)
+        
+            print ("Loading data...")
+            df_full_train, df_test = load_data(**config_file["load_data_paths"])
+
+            sent_lengths=[]
+            for i, doc in enumerate(df_full_train['article_text']):
+                sent_in_doc = sent_tokenize(doc)
+                if len(sent_in_doc)==0:
+                    print ("Empty doc en:", i)
+                sent_lengths.append(len(sent_in_doc))
+            max_len = max(sent_lengths)  # Maximum number of sentences in a document
+
+            ############################################################################# mini run
+            df_full_train = df_full_train.head(50)
+            df_test = df_test.head(50)
+            sent_lengths = sent_lengths[:50]
+            ############################################################################# mini run
+
+            loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
+                                                                                               tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
+        
+            if config_file["with_cw"]:
+                my_class_weights, labels_counter = get_class_weights(df_full_train)
+                calculated_cw = my_class_weights
+                print ("\nClass weights - from training partition:", my_class_weights)
+                print ("Class counter:", labels_counter)
+            else:
+                print ("\n-- No class weights specificied --\n")
+                calculated_cw = None
+
+            if config_file["baseline"]:
+                model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+            else:
+                print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
+                model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+                print ("Done")
+
+            preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
+            preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
+
+            print("Done with predicting")
+        
+            if not config_file["baseline"]:
+                acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
+                acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
+
+            path_dataset = path_root+"/raw/"
+
+            print ("\nCreating files for PyG dataset in:", path_dataset)
+
+            post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+            post_predict_train_docs.to_csv(path_dataset+filename, index=False)
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
+                post_predict_train_docs.loc[len(post_predict_train_docs)] = {
+                "article_id": article_id.item(),
+                "label": label.item(),
+                "doc_as_ids": doc_as_ids.tolist()
+                }
+            post_predict_train_docs.to_csv(path_dataset+filename, index=False)
+            print ("Finished and saved in:", path_dataset+filename)
+
+            post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+            post_predict_test_docs.to_csv(path_dataset+filename_test, index=False)
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+                post_predict_test_docs.loc[len(post_predict_test_docs)] = {
+                "article_id": article_id.item(),
+                "label": label.item(),
+                "doc_as_ids": doc_as_ids.tolist()
+                }
+            post_predict_test_docs.to_csv(path_dataset+filename_test, index=False)
+            print ("Finished and saved in:", path_dataset+filename_test)
+
+            #### create data.pt
+            if config_file["baseline"]:
+                pass
+                # start_creation = time.time()
+                # dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic,
+                #                           path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], test=False)
+                # creation_train = time.time()-start_creation
+                # start_creation = time.time()
+                # dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic,
+                #                                path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], test=True)
+                # creation_test = time.time()-start_creation
+
+            else:
+                if type_graph=="full":
+                    filter_type=None
+                else:
+                    pass
+                    # filter_type=type_graph
+
+                start_creation = time.time()
+                dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t,
                                       path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], degree=0.5, normalized=config_file["normalized"], test=False) 
-            creation_train = time.time()-start_creation
-            start_creation = time.time()
-            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test, 
+                creation_train = time.time()-start_creation
+                start_creation = time.time()
+                dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test,
                                            path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], degree=0.5, normalized=config_file["normalized"], test=True)
-            creation_test = time.time()-start_creation
+                creation_test = time.time()-start_creation
 
-        #### save creation time + base model results in file_results
-        if config_file["baseline"]:
-            pass
-            # with open(file_results+'.txt', 'a') as f:
-            #     print ("================================================", file=f)
-            #     print ("Graph Creation Time:", model_name, file=f)
-            #     print ("================================================", file=f)
-            #     print ("[TRAIN] Dataset creation time: ", creation_train, file=f)
-            #     print ("[TEST] Dataset creation time: ", creation_test, file=f)
-            #     f.close()
+            #### save creation time + base model results in file_results
+            if config_file["baseline"]:
+                pass
+                # with open(file_results+'.txt', 'a') as f:
+                #     print ("================================================", file=f)
+                #     print ("Graph Creation Time:", model_name, file=f)
+                #     print ("================================================", file=f)
+                #     print ("[TRAIN] Dataset creation time: ", creation_train, file=f)
+                #     print ("[TEST] Dataset creation time: ", creation_test, file=f)
+                #     f.close()
 
-        else:
-            with open(file_results+'.txt', 'a') as f:
-                print ("================================================", file=f)
-                print ("Evaluation of pre-trained model:", model_name, file=f)
-                print ("================================================", file=f)
-                print ("[TRAIN] Acc:", acc_t.item(), file=f)
-                print ("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
-                print ("[TRAIN] F1-scores:", f1_all_t, file=f)
-                print ("------------------------", file=f)
-                print ("[TEST] Acc:", acc_test.item(), file=f)
-                print ("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
-                print ("[TEST] F1-scores:", f1_all_test, file=f)
-                print ("================================================", file=f)
-                print ("[TRAIN] Dataset creation time: ", creation_train, file=f)    
-                print ("[TEST] Dataset creation time: ", creation_test, file=f)  
-                f.close()                                   
+            else:
+                with open(file_results+'.txt', 'a') as f:
+                    print ("================================================", file=f)
+                    print ("Evaluation of pre-trained model:", model_name, file=f)
+                    print ("================================================", file=f)
+                    print ("[TRAIN] Acc:", acc_t.item(), file=f)
+                    print ("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
+                    print ("[TRAIN] F1-scores:", f1_all_t, file=f)
+                    print ("------------------------", file=f)
+                    print ("[TEST] Acc:", acc_test.item(), file=f)
+                    print ("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
+                    print ("[TEST] F1-scores:", f1_all_test, file=f)
+                    print ("================================================", file=f)
+                    print ("[TRAIN] Dataset creation time: ", creation_train, file=f)
+                    print ("[TEST] Dataset creation time: ", creation_test, file=f)
+                    f.close()
 
     ### Run GNN models
     start = time.time()
