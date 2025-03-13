@@ -52,19 +52,19 @@ def main_run(config_file , settings_file):
         os.makedirs(path_logger)  # Creates the folder
         print(f"Folder '{path_logger}' created.")
 
-    num_classes = 2 # config_file["model_arch_args"]["num_classes"]
-    lr= 0.001 # config_file["model_arch_args"]["lr"]
-    dropout= 0.2# config_file["model_arch_args"]["dropout"]#0.2
-    dim_features = [64] # config_file["model_arch_args"]["dim_features"]#[128, 256]
-    n_layers = [2] # config_file["model_arch_args"]["n_layers"] #[1, 2]
-    num_runs = 1 # config_file["model_arch_args"]["num_runs"] #5
+    num_classes = config_file["model_arch_args"]["num_classes"]
+    lr= config_file["model_arch_args"]["lr"]
+    dropout= config_file["model_arch_args"]["dropout"]#0.2
+    dim_features = config_file["model_arch_args"]["dim_features"]#[128, 256]
+    n_layers = config_file["model_arch_args"]["n_layers"] #[1, 2]
+    num_runs = config_file["model_arch_args"]["num_runs"] #5
     
     df_logger = pd.read_csv(path_logger+logger_name)    
 
     # if model_name=="Extended_Sigmoid":
     #     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger, require_best=False, retrieve_index=18)
     # else:
-    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+    path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
     
     
     if config_file["baseline"]:
@@ -76,7 +76,7 @@ def main_run(config_file , settings_file):
     #     path_models = path_logger+"Heuristic/"
     else:
         file_to_save = model_name+"_"+str(model_score)[:5]
-        type_graph = "full" #config_file["type_graph"] #full, mean, max
+        type_graph = config_file["type_graph"] #full, mean, max
         path_models = path_logger+model_name+"/"
         
         if config_file["normalized"]:
@@ -85,7 +85,7 @@ def main_run(config_file , settings_file):
             # project_name= model_name+"2"+type_model+"_"+type_graph+"_norm"
             # file_results = path_results+file_to_save+"_2"+type_model+"_"+type_graph+"_norm"
         else: 
-            path_root= os.path.join(root_graph, model_name, "Attention", type_graph) #root_graph+model_name+"/Attention/"+type_graph
+            path_root= os.path.join(root_graph, model_name, type_graph) #root_graph+model_name+"/Attention/"+type_graph
             project_name= model_name+"2"+type_model+"_"+type_graph
             file_results = path_results+file_to_save+"_2"+type_model+"_"+type_graph
             
@@ -98,11 +98,11 @@ def main_run(config_file , settings_file):
             # dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='')
             # dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic, path_invert_vocab_sent='', test=True)
         else:
-            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)
-            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
+            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=False)
+            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
 
             # Cause error, in order to test if Exception also runs
-            ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
+            error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
 
         df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
@@ -139,9 +139,8 @@ def main_run(config_file , settings_file):
             max_len = max(sent_lengths)  # Maximum number of sentences in a document
 
             ############################################################################# mini run
-            df_full_train = df_full_train.head(50)
-            df_test = df_test.head(50)
-            sent_lengths = sent_lengths[:50]
+            ###df_full_train = df_full_train.head(50)
+            ###df_test = df_test.head(50)
             ############################################################################# mini run
 
             loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
@@ -214,16 +213,15 @@ def main_run(config_file , settings_file):
                 if type_graph=="full":
                     filter_type=None
                 else:
-                    pass
-                    # filter_type=type_graph
+                    filter_type=type_graph
 
                 start_creation = time.time()
                 dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t,
-                                      path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], degree=0.5, normalized=config_file["normalized"], test=False) 
+                                      path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], window=model_window, degree=0.5, normalized=config_file["normalized"], test=False)
                 creation_train = time.time()-start_creation
                 start_creation = time.time()
                 dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test,
-                                           path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], degree=0.5, normalized=config_file["normalized"], test=True)
+                                           path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], window=model_window, degree=0.5, normalized=config_file["normalized"], test=True)
                 creation_test = time.time()-start_creation
 
             #### save creation time + base model results in file_results
@@ -327,7 +325,7 @@ def main_run(config_file , settings_file):
                     
                     trainer.fit(model, train_loader, val_loader)
 
-                    # TODO: debug because val-f1-ma = 1.00
+                    # TODO: val-f1-ma is a bit strange, still
 
                     print ("\n----------- Run #"+str(i)+"-----------\n", file=f)   
                     print ("\nTraining stopped on epoch:", trainer.callbacks[0].stopped_epoch, file=f)

@@ -27,9 +27,9 @@ def retrieve_parameters(model_name, df_logger, with_temperature=False, require_b
         best_model_ckpt = subset_df.loc[retrieve_index]['Path']
 
     if with_temperature:
-        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Temperature']
+        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Temperature'], subset_df.loc[retrieve_index]['Window percent']
     else:
-        return best_model_ckpt, subset_df.loc[retrieve_index]['Score']
+        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Window percent']
         
 
 def eval_results(preds, all_labels, num_classes, partition, print_results=True):
@@ -63,7 +63,7 @@ def get_threshold(input_tensor, degree_std= 1, unbiased=True, type="mean", mode=
         
     return max, mean, std, min_value
 
-def get_window_mask(input_tensor, no_valid_sent, window=30):
+def get_window_mask(input_tensor, no_valid_sent, window):
     # TODO: how to not rely on predefine-window size...maybe get the window size from the model?
     ## or find the way to pass window size from somewhere else
     # for one 2-dim tensor
@@ -194,7 +194,7 @@ def sw_not_filtering_matrices(full_attn_weights, all_article_identifiers, list_v
     return cropped_matrices, total_nodes, total_edges
 
 
-def sw_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, df=None, print_samples=0,
+def sw_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, window, df=None, print_samples=0,
                        degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local", color='magma'):
 
     print("\nFiltering Attention Weights based on Max/Mean and Std Deviation")
@@ -211,7 +211,8 @@ def sw_filtering_matrices(full_attn_weights, all_article_identifiers, list_valid
         cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
         cropped_matrices.append(cropped_matrix)
 
-        window_mask = get_window_mask(cropped_matrix, list_valid_sents[index])
+        # TODO: add % window_size as arg
+        window_mask = get_window_mask(cropped_matrix, list_valid_sents[index], window)
 
         # get alternative filtering
         if filtering_type == "mean":

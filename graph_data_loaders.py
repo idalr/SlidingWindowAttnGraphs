@@ -10,7 +10,7 @@ from base_model import MHASummarizer_extended, MHASummarizer, retrieve_from_dict
 
 
 class AttentionGraphs(Dataset):
-    def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', degree=0, test=False, transform=None, normalized=False, pre_transform=None): #filename is df_raw del dataset
+    def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', window='', degree=0, test=False, transform=None, normalized=False, pre_transform=None): #filename is df_raw del dataset
         ### df_train, df_test, max_len, batch_size tambien en init?
         """
         root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
@@ -23,6 +23,7 @@ class AttentionGraphs(Dataset):
         if path_invert_vocab_sent:
             sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
             self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
+        self.window = window
         self.normalized = normalized
 
         # Ensure the root is an absolute path
@@ -68,12 +69,12 @@ class AttentionGraphs(Dataset):
         if self.filter_type is not None:
             filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(self.input_matrices,
                                                                                     all_article_identifiers,
-                                                                                    list_valid_sents, degree_std=self.K,
+                                                                                    list_valid_sents, self.window, degree_std=self.K,
                                                                                     with_filtering=True,
                                                                                     filtering_type=self.filter_type)
         else:
             filtered_matrices, total_nodes, total_edges = filtering_matrices(self.input_matrices, all_article_identifiers,
-                                                                         list_valid_sents, degree_std=self.K,
+                                                                         list_valid_sents, self.window, degree_std=self.K,
                                                                          with_filtering=False)
 
         if self.test:

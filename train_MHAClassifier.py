@@ -124,6 +124,7 @@ def main_run(config_file , settings_file):
             "Setting":settings_file,
             "Stop epoch": stopped_on,
             "Temperature": model_lightning.temperature,
+            "Window percent": model_lightning.window,
             "Training_time": train_time,
             "Total_time": total_time        
             }
