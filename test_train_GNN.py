@@ -31,10 +31,10 @@ from torchmetrics import F1Score
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 def main_run(config_file , settings_file):
-    os.environ["CUDA_VISIBLE_DEVICES"]= "0" #config_file["cuda_visible_devices"]
-    logger_name = "df_logger_cw.csv" # config_file["logger_name"] #"df_logger_cw.csv"
-    model_name = "Extended_NoTemp_100" # config_file["model_name"]  #Extended_Anneal
-    type_model = "GAT" # config_file["type_model"] #GAT or GCN
+    os.environ["CUDA_VISIBLE_DEVICES"]= config_file["cuda_visible_devices"]
+    logger_name = config_file["logger_name"] #"df_logger_cw.csv"
+    model_name = config_file["model_name"]  #Extended_Anneal
+    type_model = config_file["type_model"] #GAT or GCN
 
     root_graph = "AttnGraphs_HND/" # config_file["data_paths"]["root_graph_dataset"] #"/scratch/datasets/AttnGraphs_HND/"
     path_results = "AttGraphs/GNN_Results/" # config_file["data_paths"]["results_folder"] #"/home/mbugueno/AttGraphs/GNN_Results/" #folder for GNN results (Heuristic_Results for baselines)
@@ -92,11 +92,6 @@ def main_run(config_file , settings_file):
     filename="post_predict_train_documents.csv"
     filename_test= "post_predict_test_documents.csv"
 
-    # TODO: problem with AttentionGraph
-    ## calling already processed files shouldn't need path/to/vocab, so none has to be passed, just have to call data in /processed/data.pt
-    ## if no processed files, then call the vocab and process data from /raw/data.csv
-    ## have to dig into torch_geometric.Dataset to properly define class property
-
     try:
         if config_file["baseline"]:
             pass
@@ -107,7 +102,7 @@ def main_run(config_file , settings_file):
             dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=True)
 
             # Cause error, in order to test if Exception also runs
-            error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
+            ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
 
         df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:

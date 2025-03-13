@@ -27,7 +27,7 @@ model_arch_args:
   intermediate: True
   temperature_scheduler : None #="anneal_decrease", temperature_step=0.1
   attn_dropout: 0.1  #default 0.0
-  window: 100 # None for full-attention or xx percent of no. token # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
+  window: 100 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
   
 batch_size: 32
 with_cw: True #or False

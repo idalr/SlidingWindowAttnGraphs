@@ -43,8 +43,8 @@ def load_data(in_path, data_train, labels_train, data_test, labels_test, with_va
             df_test = create_dataframe(in_path, data_test, labels_test)
             
             # Save dataframes 
-            df_train.to_csv(in_path+"/Processed/df_train.csv",index=False)
-            df_test.to_csv(in_path+"/Processed/df_test.csv",index=False)
+            df_train.to_csv(in_path+"Processed/df_train.csv",index=False)
+            df_test.to_csv(in_path+"Processed/df_test.csv",index=False)
             
             return df_train, df_test  
         
