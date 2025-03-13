@@ -6,7 +6,7 @@ from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 from preprocess_data import load_data
 from base_model import MHAClassifier
-from eval_models import retrieve_parameters, eval_results, filtering_matrices, sw_not_filtering_matrices, sw_filtering_matrices
+from eval_models import retrieve_parameters, eval_results, filtering_matrices
 from data_loaders import create_loaders
 
 os.environ["CUDA_VISIBLE_DEVICES"]='0'
@@ -53,11 +53,11 @@ df_test = df_test.head(50)
 sent_lengths = sent_lengths[:50]
 sent_lengths_test = sent_lengths_test[:50]
 
-path_models = "/HomoGraphs_HND/"
+path_models = "HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
-model_name= "Extended_NoTemp_100" #"Extended_NoTemp"
-path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+model_name= "Extended_NoTemp_30" #"Extended_NoTemp"
+path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
 loader_train, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_full_train, df_test, max_len, batch_size, with_val=False,
                                                                           tokenizer_from_scratch=False, path_ckpt=in_path)
 print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
@@ -109,41 +109,42 @@ std = 0.5
 num_print = 5
 granularity= "local"
 
-# # not filtering
-# filtered_matrices, total_nodes, total_edges = sw_not_filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-#                                                                             df_full_train, print_samples=num_print, degree_std=std)
-#
-# filtered_matrices_test, total_nodes_test, total_edges_test = sw_not_filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
-#                                                                             df_test, print_samples=num_print, degree_std=std)
+# not filtering
+filtered_matrices, total_nodes, total_edges = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths, model_window,
+                                                                            df_full_train, print_samples=num_print, degree_std=std, with_filtering=False)
+
+filtered_matrices_test, total_nodes_test, total_edges_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
+                                                                            model_window, df_test, print_samples=num_print, degree_std=std, with_filtering=False)
 
 filtering=True
 filter_type = "mean"
 print(f'Filtering type: {filter_type}')
+print(f'Window size: {model_window}')
 
 # Train
 filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-                                                                            df_full_train, print_samples=num_print,
-                                                                            degree_std=std, with_filtering=filtering,
+                                                                            model_window, df_full_train, print_samples=num_print,
+                                                                            degree_std=std,
                                                                             filtering_type=filter_type, granularity=granularity)
 
 # Test
 filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,
-                                                                                                df_test, print_samples=num_print,
-                                                                                                degree_std=std, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+                                                                                                model_window, df_test, print_samples=num_print,
+                                                                                                degree_std=std, filtering_type=filter_type, granularity=granularity)
 
 filter_type = "max"
 print(f'Filtering type: {filter_type}')
 
 # Train
 max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-                                                                            df_full_train, print_samples=num_print,
+                                                                            model_window, df_full_train, print_samples=num_print,
                                                                             degree_std=std, filtering_type=filter_type, granularity=granularity)
 
 # Test
 max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,
-                                                                                                df_test, print_samples=num_print,
+                                                                                                model_window, df_test, print_samples=num_print,
                                                                                                 degree_std=std, filtering_type=filter_type, granularity=granularity)
 
 
