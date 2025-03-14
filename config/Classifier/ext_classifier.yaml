@@ -5,7 +5,7 @@ path_models: HomoGraphs_HND/
 file_to_save: MHAClassifier
 logger_name: Extended_NoTemp_w30
 logger_file: df_logger_cw.csv
-num_executions: 2
+num_executions: 5
 
 data_paths:
   in_path: "datasets/HyperNews/"
