@@ -1,7 +1,3 @@
-# a COPY of `train_GNN.py`
-# BUT on a smaller scale, # mini version of 50 input
-### will be renamed as train_attention_GNN # when exclude heuristics setting
-
 import yaml
 import argparse
 from graph_data_loaders import AttentionGraphs, HeuristicGraphs
@@ -117,8 +113,8 @@ def main_run(config_file , settings_file):
         max_len = max(sent_lengths)  # Maximum number of sentences in a document
 
         ############################################################################# mini run
-        df_full_train = df_full_train.head(40)
-        df_test = df_test.head(40)
+        ###df_full_train = df_full_train.head(40)
+        ###df_test = df_test.head(40)
         ############################################################################# mini run
 
         loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
