@@ -205,25 +205,12 @@ def main_run(config_file , settings_file):
             print ("[TEST] Dataset creation time: ", creation_test, file=f)
             f.close()
 
-################################################################### TODO: WIP, erease heuristuc setting and adopt osp
 
     ### Run GNN models
     start = time.time()
     np.set_printoptions(precision=3)
     with open(file_results+'.txt', 'a') as f:
-        """
-        ### duplicated
-        try:
-            print ("[TRAIN] Acc:", acc_t.item(), file=f)
-            print ("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
-            print ("[TRAIN] F1-scores:", f1_all_t, file=f) #print train pre-trained model
-            print ("[TEST] Acc:", acc_test.item(), file=f)
-            print ("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
-            print ("[TEST] F1-scores:", f1_all_test, file=f) # print test pre-trained model
-        except:
-            pass
-        """
-    
+
         for nl in n_layers: # 1 or 2
             for dim in dim_features: # 128 o 256
                 print ("\n\n================================================")
@@ -251,7 +238,7 @@ def main_run(config_file , settings_file):
                     
                     early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
 
-                    path_for_savings = path_models+type_model+type_graph # if config_file["baseline"] else path_models+type_model
+                    path_for_savings = os.path.join(path_models, type_model+type_graph)
 
                     if config_file["normalized"]:
                         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings,
