@@ -4,7 +4,7 @@ cuda_visible_devices: "0"
 device: gpu
 
 logger_name: df_logger_cw.csv
-model_name: Extended_NoTemp_30
+model_name: Extended_NoTemp_w30
 type_model: GAT #GCN
 baseline: False #Always False for learned graphs
 type_graph: max #full aka sliding window #min #max
