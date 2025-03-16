@@ -1,3 +1,4 @@
+import gc
 from torch_geometric.data import Data, Dataset
 import torch
 import os
@@ -167,6 +168,10 @@ class AttentionGraphs(Dataset):
             else:
                 torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
             ide += 1
+
+            del generated_data, node_fea
+            torch.cuda.empty_cache()
+            gc.collect()
 
     def len(self):
         return self.data.shape[0]   ##tamaño del dataset

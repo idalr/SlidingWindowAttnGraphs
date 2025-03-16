@@ -81,7 +81,7 @@ def main_run(config_file , settings_file):
         dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
 
         # Cause error, in order to test if Exception also runs
-        error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
+        ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
 
         df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
@@ -213,17 +213,17 @@ def main_run(config_file , settings_file):
                 print ("\nTRAINING MODELS SETTING #LAYERS:", nl, " HIDDEN DIM:", dim)
                 print ("\nTRAINING MODELS SETTING #LAYERS:", nl, " HIDDEN DIM:", dim, file=f)
                 print ("================================================")
-                
+
                 acc_tests=[]
                 f1_tests=[]
                 f1ma_tests=[]
                 all_train_times=[]
                 all_full_times=[]
 
-                for i in range(num_runs):  
-                    
+                for i in range(num_runs):
+
                     if type_model=="GAT":
-                        model = GAT_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)    
+                        model = GAT_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)
                     #
                     # elif type_model=="GCN":
                     #     model = GCN_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)
@@ -231,7 +231,7 @@ def main_run(config_file , settings_file):
                     # else:
                     #     print ("Type of GNN model not supported: No GNN was intended")
                     #     return
-                    
+
                     early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
 
                     path_for_savings = os.path.join(path_models, type_model+type_graph)
@@ -242,34 +242,32 @@ def main_run(config_file , settings_file):
                         wandb_logger = WandbLogger(name=model_name+'2'+type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+type_graph+"_norm_run"+str(i), save_dir=path_for_savings+"_norm", project=project_name)
 
                     else:
-                        checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings, 
+                        checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings,
                                                               filename=type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+type_graph+"_run"+str(i)+"-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
                         wandb_logger = WandbLogger(name=model_name+'2'+type_model+"_"+str(nl)+"L_"+str(dim)+"U_"+type_graph+"_run"+str(i), save_dir=path_for_savings, project=project_name)
 
-                    trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger, 
+                    trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                                          **config_file["trainer_args"])
 
                     train_loader, val_loader, test_loader = partitions(dataset, dataset_test, bs=config_file["batch_size"])
                     starti = time.time()
-                    
+
                     trainer.fit(model, train_loader, val_loader)
 
-                    # TODO: val-f1-ma is a bit strange, still
-
-                    print ("\n----------- Run #"+str(i)+"-----------\n", file=f)   
+                    print ("\n----------- Run #"+str(i)+"-----------\n", file=f)
                     print ("\nTraining stopped on epoch:", trainer.callbacks[0].stopped_epoch, file=f)
                     train_time = time.time()-starti
-                    print(f"Training time: {train_time:.2f} secs", file=f)   
+                    print(f"Training time: {train_time:.2f} secs", file=f)
 
                     # load best checkpoint
                     print ("Best model path:", trainer.checkpoint_callback.best_model_path, file=f)
                     print ("Best model path:", trainer.checkpoint_callback.best_model_path)
                     checkpoint = torch.load(trainer.checkpoint_callback.best_model_path)
-                    model.load_state_dict(checkpoint['state_dict']) 
+                    model.load_state_dict(checkpoint['state_dict'])
 
                     preds, trues = model.predict(test_loader, cpu_store=False)
 
-                    acc=(torch.Tensor(trues) ==preds).float().mean() 
+                    acc=(torch.Tensor(trues) ==preds).float().mean()
                     f1_score = F1Score(task='multiclass', num_classes=num_classes, average='none')
                     f1_all = f1_score(preds.int(), torch.Tensor(trues).int())
                     print ("Acc Test:", acc, file=f)
@@ -279,7 +277,7 @@ def main_run(config_file , settings_file):
                     endi = time.time()
                     total_timei = endi - starti
                     print("Training + Testing time: "+ str(total_timei), file=f)
-                
+
                     acc_tests.append(acc.cpu().numpy())
                     f1_tests.append(f1_all.cpu().numpy())
                     f1ma_tests.append(f1_all.mean().cpu().numpy())
@@ -288,7 +286,7 @@ def main_run(config_file , settings_file):
 
 
                 print ("\n************************************************", file=f)
-                print ("RESULTS FOR N_LAYERS:", nl, " HIDDEN DIM_FEATURES:", dim, file=f)    
+                print ("RESULTS FOR N_LAYERS:", nl, " HIDDEN DIM_FEATURES:", dim, file=f)
                 print ("Test Acc: %.3f"% np.mean(np.asarray(acc_tests)), "-- std: %.3f" % np.std(np.asarray(acc_tests)), file=f)
                 print ("Test F1-macro: %.3f"%np.mean(np.asarray(f1ma_tests)), "-- std: %.3f" % np.std(np.asarray(f1ma_tests)), file=f)
                 print ("Test F1 per class:", np.mean(np.asarray(f1_tests), axis=0), file=f)
@@ -296,7 +294,7 @@ def main_run(config_file , settings_file):
                 print ("Total time: %.2f"%np.mean(np.asarray(all_full_times)), "-- std: %.2f" % np.std(np.asarray(all_full_times)), file=f)
                 print ("************************************************\n\n", file=f)
 
-        
+
         f.close()
 
     end = time.time()

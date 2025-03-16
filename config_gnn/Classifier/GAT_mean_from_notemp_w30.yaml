@@ -5,7 +5,7 @@ logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30
 type_model: GAT #GCN
 baseline: False #Always False for learned graphs
-type_graph: max #full aka sliding window #min #max
+type_graph: mean #full aka sliding window #min #max
 normalized: False
 
 data_paths:
