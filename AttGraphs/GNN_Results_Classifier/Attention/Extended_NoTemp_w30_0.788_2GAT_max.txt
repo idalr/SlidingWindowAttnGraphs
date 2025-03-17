@@ -1,0 +1,408 @@
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 7
+Training time: 261.57 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_128U_max_run0-OUT-epoch=02-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.7440)
+F1-macro Test: tensor(0.7440)
+F1 for each class: tensor([0.7452, 0.7428])
+Training + Testing time: 277.5609829425812
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 7
+Training time: 317.80 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_128U_max_run1-OUT-epoch=02-Val_f1-ma=0.72.ckpt
+Acc Test: tensor(0.7376)
+F1-macro Test: tensor(0.7370)
+F1 for each class: tensor([0.7248, 0.7492])
+Training + Testing time: 333.6596221923828
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 9
+Training time: 387.11 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_128U_max_run2-OUT-epoch=04-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7408)
+F1-macro Test: tensor(0.7402)
+F1 for each class: tensor([0.7273, 0.7530])
+Training + Testing time: 402.764404296875
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 16
+Training time: 562.42 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_128U_max_run3-OUT-epoch=11-Val_f1-ma=0.85.ckpt
+Acc Test: tensor(0.7120)
+F1-macro Test: tensor(0.7101)
+F1 for each class: tensor([0.7337, 0.6864])
+Training + Testing time: 580.3329818248749
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 7
+Training time: 381.52 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_128U_max_run4-OUT-epoch=02-Val_f1-ma=0.65.ckpt
+Acc Test: tensor(0.7392)
+F1-macro Test: tensor(0.7389)
+F1 for each class: tensor([0.7297, 0.7481])
+Training + Testing time: 399.20456552505493
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.735 -- std: 0.012
+Test F1-macro: 0.734 -- std: 0.012
+Test F1 per class: [0.732 0.736]
+Training time: 382.08 -- std: 101.20
+Total time: 398.70 -- std: 101.89
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 5
+Training time: 258.08 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_256U_max_run0-OUT-epoch=00-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7328)
+F1-macro Test: tensor(0.7328)
+F1 for each class: tensor([0.7328, 0.7328])
+Training + Testing time: 275.7740933895111
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 6
+Training time: 253.45 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_256U_max_run1-OUT-epoch=01-Val_f1-ma=0.83.ckpt
+Acc Test: tensor(0.7424)
+F1-macro Test: tensor(0.7412)
+F1 for each class: tensor([0.7238, 0.7586])
+Training + Testing time: 277.0308184623718
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 13
+Training time: 524.10 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_256U_max_run2-OUT-epoch=08-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.7184)
+F1-macro Test: tensor(0.7181)
+F1 for each class: tensor([0.7267, 0.7096])
+Training + Testing time: 538.7155854701996
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 401.96 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_256U_max_run3-OUT-epoch=06-Val_f1-ma=0.82.ckpt
+Acc Test: tensor(0.7344)
+F1-macro Test: tensor(0.7343)
+F1 for each class: tensor([0.7296, 0.7390])
+Training + Testing time: 429.2406508922577
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 6
+Training time: 253.15 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_1L_256U_max_run4-OUT-epoch=01-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.7376)
+F1-macro Test: tensor(0.7376)
+F1 for each class: tensor([0.7372, 0.7380])
+Training + Testing time: 269.6887483596802
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.733 -- std: 0.008
+Test F1-macro: 0.733 -- std: 0.008
+Test F1 per class: [0.73  0.736]
+Training time: 338.15 -- std: 109.05
+Total time: 358.09 -- std: 108.49
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 6
+Training time: 255.20 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_128U_max_run0-OUT-epoch=01-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.7200)
+F1-macro Test: tensor(0.7160)
+F1 for each class: tensor([0.7496, 0.6824])
+Training + Testing time: 270.4538643360138
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 9
+Training time: 342.41 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_128U_max_run1-OUT-epoch=04-Val_f1-ma=0.73.ckpt
+Acc Test: tensor(0.7744)
+F1-macro Test: tensor(0.7736)
+F1 for each class: tensor([0.7598, 0.7873])
+Training + Testing time: 357.63026213645935
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 6
+Training time: 241.86 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_128U_max_run2-OUT-epoch=01-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7280)
+F1-macro Test: tensor(0.7263)
+F1 for each class: tensor([0.7478, 0.7049])
+Training + Testing time: 259.1728484630585
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 6
+Training time: 239.04 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_128U_max_run3-OUT-epoch=01-Val_f1-ma=0.82.ckpt
+Acc Test: tensor(0.7696)
+F1-macro Test: tensor(0.7696)
+F1 for each class: tensor([0.7677, 0.7714])
+Training + Testing time: 250.9777648448944
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 5
+Training time: 203.18 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_128U_max_run4-OUT-epoch=00-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.7472)
+F1-macro Test: tensor(0.7464)
+F1 for each class: tensor([0.7606, 0.7322])
+Training + Testing time: 218.84235978126526
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.748 -- std: 0.022
+Test F1-macro: 0.746 -- std: 0.023
+Test F1 per class: [0.757 0.736]
+Training time: 256.34 -- std: 46.36
+Total time: 271.42 -- std: 46.40
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 11
+Training time: 383.59 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_256U_max_run0-OUT-epoch=06-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.7664)
+F1-macro Test: tensor(0.7660)
+F1 for each class: tensor([0.7761, 0.7559])
+Training + Testing time: 404.2863357067108
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 12
+Training time: 450.18 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_256U_max_run1-OUT-epoch=07-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7584)
+F1-macro Test: tensor(0.7584)
+F1 for each class: tensor([0.7599, 0.7568])
+Training + Testing time: 466.96414494514465
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 8
+Training time: 275.31 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_256U_max_run2-OUT-epoch=03-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.7776)
+F1-macro Test: tensor(0.7769)
+F1 for each class: tensor([0.7648, 0.7891])
+Training + Testing time: 291.04099464416504
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 13
+Training time: 466.89 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_256U_max_run3-OUT-epoch=08-Val_f1-ma=0.84.ckpt
+Acc Test: tensor(0.7584)
+F1-macro Test: tensor(0.7584)
+F1 for each class: tensor([0.7553, 0.7615])
+Training + Testing time: 482.6068375110626
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 9
+Training time: 383.65 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_2L_256U_max_run4-OUT-epoch=04-Val_f1-ma=0.82.ckpt
+Acc Test: tensor(0.7744)
+F1-macro Test: tensor(0.7743)
+F1 for each class: tensor([0.7700, 0.7786])
+Training + Testing time: 407.8097379207611
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.767 -- std: 0.008
+Test F1-macro: 0.767 -- std: 0.008
+Test F1 per class: [0.765 0.768]
+Training time: 391.92 -- std: 67.46
+Total time: 410.54 -- std: 67.39
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 8
+Training time: 305.49 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_128U_max_run0-OUT-epoch=03-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.6896)
+F1-macro Test: tensor(0.6791)
+F1 for each class: tensor([0.7371, 0.6211])
+Training + Testing time: 321.6831624507904
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 5
+Training time: 205.38 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_128U_max_run1-OUT-epoch=00-Val_f1-ma=0.66.ckpt
+Acc Test: tensor(0.7328)
+F1-macro Test: tensor(0.7309)
+F1 for each class: tensor([0.7533, 0.7086])
+Training + Testing time: 220.76141023635864
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 11
+Training time: 398.09 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_128U_max_run2-OUT-epoch=07-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7520)
+F1-macro Test: tensor(0.7479)
+F1 for each class: tensor([0.7801, 0.7156])
+Training + Testing time: 412.9668936729431
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 324.04 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_128U_max_run3-OUT-epoch=04-Val_f1-ma=0.86.ckpt
+Acc Test: tensor(0.7424)
+F1-macro Test: tensor(0.7400)
+F1 for each class: tensor([0.7650, 0.7150])
+Training + Testing time: 340.32990980148315
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 5
+Training time: 197.86 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_128U_max_run4-OUT-epoch=00-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.6864)
+F1-macro Test: tensor(0.6733)
+F1 for each class: tensor([0.7387, 0.6080])
+Training + Testing time: 213.69343519210815
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.721 -- std: 0.027
+Test F1-macro: 0.714 -- std: 0.032
+Test F1 per class: [0.755 0.674]
+Training time: 286.17 -- std: 75.71
+Total time: 301.89 -- std: 75.59
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 16
+Training time: 527.00 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_256U_max_run0-OUT-epoch=11-Val_f1-ma=0.82.ckpt
+Acc Test: tensor(0.7456)
+F1-macro Test: tensor(0.7456)
+F1 for each class: tensor([0.7472, 0.7440])
+Training + Testing time: 543.1015019416809
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 7
+Training time: 270.96 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_256U_max_run1-OUT-epoch=02-Val_f1-ma=0.73.ckpt
+Acc Test: tensor(0.7504)
+F1-macro Test: tensor(0.7499)
+F1 for each class: tensor([0.7615, 0.7383])
+Training + Testing time: 289.9531171321869
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 8
+Training time: 281.94 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_256U_max_run2-OUT-epoch=03-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7568)
+F1-macro Test: tensor(0.7561)
+F1 for each class: tensor([0.7690, 0.7432])
+Training + Testing time: 297.9091475009918
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 6
+Training time: 261.38 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_256U_max_run3-OUT-epoch=01-Val_f1-ma=0.84.ckpt
+Acc Test: tensor(0.7056)
+F1-macro Test: tensor(0.7020)
+F1 for each class: tensor([0.7349, 0.6691])
+Training + Testing time: 279.6784851551056
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 6
+Training time: 231.82 secs
+Best model path: C:\Users\Rinrada\PycharmProjects\Attention-DocumentGraphs-Rin\HomoGraphs_HND\Extended_NoTemp_w30\GATmax\GAT_3L_256U_max_run4-OUT-epoch=01-Val_f1-ma=0.85.ckpt
+Acc Test: tensor(0.7344)
+F1-macro Test: tensor(0.7292)
+F1 for each class: tensor([0.7669, 0.6914])
+Training + Testing time: 248.94732975959778
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.739 -- std: 0.018
+Test F1-macro: 0.737 -- std: 0.019
+Test F1 per class: [0.756 0.717]
+Training time: 314.62 -- std: 107.49
+Total time: 331.92 -- std: 106.89
+************************************************
+
+
