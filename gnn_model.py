@@ -14,9 +14,10 @@ import pytorch_lightning as pl
 import torch_geometric
 import torch.optim as optim
 import torch.nn.functional as F
-from torch_geometric.data import DataLoader #Dataset, Data,
+#from torch_geometric.data import DataLoader #Dataset, Data,
 from torch_geometric.nn import GCNConv, GATConv
-from torch_geometric.nn import global_mean_pool 
+from torch_geometric.nn import global_mean_pool
+from torch_geometric.loader import DataLoader
 
 
 class GNN_LightingModel(pl.LightningModule):

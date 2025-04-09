@@ -240,6 +240,10 @@ def main_run(config_file , settings_file):
     ### Run GNN models
     start = time.time()
     np.set_printoptions(precision=3)
+
+    if unified_flag:
+        type_graph = type_graph + '_unified'
+
     with open(file_results+'.txt', 'a') as f:
 
         for nl in n_layers: # 1 or 2
@@ -249,6 +253,7 @@ def main_run(config_file , settings_file):
                 print ("\nTRAINING MODELS SETTING #LAYERS:", nl, " HIDDEN DIM:", dim, file=f)
                 print ("================================================")
 
+
                 acc_tests=[]
                 f1_tests=[]
                 f1ma_tests=[]
@@ -256,9 +261,6 @@ def main_run(config_file , settings_file):
                 all_full_times=[]
 
                 for i in range(num_runs):
-
-                    if unified_flag:
-                        type_graph = type_graph + '_unified'
 
                     if type_model=="GAT":
                         model = GAT_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)
@@ -287,7 +289,7 @@ def main_run(config_file , settings_file):
                     trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                                          **config_file["trainer_args"])
 
-                    train_loader, val_loader, test_loader = partitions(dataset, dataset_test, bs=config_file["batch_size"])
+                    train_loader, val_loader, test_loader = partitions(dataset, dataset_test, dataset_val=None, bs=config_file["batch_size"])
                     starti = time.time()
 
                     trainer.fit(model, train_loader, val_loader)
