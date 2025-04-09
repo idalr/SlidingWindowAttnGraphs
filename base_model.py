@@ -187,6 +187,24 @@ class Classifier_Lighting(pl.LightningModule):
         
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
+    def predict_single(self, batch_single, cpu_store=True):
+        self.eval()
+        preds = []
+        with torch.no_grad():
+            out, att_w = self(batch_single['documents_ids'].to(self.device),
+                              batch_single['src_key_padding_mask'].to(self.device),
+                              batch_single['matrix_mask'].to(self.device))
+            pred = out.argmax(dim=1)
+
+            if cpu_store:
+                pred = pred.detach().cpu().numpy()
+            preds += list(pred)
+
+        if not cpu_store:
+            preds = torch.Tensor(preds)
+
+        return preds, att_w
+
 
 class MHAClassifier(Classifier_Lighting):
     def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, window,

@@ -391,7 +391,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
                         processed_ids.append(match_ids[i])
                         # final_label.append(label[i])
 
-                del match_ids, all_edges, pos_edge, dict_orig_to_ide_graph, filtered_matrix, final
+                del match_ids, all_edges, dict_orig_to_ide_graph, filtered_matrix, final
                 gc.collect()
 
                 if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):

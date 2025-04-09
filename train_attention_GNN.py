@@ -72,15 +72,14 @@ def main_run(config_file , settings_file):
         # project_name= model_name+"2"+type_model+"_"+type_graph+"_norm"
         # file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph+"_norm")
     else:
-        if multi_flag == True:
-            if unified_flag == True:
-                path_root = os.path.join(root_graph, model_name,type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
-                project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
-                file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
-            else:
-                path_root = os.path.join(root_graph, model_name, type_graph)  # root_graph+model_name+"/Attention/"+type_graph
-                project_name = model_name + "2" + type_model + "_" + type_graph
-                file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
+        if unified_flag == True:
+            path_root = os.path.join(root_graph, model_name,type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
+            project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
+            file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
+        else:
+            path_root = os.path.join(root_graph, model_name, type_graph)  # root_graph+model_name+"/Attention/"+type_graph
+            project_name = model_name + "2" + type_model + "_" + type_graph
+            file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
 
     filename="post_predict_train_documents.csv"
     filename_test= "post_predict_test_documents.csv"
@@ -92,11 +91,12 @@ def main_run(config_file , settings_file):
 
         if unified_flag == True:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-                                                             filter_type="", data_loader="",  window='',
-                                                             model_ckpt=path_checkpoint, mode="train",
-                                                             binarized=flag_binary, multi_layer_model=multi_flag)
+                                                   filter_type=type_graph, data_loader=None,
+                                                   window=model_window,
+                                                   model_ckpt=path_checkpoint, mode="train",
+                                                   binarized=flag_binary, multi_layer_model=multi_flag)
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                             filter_type="", data_loader="",
+                                                             filter_type=type_graph, data_loader=None,
                                                              model_ckpt=path_checkpoint, mode="test",  window='',
                                                              binarized=flag_binary, multi_layer_model=multi_flag)
         else:
@@ -200,7 +200,7 @@ def main_run(config_file , settings_file):
         if unified_flag:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                         filter_type=type_graph, data_loader=loader_train, window=model_window,
-                                                        model_ckpt=path_checkpoint, mode="test",
+                                                        model_ckpt=path_checkpoint, mode="train",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_train = time.time() - start_creation
             start_creation = time.time()
