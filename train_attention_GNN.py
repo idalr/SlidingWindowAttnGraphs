@@ -1,6 +1,6 @@
 import yaml
 import argparse
-from graph_data_loaders import AttentionGraphs, HeuristicGraphs
+from graph_data_loaders import AttentionGraphs, UnifiedAttentionGraphs_Class
 import torch
 import os
 import time
@@ -31,6 +31,9 @@ def main_run(config_file , settings_file):
     model_name = config_file["model_name"]  #Extended_Anneal
     type_model = config_file["type_model"] #GAT or GCN
     type_graph = config_file["type_graph"]  # full, mean, max
+    flag_binary = config_file["binarized"]  # True or False
+    multi_flag = config_file["multi_layer"]  # True for MHASummarizer_extended or False for MHASummarizer
+    unified_flag = config_file["unified_nodes"]  # True for graphs with unified nodes or False for standard graphs
     # model configs
     num_classes = config_file["model_arch_args"]["num_classes"]
     lr= config_file["model_arch_args"]["lr"]
@@ -69,19 +72,38 @@ def main_run(config_file , settings_file):
         # project_name= model_name+"2"+type_model+"_"+type_graph+"_norm"
         # file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph+"_norm")
     else:
-        path_root = os.path.join(root_graph, model_name, type_graph) #root_graph+model_name+"/Attention/"+type_graph
-        project_name = model_name+"2"+type_model+"_"+type_graph
-        file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
+        if multi_flag == True:
+            if unified_flag == True:
+                path_root = os.path.join(root_graph, model_name,type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
+                project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
+                file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
+            else:
+                path_root = os.path.join(root_graph, model_name, type_graph)  # root_graph+model_name+"/Attention/"+type_graph
+                project_name = model_name + "2" + type_model + "_" + type_graph
+                file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
 
     filename="post_predict_train_documents.csv"
     filename_test= "post_predict_test_documents.csv"
 
     try:
-        dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=False)
-        dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
 
         # Cause error, in order to test if Exception also runs
         ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
+
+        if unified_flag == True:
+            dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
+                                                             filter_type="", data_loader="",  window='',
+                                                             model_ckpt=path_checkpoint, mode="train",
+                                                             binarized=flag_binary, multi_layer_model=multi_flag)
+            dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
+                                                             filter_type="", data_loader="",
+                                                             model_ckpt=path_checkpoint, mode="test",  window='',
+                                                             binarized=flag_binary, multi_layer_model=multi_flag)
+        else:
+            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=False)
+            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
+
+
 
         df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
@@ -175,13 +197,26 @@ def main_run(config_file , settings_file):
             filter_type=type_graph
 
         start_creation = time.time()
-        dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t,
+        if unified_flag:
+            dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
+                                                        filter_type=type_graph, data_loader=loader_train, window=model_window,
+                                                        model_ckpt=path_checkpoint, mode="test",
+                                                        binarized=flag_binary, multi_layer_model=multi_flag)
+            creation_train = time.time() - start_creation
+            start_creation = time.time()
+            dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
+                                                        filter_type=type_graph, data_loader=loader_test, window=model_window,
+                                                        model_ckpt=path_checkpoint, mode="test",
+                                                        binarized=flag_binary, multi_layer_model=multi_flag)
+            creation_test = time.time() - start_creation
+        else:
+            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type, input_matrices=full_attn_weights_t,
                                       path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], window=model_window, degree=0.5, normalized=config_file["normalized"], test=False)
-        creation_train = time.time()-start_creation
-        start_creation = time.time()
-        dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test,
+            creation_train = time.time()-start_creation
+            start_creation = time.time()
+            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type, input_matrices=full_attn_weights_test,
                                            path_invert_vocab_sent=config_file["load_data_paths"]["in_path"], window=model_window, degree=0.5, normalized=config_file["normalized"], test=True)
-        creation_test = time.time()-start_creation
+            creation_test = time.time()-start_creation
 
         #### save creation time + base model results in file_results
 
@@ -221,6 +256,9 @@ def main_run(config_file , settings_file):
                 all_full_times=[]
 
                 for i in range(num_runs):
+
+                    if unified_flag:
+                        type_graph = type_graph + '_unified'
 
                     if type_model=="GAT":
                         model = GAT_model(dataset.num_node_features, dim, num_classes, nl, lr, dropout=dropout, class_weights=calculated_cw)

@@ -258,22 +258,22 @@ def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_
         axarr[1].set_title('Max Filtering')
         plt.show()
 
-def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local"):
-    # TODO: check if need to change because of sliding window
-    ## only in Summarization task
-    cropped_matrix = doc_att[:valid_sents,:valid_sents]
-            
-    if with_filtering:
-        max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)  
 
-        if granularity=="local":
+def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean",
+                     granularity="local"):
+    cropped_matrix = doc_att[:valid_sents, :valid_sents]
+
+    if with_filtering:
+        max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)
+
+        if granularity == "local":
             filtered_matrix = torch.Tensor(cropped_matrix.size())
             for i in range(cropped_matrix.size(0)):
-                filtered_matrix[i]= torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
+                filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
         else:
-            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double()) #mean
+            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
 
-    else:        
-        filtered_matrix = cropped_matrix            
-    
+    else:
+        filtered_matrix = cropped_matrix
+
     return filtered_matrix
