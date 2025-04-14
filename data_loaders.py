@@ -183,17 +183,23 @@ def clean_tokenization_sent(list_as_document, object):
         tok_document[0] = tok_document[0][1:]
         tok_document[-1] = tok_document[-1][:-1]
         return [int(element) for element in tok_document]
-    
-def check_dataframe(df_):
-    to_remove = []
-    for i in range(len(df_)):
-        articulos = df_["Cleaned_Article"][i]
-        lista_lab= df_["Calculated_Labels"][i]
-        if len(clean_tokenization_sent(articulos, 'text')) != len(clean_tokenization_sent(lista_lab, 'label')):
-            #print ("Number of sentences and calculated labels do not match")
-            #print("Removing entry ", df_.index[i], " - with Article ID:", df_["Article_ID"][i])
-            to_remove.append(df_.index[i])
-    
+
+
+def check_dataframe(df_, task='summarization'):
+    if task == "summarization":
+        to_remove = []
+        for i in range(len(df_)):
+            articulos = df_["Cleaned_Article"][i]
+            lista_lab = df_["Calculated_Labels"][i]
+            if len(clean_tokenization_sent(articulos, 'text')) != len(clean_tokenization_sent(lista_lab, 'label')):
+                to_remove.append(df_.index[i])
+    else:
+        to_remove = []
+        for i in range(len(df_)):
+            articulos = df_["article_text"][i]
+            if len(sent_tokenize(articulos)) < 2:
+                to_remove.append(df_.index[i])
+
     return to_remove
 
 def check_dimensions(dataset, max_allowed):

@@ -13,7 +13,7 @@ from gnn_model import GAT_model, GCN_model, partitions
 from base_model import MHAClassifier
 from eval_models import retrieve_parameters, eval_results
 from preprocess_data import load_data
-from data_loaders import create_loaders, get_class_weights
+from data_loaders import create_loaders, get_class_weights, check_dataframe
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -104,7 +104,6 @@ def main_run(config_file , settings_file):
             dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
 
 
-
         df_full_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
             my_class_weights, labels_counter = get_class_weights(df_full_train)
@@ -141,6 +140,20 @@ def main_run(config_file , settings_file):
 
         loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
                                                                                                tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
+
+        # filter out data entries that have only one node
+        ids2remove_train = check_dataframe(df_full_train, task='classification')
+        for id_remove in ids2remove_train:
+            df_full_train = df_full_train.drop(id_remove)
+        df_full_train.reset_index(drop=True, inplace=True)
+        print("Train shape:", df_full_train.shape)
+
+        ids2remove_test = check_dataframe(df_test, task='classification')
+        for id_remove in ids2remove_test:
+            df_test = df_test.drop(id_remove)
+        df_test.reset_index(drop=True, inplace=True)
+        print("Test shape:", df_test.shape)
+
         
         if config_file["with_cw"]:
             my_class_weights, labels_counter = get_class_weights(df_full_train)
@@ -199,13 +212,13 @@ def main_run(config_file , settings_file):
         start_creation = time.time()
         if unified_flag:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-                                                        filter_type=type_graph, data_loader=loader_train, window=model_window,
+                                                        filter_type=filter_type, data_loader=loader_train, window=model_window,
                                                         model_ckpt=path_checkpoint, mode="train",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_train = time.time() - start_creation
             start_creation = time.time()
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                        filter_type=type_graph, data_loader=loader_test, window=model_window,
+                                                        filter_type=filter_type, data_loader=loader_test, window=model_window,
                                                         model_ckpt=path_checkpoint, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_test = time.time() - start_creation
