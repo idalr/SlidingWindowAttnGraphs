@@ -1,13 +1,16 @@
 import os
 import pandas as pd
 import warnings
+
+from graph_data_loaders import UnifiedAttentionGraphs_Class
+
 warnings.filterwarnings("ignore")
 from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 from preprocess_data import load_data
 from base_model import MHAClassifier
-from eval_models import retrieve_parameters, eval_results, filtering_matrices
-from data_loaders import create_loaders
+from eval_models import retrieve_parameters, eval_results, filtering_matrices, filtering_matrix
+from data_loaders import create_loaders, check_dataframe
 
 os.environ["CUDA_VISIBLE_DEVICES"]='0'
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -48,15 +51,30 @@ max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a docume
 print ("max number of sentences in document:", max_len_test)
 
 # mini run
-df_full_train = df_full_train.head(50)
-df_test = df_test.head(50)
-sent_lengths = sent_lengths[:50]
-sent_lengths_test = sent_lengths_test[:50]
+df_full_train = df_full_train.head(10)
+###df_test = df_test.head(20)
+sent_lengths = sent_lengths[:10]
+###sent_lengths_test = sent_lengths_test[:20]
+
+
+ids2remove_train= check_dataframe(df_full_train, task='classification')
+for id_remove in ids2remove_train:
+    df_full_train = df_full_train.drop(id_remove)
+df_full_train.reset_index(drop=True, inplace=True)
+print ("Train shape:", df_full_train.shape)
+
+
+# ids2remove_test = check_dataframe(df_test, task='classification')
+# for id_remove in ids2remove_test:
+#     df_test = df_test.drop(id_remove)
+# df_test.reset_index(drop=True, inplace=True)
+# print ("Test shape:", df_test.shape)
+
 
 path_models = "HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
-model_name= "Extended_NoTemp_30" #"Extended_NoTemp"
+model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
 path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
 loader_train, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_full_train, df_test, max_len, batch_size, with_val=False,
                                                                           tokenizer_from_scratch=False, path_ckpt=in_path)
@@ -109,37 +127,29 @@ std = 0.5
 num_print = 5
 granularity= "local"
 
-# not filtering
-filtered_matrices, total_nodes, total_edges = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths, model_window,
-                                                                            df_full_train, print_samples=num_print, degree_std=std, with_filtering=False)
+##################################################################################
+# debug filter_matrix for sliding window
 
-filtered_matrices_test, total_nodes_test, total_edges_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test,
-                                                                            model_window, df_test, print_samples=num_print, degree_std=std, with_filtering=False)
+for i, doc_t in enumerate(full_attn_weights_t):
+    filtered_matrix = filtering_matrix(doc_t, sent_lengths[i], window=model_window, degree_std=std, with_filtering=True, filtering_type="max", granularity=granularity, plotting=True)
 
-filtering=True
-filter_type = "mean"
-print(f'Filtering type: {filter_type}')
-print(f'Window size: {model_window}')
+###root_graph = 'AttnGraphs_HND/'
+###path_root = os.path.join(root_graph, model_name, "full_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
+###filename="post_predict_train_documents.csv"
+###filename="post_predict_test_documents.csv"
 
-# Train
-filtered_matrices, total_nodes, total_edges, deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-                                                                            model_window, df_full_train, print_samples=num_print,
-                                                                            degree_std=std,
-                                                                            filtering_type=filter_type, granularity=granularity)
+###dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
+###                                                        filter_type=None, data_loader=loader_train, window=model_window,
+###                                                        model_ckpt=path_checkpoint, mode="train",
+###                                                        binarized=False, multi_layer_model=False)
+###dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
+###                                                        filter_type=None, data_loader=loader_test, window=model_window,
+###                                                        model_ckpt=path_checkpoint, mode="test",
+###                                                        binarized=False, multi_layer_model=False)
 
-# Test
-filtered_matrices_test, total_nodes_test, total_edges_test, deletions_test = filtering_matrices(full_attn_weights_test,
-                                                                                                all_article_identifiers_test, sent_lengths_test,
-                                                                                                model_window, df_test, print_samples=num_print,
-                                                                                                degree_std=std, filtering_type=filter_type, granularity=granularity)
 
-filter_type = "max"
-print(f'Filtering type: {filter_type}')
-
-# Train
-max_filtered_matrices, max_total_nodes, max_total_edges, max_deletions = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths,
-                                                                            model_window, df_full_train, print_samples=num_print,
-                                                                            degree_std=std, filtering_type=filter_type, granularity=granularity)
+################################################################################
+# Normal viasualization
 
 # Test
 max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
