@@ -138,9 +138,6 @@ def main_run(config_file , settings_file):
         ###df_test = df_test.head(40)
         ############################################################################# mini run
 
-        loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
-                                                                                               tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-
         # filter out data entries that have only one node
         ids2remove_train = check_dataframe(df_full_train, task='classification')
         for id_remove in ids2remove_train:
@@ -153,6 +150,9 @@ def main_run(config_file , settings_file):
             df_test = df_test.drop(id_remove)
         df_test.reset_index(drop=True, inplace=True)
         print("Test shape:", df_test.shape)
+
+        loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
+                                                                                               tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
 
         
         if config_file["with_cw"]:

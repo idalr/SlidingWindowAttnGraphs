@@ -10,7 +10,8 @@ from tqdm import tqdm
 from sklearn.utils import class_weight
 from collections import Counter
 from eval_models import filtering_matrices
-from torch_geometric.data import Dataset, Data, DataLoader
+from torch_geometric.data import Dataset, Data
+from torch_geometric.loader import DataLoader
 
 """
 class DocumentDataset(Dataset):

@@ -68,7 +68,7 @@ def get_window_mask(input_tensor, no_valid_sent, window):
     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
     if no_valid_sent > 5: # cannot use pad value
         window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100)
-        idx = torch.arange(no_valid_sent)
+        idx = torch.arange(int(no_valid_sent))
         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
         if no_valid_sent > input_tensor.shape[0]:
             window_mask = window_mask[: input_tensor.shape[0], :input_tensor.shape[1]]
