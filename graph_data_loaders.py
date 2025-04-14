@@ -254,6 +254,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
         print("Loading MHAClassifier model...")
         model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
+        model_window = model_lightning.window
         print("Model correctly loaded.")
 
         if self.mode == "test":
@@ -285,11 +286,11 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
                 if self.filter_type is not None:
                     # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
-                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, degree_std=self.K,
+                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=self.K,
                                                        with_filtering=True, filtering_type=self.filter_type)
                 else:
                     # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=False)
-                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, degree_std=self.K,
+                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=self.K,
                                                        with_filtering=False)
 
                 """"calculating edges"""

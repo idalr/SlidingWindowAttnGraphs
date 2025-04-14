@@ -259,12 +259,20 @@ def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_
         plt.show()
 
 
-def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean",
-                     granularity="local"):
+def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filtering=True, filtering_type="mean",
+                     granularity="local", plotting=False):
+    '''
+    for sliding_window, masked weights have to be excluded when calculating threshold
+    '''
+
     cropped_matrix = doc_att[:valid_sents, :valid_sents]
+    window_mask = get_window_mask(cropped_matrix, valid_sents, window)
 
     if with_filtering:
-        max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)
+        if window == 100:
+            max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)
+        else:
+            max_v, mean, std, threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std, type=filtering_type, mode=granularity)
 
         if granularity == "local":
             filtered_matrix = torch.Tensor(cropped_matrix.size())
@@ -276,4 +284,44 @@ def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, 
     else:
         filtered_matrix = cropped_matrix
 
+    if plotting:
+        # get alternative filtering
+        if filtering_type == "mean":
+            alternative = "max"
+        elif filtering_type == 'max':
+            alternative = "mean"
+
+        _, _, _, other_threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
+                                                                    type=alternative, mode=granularity)
+
+        other_filtered_matrix = torch.Tensor(cropped_matrix.size())
+        if granularity == "local":
+            for i in range(other_filtered_matrix.size(0)):
+                other_filtered_matrix[i] = torch.where(cropped_matrix[i] < other_threshold_min[i], 0., cropped_matrix[i])
+        else:
+            other_filtered_matrix = torch.where(cropped_matrix < other_threshold_min, 0., cropped_matrix.double())
+
+        # display
+        plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color=None, filtering_type=filtering_type,
+                          filtered_matrix=filtered_matrix, other_filtered_matrix=other_filtered_matrix)
+
     return filtered_matrix
+
+# def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean",
+#                      granularity="local"):
+#     cropped_matrix = doc_att[:valid_sents, :valid_sents]
+#
+#     if with_filtering:
+#         max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)
+#
+#         if granularity == "local":
+#             filtered_matrix = torch.Tensor(cropped_matrix.size())
+#             for i in range(cropped_matrix.size(0)):
+#                 filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
+#         else:
+#             filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
+#
+#     else:
+#         filtered_matrix = cropped_matrix
+#
+#     return filtered_matrix
