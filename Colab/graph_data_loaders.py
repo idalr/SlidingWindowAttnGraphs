@@ -457,11 +457,9 @@ class UnifiedAttentionGraphs_Class(Dataset):
                     print(generated_data.edge_index)
 
                 if self.mode == "test":
-                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'),
-                               weights_only=False)
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
                 if self.mode == "val":
-                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'),
-                               weights_only=False)
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'))
                 else:
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
 
