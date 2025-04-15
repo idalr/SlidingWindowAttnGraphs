@@ -18,7 +18,7 @@ multi_layer: False
 
 data_paths:
   path_logger: /content/drive/MyDrive/ADG/HomoGraphs_HND/ #HomoGraphs_HND/ #/scratch/mbugueno/HomoGraphs_HND/
-  results_folder: AttGraphs/GNN_Results_Classifier/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  results_folder: AttGraphs/GNN_Results_Classifier/Colab/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
   root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_HND/ #/scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:
