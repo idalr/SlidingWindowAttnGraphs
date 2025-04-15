@@ -115,12 +115,10 @@ def main_run(config_file, settings_file):
         if unified_flag == True:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                    filter_type=type_graph, data_loader=None,
-                                                   window=model_window,
-                                                   model_ckpt=path_checkpoint, mode="train",
+                                                   model=None, window=model_window, mode="train",
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                        filter_type=type_graph, data_loader=None,
-                                                        model_ckpt=path_checkpoint, mode="test", window='',
+                                                        filter_type=type_graph, model=None, window=model_window, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
         else:
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None,
@@ -250,15 +248,13 @@ def main_run(config_file, settings_file):
         if unified_flag:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                    filter_type=filter_type, data_loader=loader_train,
-                                                   window=model_window,
-                                                   model_ckpt=path_checkpoint, mode="train",
+                                                   model=model_lightning, window=model_window, mode="train",
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
             creation_train = time.time() - start_creation
             start_creation = time.time()
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
                                                         filter_type=filter_type, data_loader=loader_test,
-                                                        window=model_window,
-                                                        model_ckpt=path_checkpoint, mode="test",
+                                                        model=model_lightning, window=model_window, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_test = time.time() - start_creation
         else:
