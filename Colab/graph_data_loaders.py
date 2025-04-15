@@ -463,7 +463,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'),
                                weights_only=False)
                 else:
-                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'), weights_only=False)
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
 
                 ide += 1
 
