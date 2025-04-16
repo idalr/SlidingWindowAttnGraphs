@@ -228,6 +228,13 @@ class UnifiedAttentionGraphs_Class(Dataset):
         super(UnifiedAttentionGraphs_Class, self).__init__(root, transform, pre_transform)
 
     @property
+    def processed_dir(self):
+        processed_folder_path = os.path.join(self.root, 'processed')
+        if not os.path.exists(processed_folder_path):
+          os.makedirs(os.path.normpath(processed_folder_path))
+        return processed_folder_path
+
+    @property
     def raw_file_names(self):
         """ If this file exists in raw_dir, the download is not triggered. """
         return self.filename  # +".csv"

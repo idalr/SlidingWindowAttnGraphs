@@ -141,7 +141,7 @@ def main_run(config_file, settings_file):
             calculated_cw = None
 
     except:
-        error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
+        ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
         print("Error loading dataset - No Graph Dataset found")
         print("\nCreating new dataset from pre-trained MHA model")
         print("Pre-trained model:", model_name)
@@ -216,6 +216,8 @@ def main_run(config_file, settings_file):
         acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
         path_dataset = os.path.join(path_root, "raw")
+        if not os.path.exists(path_dataset):
+          os.makedirs(os.path.normpath(path_dataset))
         print("\nCreating files for PyG dataset in:", path_dataset)
         path_dataset_file = os.path.normpath(os.path.join(path_root, "raw", filename))
         path_dataset_file_test = os.path.normpath(os.path.join(path_root, "raw", filename_test))
@@ -248,50 +250,50 @@ def main_run(config_file, settings_file):
         else:
             filter_type = type_graph
 
-        # start_creation = time.time()
-        # if unified_flag:
-        #     dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-        #                                            filter_type=filter_type, data_loader=loader_train,
-        #                                            model=model_lightning, window=model_window, mode="train",
-        #                                            binarized=flag_binary, multi_layer_model=multi_flag)
-        #     creation_train = time.time() - start_creation
-        #     start_creation = time.time()
-        #     dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-        #                                                 filter_type=filter_type, data_loader=loader_test,
-        #                                                 model=model_lightning, window=model_window, mode="test",
-        #                                                 binarized=flag_binary, multi_layer_model=multi_flag)
-        #     creation_test = time.time() - start_creation
-        # else:
-        #     dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type,
-        #                               input_matrices=full_attn_weights_t,
-        #                               path_invert_vocab_sent=config_file["load_data_paths"]["in_path"],
-        #                               window=model_window, degree=0.5, normalized=config_file["normalized"], test=False)
-        #     creation_train = time.time() - start_creation
-        #     start_creation = time.time()
-        #     dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type,
-        #                                    input_matrices=full_attn_weights_test,
-        #                                    path_invert_vocab_sent=config_file["load_data_paths"]["in_path"],
-        #                                    window=model_window, degree=0.5, normalized=config_file["normalized"],
-        #                                    test=True)
-        #     creation_test = time.time() - start_creation
+        start_creation = time.time()
+        if unified_flag:
+            dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
+                                                   filter_type=filter_type, data_loader=loader_train,
+                                                   model=model_lightning, window=model_window, mode="train",
+                                                   binarized=flag_binary, multi_layer_model=multi_flag)
+            creation_train = time.time() - start_creation
+            start_creation = time.time()
+            dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
+                                                        filter_type=filter_type, data_loader=loader_test,
+                                                        model=model_lightning, window=model_window, mode="test",
+                                                        binarized=flag_binary, multi_layer_model=multi_flag)
+            creation_test = time.time() - start_creation
+        else:
+            dataset = AttentionGraphs(root=path_root, filename=filename, filter_type=filter_type,
+                                      input_matrices=full_attn_weights_t,
+                                      path_invert_vocab_sent=config_file["load_data_paths"]["in_path"],
+                                      window=model_window, degree=0.5, normalized=config_file["normalized"], test=False)
+            creation_train = time.time() - start_creation
+            start_creation = time.time()
+            dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type=filter_type,
+                                           input_matrices=full_attn_weights_test,
+                                           path_invert_vocab_sent=config_file["load_data_paths"]["in_path"],
+                                           window=model_window, degree=0.5, normalized=config_file["normalized"],
+                                           test=True)
+            creation_test = time.time() - start_creation
 
-        #### save creation time + base model results in file_results
+        ### save creation time + base model results in file_results
 
-        # with open(file_results + '.txt', 'a') as f:
-        #     print("================================================", file=f)
-        #     print("Evaluation of pre-trained model:", model_name, file=f)
-        #     print("================================================", file=f)
-        #     print("[TRAIN] Acc:", acc_t.item(), file=f)
-        #     print("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
-        #     print("[TRAIN] F1-scores:", f1_all_t, file=f)
-        #     print("------------------------", file=f)
-        #     print("[TEST] Acc:", acc_test.item(), file=f)
-        #     print("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
-        #     print("[TEST] F1-scores:", f1_all_test, file=f)
-        #     print("================================================", file=f)
-        #     print("[TRAIN] Dataset creation time: ", creation_train, file=f)
-        #     print("[TEST] Dataset creation time: ", creation_test, file=f)
-        #     f.close()
+        with open(file_results + '.txt', 'a') as f:
+            print("================================================", file=f)
+            print("Evaluation of pre-trained model:", model_name, file=f)
+            print("================================================", file=f)
+            print("[TRAIN] Acc:", acc_t.item(), file=f)
+            print("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
+            print("[TRAIN] F1-scores:", f1_all_t, file=f)
+            print("------------------------", file=f)
+            print("[TEST] Acc:", acc_test.item(), file=f)
+            print("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
+            print("[TEST] F1-scores:", f1_all_test, file=f)
+            print("================================================", file=f)
+            print("[TRAIN] Dataset creation time: ", creation_train, file=f)
+            print("[TEST] Dataset creation time: ", creation_test, file=f)
+            f.close()
 
     ### Run GNN models
     start = time.time()
