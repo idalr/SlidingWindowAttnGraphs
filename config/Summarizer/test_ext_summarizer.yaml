@@ -25,7 +25,7 @@ model_arch_args:
   intermediate: True
   temperature_scheduler: None
   attn_dropout: 0.1  #default 0.0
-  window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
+  ###window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
   
 batch_size: 32
 max_len: 200 #1000

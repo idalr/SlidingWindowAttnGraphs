@@ -29,6 +29,10 @@ def main_run(config_file , settings_file):
     logger_file= config_file["logger_file"]
 
     df_train, df_val, df_test = load_data(**config_file["data_paths"])
+
+    #################### minirun
+    df_train, df_val, df_test = df_train[:50], df_val[:50], df_test[:50]
+    ####################
     
     ids2remove_train= check_dataframe(df_train)
     for id_remove in ids2remove_train:
@@ -80,10 +84,10 @@ def main_run(config_file , settings_file):
         ## TRAINING SETUP
         model_params["max_len"]=max_len
         model_params["path_invert_vocab_sent"]= config_file["data_paths"]["in_path"]
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended(**model_params)
-        else:
-            model_lightning= MHASummarizer(**model_params) #activation_attention="softmax"
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended(**model_params)
+        #else:
+        model_lightning= MHASummarizer(**model_params) #activation_attention="softmax"
 
         early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_models+logger_name, filename=logger_name+"-{epoch:02d}-{Val_f1-ma:.2f}")
@@ -100,10 +104,10 @@ def main_run(config_file , settings_file):
         print(f"Training time: {train_time:.2f} secs")  
 
         # load best checkpoint
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        else: 
-            model_lightning = MHASummarizer.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #else:
+        model_lightning = MHASummarizer.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
         #model_lightning.load_state_dict(checkpoint['state_dict'])
         print ("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print ("Temperature of loaded model:", model_lightning.temperature)
