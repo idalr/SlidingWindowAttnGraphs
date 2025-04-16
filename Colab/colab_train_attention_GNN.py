@@ -160,8 +160,8 @@ def main_run(config_file, settings_file):
         max_len = max(sent_lengths)  # Maximum number of sentences in a document
 
         ############################################################################# mini run
-        df_full_train = df_full_train.head(40)
-        df_test = df_test.head(40)
+        #df_full_train = df_full_train.head(40)
+        #df_test = df_test.head(40)
         ############################################################################# mini run
 
         # filter out data entries that have only one node
