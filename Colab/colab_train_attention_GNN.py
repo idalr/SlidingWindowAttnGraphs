@@ -115,13 +115,10 @@ def main_run(config_file, settings_file):
         if unified_flag == True:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                    filter_type=type_graph, data_loader=None,
-                                                   window=model_window, model=None,
-                                                    mode="train",
+                                                   model=None, window=model_window, mode="train",
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                        filter_type=type_graph, data_loader=None,
-                                                        window=model_window, model=None,
-                                                        mode="test",
+                                                        filter_type=type_graph, model=None, window=model_window, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
         else:
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None,
@@ -141,7 +138,6 @@ def main_run(config_file, settings_file):
             calculated_cw = None
 
     except:
-        ###error = AttentionGraphs(root=path_root, filename="error.csv", filter_type='', input_matrices=None, path_invert_vocab_sent='')
         print("Error loading dataset - No Graph Dataset found")
         print("\nCreating new dataset from pre-trained MHA model")
         print("Pre-trained model:", model_name)
@@ -164,8 +160,8 @@ def main_run(config_file, settings_file):
         max_len = max(sent_lengths)  # Maximum number of sentences in a document
 
         ############################################################################# mini run
-        ###df_full_train = df_full_train.head(40)
-        ###df_test = df_test.head(40)
+        df_full_train = df_full_train.head(40)
+        df_test = df_test.head(40)
         ############################################################################# mini run
 
         # filter out data entries that have only one node
@@ -216,11 +212,11 @@ def main_run(config_file, settings_file):
         acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
         path_dataset = os.path.join(path_root, "raw")
-        if not os.path.exists(path_dataset):
-          os.makedirs(os.path.normpath(path_dataset))
+        #if not os.path.exists(path_dataset):
+        #  os.makedirs(os.path.normpath(path_dataset))
         print("\nCreating files for PyG dataset in:", path_dataset)
-        path_dataset_file = os.path.normpath(os.path.join(path_root, "raw", filename))
-        path_dataset_file_test = os.path.normpath(os.path.join(path_root, "raw", filename_test))
+        path_dataset_file = os.path.normpath(os.path.join(path_dataset, filename))
+        path_dataset_file_test = os.path.normpath(os.path.join(path_dataset, filename_test))
 
         post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
         post_predict_train_docs.to_csv(path_dataset_file, index=False)
@@ -277,7 +273,7 @@ def main_run(config_file, settings_file):
                                            test=True)
             creation_test = time.time() - start_creation
 
-        ### save creation time + base model results in file_results
+        #### save creation time + base model results in file_results
 
         with open(file_results + '.txt', 'a') as f:
             print("================================================", file=f)
