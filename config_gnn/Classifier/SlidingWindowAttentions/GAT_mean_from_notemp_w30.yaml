@@ -1,0 +1,45 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: HND
+logger_name: df_logger_cw.csv
+model_name: Extended_NoTemp_w30
+type_model: GAT #GCN
+baseline: False #Always False for learned graphs
+type_graph: mean #full aka sliding window #min #max
+normalized: False
+unified_nodes: True #False
+binarized: False
+multi_layer: False
+
+data_paths:
+  path_logger: HomoGraphs_HND/ #/scratch/mbugueno/HomoGraphs_HND/
+  results_folder: AttGraphs/GNN_Results_Classifier/Attention/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  root_graph_dataset: AttnGraphs_HND/ #/scratch/datasets/AttnGraphs_HND/
+
+load_data_paths:
+  in_path: "datasets/HyperNews/" #"/scratch/datasets/HyperNews/"
+  data_train: "articles-training-byarticle-20181122.xml"
+  labels_train: "ground-truth-training-byarticle-20181122.xml"
+  data_test: "articles-test-byarticle-20181207.xml"
+  labels_test: "ground-truth-test-byarticle-20181207.xml"
+  with_val: False
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  dropout: 0.2
+  dim_features : [128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
+
+batch_size: 32
+with_cw: True
+
+trainer_args:
+  max_epochs: 50
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001  

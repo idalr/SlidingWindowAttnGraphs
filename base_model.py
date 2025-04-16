@@ -16,7 +16,7 @@ def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=
     attn_logits = q @ k.transpose(-2, -1) * factor
     
     if mask is not None:
-        attn_logits += mask 
+        attn_logits += mask
 
     #attention = torch.softmax(attn_logits/temperature, dim=-1)
     if attention == "softmax":
@@ -66,6 +66,63 @@ class MultiHeadSelfAttention(nn.Module):
         
         attention = torch.mean(attention, dim=1) # Average over heads        
         values = values.permute(0, 2, 1, 3) # [Batch, SeqLen, Head, Dims]
+        values = values.reshape(batch_size, seq_length, self.embed_dim)
+        o = self.o_proj(values)
+
+        return o, attention
+
+
+class SlidingWindowMultiHeadSelfAttention(nn.Module):
+    def __init__(self, input_dim, embed_dim, num_heads, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
+        super().__init__()
+        assert embed_dim % num_heads == 0, "Embedding dimension must be 0 module wrt the number of heads."
+
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.window_size = window_size
+        self.temperature = temperature
+        self.dropout = dropout
+        self.activation_attention = activation_attention
+        self.qkv_proj = torch.nn.Linear(input_dim, 3 * embed_dim, bias=True)
+        self.o_proj = torch.nn.Linear(embed_dim, embed_dim, bias=True)
+        self._init_params()
+
+    def _init_params(self):
+        # Original Transformer initialization, see PyTorch documentation
+        torch.nn.init.xavier_uniform_(self.qkv_proj.weight)
+        self.qkv_proj.bias.data.fill_(0)
+        torch.nn.init.xavier_uniform_(self.o_proj.weight)
+        self.o_proj.bias.data.fill_(0)
+
+    def create_sliding_window_mask(self, src_key_padding_mask, matrix_mask, seq_length, min_window_size=2, pad_value=-1e9):
+
+        lens_valid_sent = (src_key_padding_mask == 0).sum(dim=1)
+        window_sizes = torch.ceil(lens_valid_sent*self.window_size/100).long().clamp(min=min_window_size)
+        idx = torch.arange(seq_length, device=src_key_padding_mask.device)
+        window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1) # if masked window, then True
+        padding_mask = (matrix_mask == pad_value) # if padded, then True
+        merged_mask = window_mask | padding_mask # if at least one True then True
+        matrix_mask[merged_mask] = pad_value # apply pad value
+
+        return matrix_mask
+
+    def forward(self, x, src_key_padding_mask, matrix_mask, temperature=None):
+        batch_size, seq_length, _ = x.size()
+        sliding_mask = self.create_sliding_window_mask(src_key_padding_mask, matrix_mask, seq_length)
+        sliding_mask_extended = sliding_mask[:, None, :, :]
+        qkv = self.qkv_proj(x)
+        # Separate Q, K, V from linear output
+        qkv = qkv.reshape(batch_size, seq_length, self.num_heads, 3 * self.head_dim)  # --- [Batch, SeqLen, 4, 3*96]
+        qkv = qkv.permute(0, 2, 1, 3)  # [Batch, Head, SeqLen, Dims]
+        q, k, v = qkv.chunk(3, dim=-1)
+        # Determine value outputs
+        values, attention = scaled_dot_product(q, k, v, mask=sliding_mask_extended,
+                                               temperature=self.temperature if temperature is None else temperature,
+                                               dropout=self.dropout, training=self.training)
+
+        attention = torch.mean(attention, dim=1)  # Average over heads
+        values = values.permute(0, 2, 1, 3)  # [Batch, SeqLen, Head, Dims]
         values = values.reshape(batch_size, seq_length, self.embed_dim)
         o = self.o_proj(values)
 
@@ -130,20 +187,50 @@ class Classifier_Lighting(pl.LightningModule):
         
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
+    def predict_single(self, batch_single, cpu_store=True):
+        self.eval()
+        preds = []
+        with torch.no_grad():
+            out, att_w = self(batch_single['documents_ids'].to(self.device),
+                              batch_single['src_key_padding_mask'].to(self.device),
+                              batch_single['matrix_mask'].to(self.device))
+            pred = out.argmax(dim=1)
+
+            if cpu_store:
+                pred = pred.detach().cpu().numpy()
+            preds += list(pred)
+
+        if not cpu_store:
+            preds = torch.Tensor(preds)
+
+        return preds, att_w
+
 
 class MHAClassifier(Classifier_Lighting):
-    def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, 
-                 intermediate=False, num_heads=4, dropout=False, class_weights=[], 
+    def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, window,
+                 intermediate=False, num_heads=4, dropout=False, class_weights=[],
                  temperature_scheduler=None, temperature_step=None, attn_dropout=0.0,
                  path_invert_vocab_sent = "", activation_attention="softmax"):
         #print ("Creating Classifier Model")
         super(MHAClassifier, self).__init__()
+        self.window = window
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
             
         #print ("Attention method:", activation_attention)
-        self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim, num_heads, temperature=1, dropout=attn_dropout, activation_attention=activation_attention)
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
+
         self.num_classes = num_classes
         self.embed_dim = embed_dim
         if not intermediate:

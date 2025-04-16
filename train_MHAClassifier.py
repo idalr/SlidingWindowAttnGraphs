@@ -70,10 +70,10 @@ def main_run(config_file , settings_file):
         ## TRAINING SETUP
         model_params["max_len"]=max_len
         model_params["path_invert_vocab_sent"]= config_file["data_paths"]["in_path"]
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended(**model_params)
-        else:
-            model_lightning= MHAClassifier(**model_params)
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended(**model_params)
+        #else:
+        model_lightning= MHAClassifier(**model_params)
 
         early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_models+logger_name, filename=logger_name+"-{epoch:02d}-{Val_f1-ma:.2f}")
@@ -90,10 +90,10 @@ def main_run(config_file , settings_file):
         print(f"Training time: {train_time:.2f} secs")  
 
         # load best checkpoint
-        if model_params["multi_layer"]:
-            model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        else:
-            model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #if model_params["multi_layer"]:
+        #    model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        #else:
+        model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
             
         print ("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print ("Temperature of loaded model:", model_lightning.temperature)
@@ -109,13 +109,15 @@ def main_run(config_file , settings_file):
         print ("F1 for each class:", f1_all)
         total_time = time.time()-start_time
         print(f"Training + Testing time: {total_time:.2f} secs")    
-        print(f"Total running time: {time.time()-start_time:.2f} secs")    
+        print(f"Total running time: {time.time()-start_time:.2f} secs")
 
-        if not os.path.exists(path_models+logger_file):
-            df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Training_time", "Total_time"])
-            df_logger.to_csv(path_models+logger_file, index=False)
+        path_models_logger_file = os.path.join(path_models, logger_file)
+
+        if not os.path.exists(path_models_logger_file):
+            df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
+            df_logger.to_csv(path_models_logger_file, index=False)
         else: #if exist
-            df_logger = pd.read_csv(path_models+logger_file)
+            df_logger = pd.read_csv(path_models_logger_file)
         df_logger.loc[len(df_logger)] = {
             "Model":logger_name,
             "Path":trainer.checkpoint_callback.best_model_path, 
@@ -124,11 +126,12 @@ def main_run(config_file , settings_file):
             "Setting":settings_file,
             "Stop epoch": stopped_on,
             "Temperature": model_lightning.temperature,
+            "Window percent": model_lightning.window,
             "Training_time": train_time,
             "Total_time": total_time        
             }
-        df_logger.to_csv(path_models+logger_file, index=False)
-        print ("Finished and saved in:", path_models+logger_file, "\n")
+        df_logger.to_csv(path_models_logger_file, index=False)
+        print ("Finished and saved in:", path_models_logger_file, "\n")
 
 
 if __name__ == "__main__":

@@ -75,7 +75,7 @@ def main_run(config_file , settings_file):
 
     try:
         if config_file["baseline"]:
-            dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='') 
+            dataset = HeuristicGraphs(root=path_root, filename=filename, heuristic=heuristic, path_invert_vocab_sent='')
             dataset_test = HeuristicGraphs(root=path_root, filename=filename_test, heuristic=heuristic, path_invert_vocab_sent='', test=True)
         else:
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', degree=0.5, test=False)  

@@ -14,9 +14,10 @@ import pytorch_lightning as pl
 import torch_geometric
 import torch.optim as optim
 import torch.nn.functional as F
-from torch_geometric.data import DataLoader #Dataset, Data,
+#from torch_geometric.data import DataLoader #Dataset, Data,
 from torch_geometric.nn import GCNConv, GATConv
-from torch_geometric.nn import global_mean_pool 
+from torch_geometric.nn import global_mean_pool
+from torch_geometric.loader import DataLoader
 
 
 class GNN_LightingModel(pl.LightningModule):
@@ -168,17 +169,17 @@ def check_bs(bs, len_data):
     else:
         return bs
     
-def partitions(dataset_train, dataset_test, dataset_val= None, bs=32, trainp=0.8, valp=0.2):
+def partitions(dataset, dataset_test, dataset_val= None, bs=32, trainp=0.8, valp=0.2):
     if np.round(trainp+valp)!=1.0:
         print ("Partitions don't fit. Please specify partitions that sum 1.")
         return 
     
     if dataset_val is None:   
-        dataset_train = dataset_train.shuffle()     
+        dataset = dataset.shuffle()
         total=len(dataset)
         a=int(total*trainp)
-        dataset_train = dataset_train[:a]
-        dataset_val = dataset_train[a:]
+        dataset_train = dataset[:a]
+        dataset_val = dataset[a:]
     else:
         pass
     
