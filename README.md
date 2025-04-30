@@ -28,10 +28,10 @@ Training MHAClassifier as a multiclass classification (hyperpartisan or not). Th
 python train_MHAClassifier.py -s config/Classifier/your_file.yaml
 ```
 
-Create graph objects and store them in the speficied folder. Afterwards, a GAT for graph classification is trained. Please note that this python file serves either for learned-graphs (```config_gnn```) and heuristic-based graphs (```config_heuristics_gnn```).
+Create graph objects and store them in the speficied folder. Afterwards, a GAT for graph classification is trained. Please note that this python file serves either for learned-graphs (```config_gnn```).
 
 ```python
-python train_GNN.py -s config_gnn/Classifier/your_file.yaml
+python train_GNN.py -s config_gnn/Classifier/type_of_model/your_file.yaml
 ```
 
 #### Document Summarization
@@ -42,11 +42,9 @@ Training MHASummarizer as a multilabel task. The model learns the dependencies b
 python train_MHASummarizer.py  -s config/Summarizer/your_file.yaml
 ```
 
-Create files in /raw graph-version of the summarization dataset with a filename that is need for the Pytorch-Geometric graphs creation. The corresponding graphs are stored in the specified folder.   
+Create files in /raw graph-version of the summarization dataset with a filename that is need for the Pytorch-Geometric graphs creation. The corresponding graphs are stored in the specified folder.
+Train a GAT for node classification. This python file serves either for learned-graphs (```config_gnn```).  
 ```python
-python create_graphSum_files.py -s config/predict_files/your_file.yaml
-```
-Train a GAT for node classification. This python file serves either for learned-graphs (```config_gnn```) and heuristic-based graphs (```config_heuristics_gnn```).  
-```python
-python train_gnn_node.py -s config_gnn/Summarizer/your_file.yaml
+python create_graphSum_files.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
+python train_gnn_node.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
 ```

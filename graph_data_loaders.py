@@ -847,7 +847,7 @@ class AttentionGraphs_Sum(Dataset):
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
     def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
-                 transform=None, normalized=False, binarized=False, #multi_layer_model=False,
+                 transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
         """
@@ -862,7 +862,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         self.mode = mode
         self.normalized = normalized
         self.binarized = binarized
-        #self.multi_layer_mha = multi_layer_model
+        self.multi_layer_mha = multi_layer_model
 
         # Ensure the root is an absolute path
         self.root = os.path.abspath(root)

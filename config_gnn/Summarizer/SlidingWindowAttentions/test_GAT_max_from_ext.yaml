@@ -1,16 +1,23 @@
 cuda_visible_devices: "0"
 device: gpu
 
+# from predict_files
+saving_file: False
+
+dataset_name: GovReport
 logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30
 type_model: GAT 
 baseline: False #Always False for attention graphs
 type_graph: max
+binarized: True #False
+multi_layer: False
+unified_nodes: True #False
 
 
 data_paths:
   path_logger: HomoGraphs_GovReports/
-  results_folder: AttGraphs/GNN_Results_Summarizer/Attention/
+  results_folder: AttGraphs/GNN_Results_Summarizer/
   root_graph_dataset: datasets/AttnGraphs_GovReports/
 
 load_data_paths:
@@ -31,7 +38,7 @@ model_arch_args:
 
 batch_size: 32
 with_cw: True
-max_len: 200 #1000
+max_len: 50 #1000
 
 trainer_args:
   max_epochs: 10 #50
