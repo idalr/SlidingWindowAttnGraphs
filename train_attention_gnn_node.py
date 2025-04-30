@@ -119,27 +119,27 @@ def main_run(config_file, settings_file):
     print("Running", type_model, "on Attention-based document graphs.")
     print("Loading graphs from:", path_root)
     if unified_flag == True:
-            dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train,
+        dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train,
                                                            filter_type=type_graph, data_loader=None, mode="train",
                                                            binarized=flag_binary, multi_layer_model=multi_flag)
-            dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
+        dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
                                                          data_loader=None, mode="val", binarized=flag_binary,
                                                          multi_layer_model=multi_flag)
-            dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test,
+        dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test,
                                                           filter_type=type_graph, data_loader=None, mode="test",
                                                           binarized=flag_binary, multi_layer_model=multi_flag)
-            print("Graphs with unified sentence nodes correctly loaded.")
-        else:
-            dataset_train = AttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,
+        print("Graphs with unified sentence nodes correctly loaded.")
+    else:
+        dataset_train = AttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,
                                                     data_loader=None, mode="train", binarized=flag_binary,
                                                     multi_layer_model=multi_flag)
-            dataset_val = AttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
+        dataset_val = AttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
                                                   data_loader=None, mode="val", binarized=flag_binary,
                                                   multi_layer_model=multi_flag)
-            dataset_test = AttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph,
+        dataset_test = AttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph,
                                                    data_loader=None, mode="test", binarized=flag_binary,
                                                    multi_layer_model=multi_flag)
-            print("Graphs correctly loaded.")
+        print("Graphs correctly loaded.")
 
     ### Run GNN models
     start = time.time()
