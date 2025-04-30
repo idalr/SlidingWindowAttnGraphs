@@ -14,6 +14,7 @@ from base_model import MHASummarizer_extended, MHASummarizer
 from eval_models import retrieve_parameters, eval_results
 from preprocess_data import load_data
 from data_loaders import create_loaders, check_dataframe, get_class_weights
+from create_graphSum_files import main_run as create_graphsum
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -49,16 +50,16 @@ def main_run(config_file, settings_file):
     model_name = config_file["model_name"]  # Extended_Anneal
     df_logger = pd.read_csv(path_logger + logger_name)
 
-    if model_name == "Extended_Sigmoid":
-        model = "sigmoid"
-    elif model_name == "Extended_Anneal":
-        model = "anneal"
-    elif model_name == "Extended_ReLu":
-        model = "relu"
-    elif model_name == "Extended_NoTemp":
-        model = "notemp"
-    else:
-        model = "step"
+    # if model_name == "Extended_Sigmoid":
+    #     model = "sigmoid"
+    # elif model_name == "Extended_Anneal":
+    #     model = "anneal"
+    # elif model_name == "Extended_ReLu":
+    #     model = "relu"
+    # elif model_name == "Extended_NoTemp":
+    #     model = "notemp"
+    # else:
+    #     model = "step"
 
     # if multi_flag == True:
     #     if dataset_name == "GovReport":
@@ -67,7 +68,7 @@ def main_run(config_file, settings_file):
     #         setting_file = "config/Summarizer/" + dataset_name + "/multi_summarizer_" + model + ".yaml"  ###setting file from which pick the best checkpoint
     # else:
     # if dataset_name == "GovReport":
-    setting_file = "config/Summarizer/ext_summarizer_" + model + ".yaml"
+    setting_file = "config/Summarizer/ext_summarizer_" + model_name + ".yaml"
     #     else:
     #         setting_file = "config/Summarizer/" + dataset_name + "/ext_summarizer_" + model + ".yaml"
 
@@ -92,7 +93,8 @@ def main_run(config_file, settings_file):
     if flag_binary == True:
         path_root = root_graph + model_name + "/Attention/" + type_graph + "_binary"
         project_name = model_name + "2" + type_model + "_" + type_graph + "_binary"
-        file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
+        ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
+        file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
     else:
         # if multi_flag == True:
         #     if unified_flag == True:
@@ -105,11 +107,13 @@ def main_run(config_file, settings_file):
         if unified_flag == True:
             path_root = root_graph + model_name + "/Attention/" + type_graph + "_unified"
             project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
-            file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_unified"
+            ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_unified"
+            file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_unified"
         else:
             path_root = root_graph + model_name + "/Attention/" + type_graph
             project_name = model_name + "2" + type_model + "_" + type_graph
-            file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph
+            ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph
+            file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph
 
     filename_train = "predict_train_documents.csv"
     filename_val = "predict_val_documents.csv"
@@ -347,4 +351,5 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
+    create_graphsum(config_file, args.settings_file)
     main_run(config_file, args.settings_file)

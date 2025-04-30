@@ -2,7 +2,7 @@ cuda_visible_devices: "0"
 device: gpu
 
 # from predict_files
-saving_file: False
+saving_file: True # if False, raw files won't be saved
 
 dataset_name: GovReport
 logger_name: df_logger_cw.csv

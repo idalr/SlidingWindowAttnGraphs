@@ -26,6 +26,7 @@ def main_run(config_file , settings_file):
     root_graph = config_file["data_paths"]["root_graph_dataset"] #"/scratch/datasets/AttnGraphs_GovReports/"
     folder_results = config_file["data_paths"]["results_folder"] #"/home/mbugueno/AttGraphs/GNN_Results_Summarizer/"
     save_flag = config_file["saving_file"]
+    unified_flag = config_file["unified_nodes"]
     #multi_flag= config_file["multi_layer"]
     flag_binary  = config_file["binarized"]
     #if multi_flag:
@@ -41,28 +42,22 @@ def main_run(config_file , settings_file):
     #elif multi_flag:
     #    path_root = root_graph+model_name+"/2L-Attention/"+config_file["type_graph"]
     else:
-        path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"] 
+        if unified_flag:
+            path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"]+"_unified"
+        else:
+            path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"]
 
     filename_train="predict_train_documents.csv"
     filename_val="predict_val_documents.csv"
     filename_test= "predict_test_documents.csv"
-    
-    if not os.path.exists(path_root+"/raw/"+filename_train):
-        if save_flag:
-            print ("\nCreating required files for PyTorch Geometric Dataset Creation from pre-trained MHASummarizer...")
-        else:
-            #if multi_flag:
-            #    print ("\nObtaining predictions from pre-trained 2-Layer MHASummarizer...")
-            #else:
-            print ("\nObtaining predictions from pre-trained Single-layer MHASummarizer...")
-            
-        print ("Pre-trained model:", model_name)
-        
-        print ("Loading data...")
-        if config_file["load_data_paths"]["with_val"]:
-            df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
-        else: 
-            df_train, df_test = load_data(**config_file["load_data_paths"])
+
+
+    # import loader_data
+    print ("Loading data...")
+    if config_file["load_data_paths"]["with_val"]:
+        df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
+    else:
+        df_train, df_test = load_data(**config_file["load_data_paths"])
 
         ids2remove_train= check_dataframe(df_train)
         for id_remove in ids2remove_train:
@@ -77,48 +72,64 @@ def main_run(config_file , settings_file):
             df_val.reset_index(drop=True, inplace=True)
             print ("Val shape:", df_val.shape)
 
-        ids2remove_test = check_dataframe(df_test)
-        for id_remove in ids2remove_test:
-            df_test = df_test.drop(id_remove)    
-        df_test.reset_index(drop=True, inplace=True)
-        print ("Test shape:", df_test.shape)
+    ids2remove_test = check_dataframe(df_test)
+    for id_remove in ids2remove_test:
+        df_test = df_test.drop(id_remove)
+    df_test.reset_index(drop=True, inplace=True)
+    print ("Test shape:", df_test.shape)
 
-        max_len = config_file["max_len"]  # Maximum number of sentences in a document
-        print ("Max number of sentences allowed in document:", max_len)
+    max_len = config_file["max_len"]  # Maximum number of sentences in a document
+    print ("Max number of sentences allowed in document:", max_len)
 
-        if config_file["load_data_paths"]["with_val"]:
-            loader_train, loader_val, loader_test, _ , _ , _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-        else: 
-            loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-        
-        ##### Create files for Graph Creation 
-        if model_name=="Extended_Sigmoid":
-            model= "sigmoid" 
-        elif model_name=="Extended_Anneal":
-            model= "anneal" 
-        elif model_name=="Extended_ReLu":
-            model= "relu"
-        elif model_name=="Extended_NoTemp":
-            model= "notemp"
-        else:
-            model= "step"
-        setting_file= "config/Summarizer/multi_summarizer_"+model+".yaml" ###setting file from which pick the best checkpoint
-        
+    if config_file["load_data_paths"]["with_val"]:
+        loader_train, loader_val, loader_test, _ , _ , _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
+    else:
+        loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
+
+    # import path_checkpoint
+    print ("Pre-trained model:", model_name)
+        # ##### Create files for Graph Creation
+        # if model_name=="Extended_Sigmoid":
+        #     model= "sigmoid"
+        # elif model_name=="Extended_Anneal":
+        #     model= "anneal"
+        # elif model_name=="Extended_ReLu":
+        #     model= "relu"
+        # elif model_name=="Extended_NoTemp":
+        #     model= "notemp"
+        # else:
+        #     model= "step"
+    setting_file= "config/Summarizer/multi_summarizer_"+model_name+".yaml" ###setting file from which pick the best checkpoint
+
         #if multi_flag:
         #    tempo= df_logger.where(df_logger['Setting']==setting_file).dropna() ##consider only multi-layer MHA Summarizer
         #    path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
         #else:
-        tempo= df_logger.where(df_logger['Setting']!=setting_file).dropna() ## exclude multi-layer MHA Summarizer
-        path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
+    tempo= df_logger.where(df_logger['Setting']!=setting_file).dropna() ## exclude multi-layer MHA Summarizer
+    path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
 
-        print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
+    print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
         #if multi_flag:
         #    model_lightning = MHASummarizer_extended.load_from_checkpoint(path_checkpoint)
         #else:
-        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
-        print ("Model temperature", model_lightning.temperature)
+    model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+    print ("Model temperature", model_lightning.temperature)
 
-        print ("Done")
+    print ("Done")
+
+
+    if os.path.exists(path_root+"/raw/"+filename_train):
+        print ("Requirements satisfied in:", path_root)
+
+    else: #if not os.path.exists(path_root+"/raw/"+filename_train):
+
+        if save_flag:
+            print("\nCreating required files for PyTorch Geometric Dataset Creation from pre-trained MHASummarizer...")
+        else:
+            # if multi_flag:
+            #    print ("\nObtaining predictions from pre-trained 2-Layer MHASummarizer...")
+            # else:
+            print("\nObtaining predictions from pre-trained Single-layer MHASummarizer...")
 
         with open(file_results+'_'+model_name+'.txt', 'a') as f:
             if save_flag:
@@ -143,7 +154,7 @@ def main_run(config_file , settings_file):
             print ("["+partition+"] Avg. Acc (doc-level):", torch.tensor(accs_tr).mean().item())
             print ("["+partition+"] Avg. F1-score (doc-level):", torch.stack(f1s_tr, dim=0).mean(dim=0).numpy())
             print ("================================================")
-            
+
             if config_file["load_data_paths"]["with_val"]:
                 start_creation = time.time()
                 partition = "VAL"
@@ -172,24 +183,26 @@ def main_run(config_file , settings_file):
             print ("["+partition+"] Avg. Acc:", torch.tensor(accs_t).mean().item())
             print ("["+partition+"] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy())
             print ("================================================")
-            f.close()  
+            f.close()
 
-               
         print ("Finished and saved in:", path_root)
-    else:
-        print ("Requirements satisfied in:", path_root)
 
+    """
     print ("Loading data...")
     if config_file["load_data_paths"]["with_val"]:
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
 
-        ids2remove_train= check_dataframe(df_train)
-        for id_remove in ids2remove_train:
-            df_train = df_train.drop(id_remove)    
-        df_train.reset_index(drop=True, inplace=True)
-        print ("Train shape:", df_train.shape)
+    ################ minirun
+    df_train, df_val, df_test = df_train[:40], df_val[:40], df_test[:40]
+    ##########################
+
+    ids2remove_train= check_dataframe(df_train)
+    for id_remove in ids2remove_train:
+        df_train = df_train.drop(id_remove)
+    df_train.reset_index(drop=True, inplace=True)
+    print ("Train shape:", df_train.shape)
         
     if config_file["load_data_paths"]["with_val"]:
         ids2remove_val = check_dataframe(df_val)
@@ -213,17 +226,17 @@ def main_run(config_file , settings_file):
         loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
         
     ##### Create files for Graph Creation
-    if model_name=="Extended_Sigmoid":
-        model= "sigmoid"
-    elif model_name=="Extended_Anneal":
-        model= "anneal"
-    elif model_name=="Extended_ReLu":
-        model= "relu"
-    elif model_name=="Extended_NoTemp":
-        model= "notemp"
-    else:
-       model= "step"
-    setting_file= "config/Summarizer/multi_summarizer_"+model+".yaml" ###setting file from which pick the best checkpoint
+    # if model_name=="Extended_Sigmoid":
+    #     model= "sigmoid"
+    # elif model_name=="Extended_Anneal":
+    #     model= "anneal"
+    # elif model_name=="Extended_ReLu":
+    #     model= "relu"
+    # elif model_name=="Extended_NoTemp":
+    #     model= "notemp"
+    # else:
+    #    model= "step"
+    setting_file= "config/Summarizer/multi_summarizer_"+model_name+".yaml" ###setting file from which pick the best checkpoint
             
         #if multi_flag:
         #    tempo= df_logger.where(df_logger['Setting']==setting_file).dropna()
@@ -242,8 +255,9 @@ def main_run(config_file , settings_file):
 
     print ("Model temperature", model_lightning.temperature)
     print ("Done")
+    """
 
-        #### 
+
     with open(file_results+'_'+model_name+'.txt', 'a') as f:
 
         if config_file["type_graph"]=="full":
