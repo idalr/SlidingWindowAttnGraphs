@@ -1,3 +1,4 @@
+import os
 import torch
 from tqdm import tqdm
 from torch import nn
@@ -502,6 +503,8 @@ class Summarizer_Lighting(pl.LightningModule):
         with torch.no_grad():
             if saving_file:
                 path_dataset = path_root+"/raw/"
+                if not os.path.exists(path_dataset):
+                    os.makedirs(path_dataset)
                 print ("\nCreating files for PyG dataset in:", path_dataset)
                 predicting_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 predicting_docs.to_csv(path_dataset+filename, index=False)
