@@ -204,14 +204,14 @@ def print_filtering_matrix(df, article_identifier, no_valid_sents):
     # get doc id
     try:
         print("\nDocument ID: ", article_identifier.item(), "-- #Sentences: ", no_valid_sents)
-    except: # for Summarization?
+    except: # for Summarization
         print("\nDocument ID: ", article_identifier, "-- #Sentences: ", no_valid_sents)
 
     # print text
     try:
         print("Source text:\n", df[df['article_id'] == article_identifier.item()]['article_text'].values[0])
-    except: # for Summarization?
-        source_text = clean_tokenization_sent(df[df['Article_ID'] == article_identifier]['Cleaned_Article'].values[0], "text")
+    except: # for Summarization
+        source_text = clean_tokenization_sent(df[df['Article_ID'] == article_identifier.item()]['Cleaned_Article'].values[0], "text")
         print("Source text:\n", source_text)
         if len(source_text) != no_valid_sents:
             print ("WARNING: Number of sentences in source text and attention weights do not match")
