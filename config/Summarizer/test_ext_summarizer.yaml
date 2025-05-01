@@ -21,13 +21,13 @@ model_arch_args:
   embed_dim: 384 #sentence transformer
   num_heads: 4
   dropout: 0.2
-  hidden_dim : 128
+  hidden_dim : 64 #128
   intermediate: True
   temperature_scheduler: None
   attn_dropout: 0.1  #default 0.0
-  ###window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
+  window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
   
-batch_size: 32
+batch_size: 16 #32
 max_len: 200 #1000
 with_cw: True #or False
 

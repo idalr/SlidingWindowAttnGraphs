@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from preprocess_data import load_data
-from base_model import MHASummarizer, MHAClassifier_extended
+from base_model import MHASummarizer
 from data_loaders import create_loaders, check_dataframe, get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -127,7 +127,7 @@ def main_run(config_file , settings_file):
         print(f"Total running time: {time.time()-start_time:.2f} secs")    
 
         if not os.path.exists(path_models+logger_file): #"df_logger.csv"
-            df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Training_time", "Total_time"])
+            df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
             df_logger.to_csv(path_models+logger_file, index=False)
         else: #if exist
             df_logger = pd.read_csv(path_models+logger_file)
@@ -139,6 +139,7 @@ def main_run(config_file , settings_file):
             "Setting":settings_file,
             "Stop epoch": stopped_on,
             "Temperature": model_lightning.temperature,
+            "Window percent": model_lightning.window,
             "Training_time": train_time,
             "Total_time": total_time        
             }
