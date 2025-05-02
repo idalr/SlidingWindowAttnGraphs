@@ -7,6 +7,7 @@ from nltk import sent_tokenize
 
 from base_model import MHASummarizer
 from eval_models import retrieve_parameters, eval_results, filtering_matrices
+from graph_data_loaders import UnifiedAttentionGraphs_Sum
 
 warnings.filterwarnings("ignore")
 
@@ -18,12 +19,7 @@ from sklearn.manifold import TSNE
 from preprocess_data import load_data
 from data_loaders import create_loaders, clean_tokenization_sent, check_dataframe, get_class_weights
 
-from gnn_model import partitions, GAT_model
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
-from torchmetrics import F1Score
+from gnn_model import partitions, GAT_model, GAT_NC_model
 
 # define variables
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -127,7 +123,7 @@ del invert_vocab_sent
 # ############################################################### load 4 debug
 # df_test, _, _ = load_data(in_path, data_test, labels_train, data_test, labels_test, with_val=True)
 # df_test = df_test[:30]
-# max_len = 50
+max_len = 50
 #
 # print("\nChecking test")
 # ids2remove_test = check_dataframe(df_test)
@@ -135,8 +131,8 @@ del invert_vocab_sent
 #     df_test = df_test.drop(id_remove)
 # df_test.reset_index(drop=True, inplace=True)
 # print("Test shape:", df_test.shape)
-# _, _, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
-#                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
+_, _, loader_test, _, _, _, _ = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
+                                                                     task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
 #
 # ### OBTAIN MAX SEQUENCE
 # sent_lengths_test = []
@@ -174,7 +170,7 @@ print("Evaluating predictions...")
 # acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
 
-# TODO: visualize
+# visualize
 print("Visualize attentions...")
 
 tolerance = 0.5
@@ -214,101 +210,75 @@ plt.legend(["Train_mean", "Val_mean", "Test_mean", "Train_max", "Val_max", "Test
 plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
 plt.show()
 
-# TODO: implement visualize h
-# def visualize(h, color):
-#     z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
-#
-#     plt.figure(figsize=(6, 6))
-#     plt.xticks([])
-#     plt.yticks([])
-#
-#     plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
-#     plt.show()
+# implement visualize h
+def visualize(h, color):
+    z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
 
-# from https://github.com/Buguemar/AttnGraphs/blob/main/Adjency%20Matrix%20Visual.ipynb
-# from gnn_model import partitions
-# import pytorch_lightning as pl
-# from pytorch_lightning.loggers import WandbLogger
-# from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-# from pytorch_lightning.callbacks import ModelCheckpoint
-# from torchmetrics import F1Score
-#
-# type_model = "GAT"
-# type_graph = "mean"
-# graph_construction = type_graph
-# model_name = "Extended_Anneal"
-# path_models = "/scratch/mbugueno/HomoGraphs_GovReports/Extended_Anneal/"
-# project_name = model_name + "2" + type_model + "_" + type_graph
-#
-# acc_tests = []
-# f1_tests = []
-# f1ma_tests = []
-# all_train_times = []
-# all_full_times = []
-#
-# for i in range(1):
-#     nl = 2
-#     dim = 64
-#
-#     model = GAT_model(dataset_train.num_node_features, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
-#
-#     #### first train sample before model fitting
-#     model.eval()
-#     data = dataset_train[0]
-#     out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
-#     visualize(out_sample, color=data.y)
-#     model.train()
-#     ####
-#
-#     early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, patience=7, min_delta=0.001)
-#     path_for_savings = path_models + type_model + "/" + graph_construction  # if config_file["baseline"] else path_models+type_model
-#     checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1, dirpath=path_for_savings,
-#                                           filename=type_model + "_" + str(nl) + "L_" + str(
-#                                               dim) + "U_" + graph_construction + "_run" + str(
-#                                               i) + "-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
-#     wandb_logger = WandbLogger(
-#         name=model_name + '2' + type_model + "_" + str(nl) + "L_" + str(dim) + "U_" + graph_construction + "_run" + str(
-#             i), save_dir=path_for_savings, project=project_name)
-#     trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback],
-#                          logger=wandb_logger, max_epochs=50, enable_progress_bar=False)
-#
-#     train_loader, val_loader, test_loader = partitions(dataset_train, dataset_test, dataset_val=dataset_val, bs=8)
-#     print("partititons created")
-#
-#     starti = time.time()
-#     trainer.fit(model, train_loader, val_loader)
-#
-#     print("\nTraining stopped on epoch:", trainer.callbacks[0].stopped_epoch)
-#     train_time = time.time() - starti
-#     print(f"Training time: {train_time:.2f} secs")
-#
-#     # load best checkpoint
-#     print("Best model path:", trainer.checkpoint_callback.best_model_path)
-#     checkpoint = torch.load(trainer.checkpoint_callback.best_model_path)
-#     model.load_state_dict(checkpoint['state_dict'])
-#
-#     preds, trues = model.predict(test_loader, cpu_store=False)
-#
-#     acc = (torch.Tensor(trues) == preds).float().mean()
-#     f1_score = F1Score(task='multiclass', num_classes=2, average='none')
-#     f1_all = f1_score(preds.int(), torch.Tensor(trues).int())
-#     print("Acc Test:", acc)
-#     print("F1-macro Test:", f1_all.mean())
-#     print("F1 for each class:", f1_all)
-#
-#     endi = time.time()
-#     total_timei = endi - starti
-#     print("Training + Testing time: " + str(total_timei))
-#
-#     acc_tests.append(acc.cpu().numpy())
-#     f1_tests.append(f1_all.cpu().numpy())
-#     f1ma_tests.append(f1_all.mean().cpu().numpy())
-#     all_train_times.append(train_time)
-#     all_full_times.append(total_timei)
-#
-#     #### first train sample after model fitting
-#     model.eval()
-#     out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
-#     visualize(out_sample, color=data.y)
-#     model.train()
-#     ####
+    plt.figure(figsize=(6, 6))
+    plt.xticks([])
+    plt.yticks([])
+
+    plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
+    plt.show()
+
+
+def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
+    x_np = x.detach().cpu().numpy()
+    out_np = out_sample.detach().cpu().numpy()
+
+    # Run t-SNE on both
+    z1 = TSNE(n_components=2, perplexity=min(30, len(x_np) - 1)).fit_transform(x_np)
+    z2 = TSNE(n_components=2, perplexity=min(30, len(out_np) - 1)).fit_transform(out_np)
+
+    # Plot
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+    for ax, z, title in zip(axes, [z1, z2], [title1, title2]):
+        ax.set_xticks([])
+        ax.set_yticks([])
+        scatter = ax.scatter(z[:, 0], z[:, 1], s=60, c=color, cmap="Set2")
+        ax.set_title(title)
+
+    plt.tight_layout()
+    plt.show()
+
+
+# set variables
+type_model = "GAT"
+type_graph = "max"
+graph_construction = type_graph
+model_name = "Extended_NoTemp_w30"
+path_models = "HomoGraphs_GovReports/Extended_NoTemp_w30/"
+project_name = model_name + "2" + type_model + "_" + type_graph
+
+acc_tests = []
+f1_tests = []
+f1ma_tests = []
+all_train_times = []
+all_full_times = []
+
+root_graph = "datasets/AttnGraphs_GovReports/"
+path_root = root_graph + model_name + "/Attention/" + type_graph + '_unified'
+filename_test = "predict_test_documents.csv"
+path_checkpoint = 'HomoGraphs_GovReports/Extended_NoTemp_w30/Extended_NoTemp_w30-epoch=00-Val_f1-ma=0.08.ckpt'
+# model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+
+# build filename_test and construct graphs for dataset_test
+_, _ = model_lightning.predict_to_file(loader_test, saving_file=True, filename=filename_test, path_root=path_root)
+dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, type_graph, loader_test, degree=0.5, model_ckpt=path_checkpoint, mode="test", binarized=False)
+
+print("Printing samples...")
+for i in range(1):
+    nl = 2
+    dim = 64
+
+    model = GAT_NC_model(384, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
+
+    #### first train sample before model fitting
+    model.eval()
+    data = dataset_test[i]
+    out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
+    # visualize(data.x, color=data.y)
+    # visualize(out_sample, color=data.y)
+
+    visualize_side_by_side(data.x, out_sample, color=data.y)
