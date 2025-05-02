@@ -28,7 +28,7 @@ model_arch_args:
   window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
   
 batch_size: 16 #32
-max_len: 200 #1000
+max_len: 50 #1000
 with_cw: True #or False
 
 trainer_args:

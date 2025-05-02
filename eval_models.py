@@ -27,9 +27,9 @@ def retrieve_parameters(model_name, df_logger, with_temperature=False, require_b
         best_model_ckpt = subset_df.loc[retrieve_index]['Path']
 
     if with_temperature:
-        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Temperature'], subset_df.loc[retrieve_index]['Window percent']
+        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Temperature']
     else:
-        return best_model_ckpt, subset_df.loc[retrieve_index]['Score'], subset_df.loc[retrieve_index]['Window percent']
+        return best_model_ckpt, subset_df.loc[retrieve_index]['Score']
         
 
 def eval_results(preds, all_labels, num_classes, partition, print_results=True):
@@ -67,7 +67,7 @@ def get_window_mask(input_tensor, no_valid_sent, window):
     # for one 2-dim tensor
     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
     if no_valid_sent > 5: # cannot use pad value
-        window_size = torch.ceil(torch.tensor(no_valid_sent)*window/100)
+        window_size = torch.ceil(torch.tensor(no_valid_sent * window / 100))
         idx = torch.arange(int(no_valid_sent))
         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
         if no_valid_sent > input_tensor.shape[0]:
@@ -214,7 +214,7 @@ def print_filtering_matrix(df, article_identifier, no_valid_sents):
         source_text = clean_tokenization_sent(df[df['Article_ID'] == article_identifier.item()]['Cleaned_Article'].values[0], "text")
         print("Source text:\n", source_text)
         if len(source_text) != no_valid_sents:
-            print ("WARNING: Number of sentences in source text and attention weights do not match")
+            print ("WARNING: Number of sentences in source text and attention weights do not match") # this is ok in the minirun version because we use model.max_len
             print ("Stopping evaluation...")
 
 def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color, filtering_type=False,

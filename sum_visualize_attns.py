@@ -118,21 +118,47 @@ for i, doc in enumerate(df_test['Cleaned_Article']):
 max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
 print("max number of sentences in test document:", max_len_test)
 
-#loader_train,loader_val, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_train, df_test, max_len, batch_size, with_val=True,tokenizer_from_scratch=False, path_ckpt=in_path, df_val=df_val, task="summarization")
-max_len = 50
-
 #create loader from existing sentence vocabulary
 loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test, max_len, batch_size, df_val=df_val,
                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
-del df_val, df_test
+# del df_val, df_test
 del invert_vocab_sent
+
+# ############################################################### load 4 debug
+# df_test, _, _ = load_data(in_path, data_test, labels_train, data_test, labels_test, with_val=True)
+# df_test = df_test[:30]
+# max_len = 50
+#
+# print("\nChecking test")
+# ids2remove_test = check_dataframe(df_test)
+# for id_remove in ids2remove_test:
+#     df_test = df_test.drop(id_remove)
+# df_test.reset_index(drop=True, inplace=True)
+# print("Test shape:", df_test.shape)
+# _, _, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
+#                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
+#
+# ### OBTAIN MAX SEQUENCE
+# sent_lengths_test = []
+# for i, doc in enumerate(df_test['Cleaned_Article']):
+#     sent_in_doc = clean_tokenization_sent(doc, 'text')
+#
+#     if len(sent_in_doc) == 0:
+#         print("Empty doc in row-id:", i)
+#     sent_lengths_test.append(len(sent_in_doc))
+#     if len(sent_in_doc) >= 3000:
+#         print("Extremely long doc in row-id:", i, "with", len(sent_in_doc), "sentences.")
+#
+# max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
+# print("max number of sentences in test document:", max_len_test)
+# ############################################################### load 4 debug
 
 # load model and eval data
 path_models = "HomoGraphs_GovReports/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
 model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
-path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
+path_checkpoint, model_score= retrieve_parameters(model_name, df_logger)
 
 print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
 model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
@@ -152,40 +178,41 @@ print("Evaluating predictions...")
 print("Visualize attentions...")
 
 tolerance = 0.5
-num_print = 3
+num_print = 1 #3
 granularity= "local"
 filtering=True
+max_len = model_lightning.max_len
+model_window = model_lightning.window
+# max_len = 50
 
-# TODO: debug, because now filter is not working
+# compare valid_sent and max_len
+sent_lengths = [min(i,max_len) for i in sent_lengths]
+sent_lengths_val = [min(i,max_len) for i in sent_lengths_val]
+sent_lengths_test = [min(i,max_len) for i in sent_lengths_test]
+
 # Mean
 filter_type = "mean"
 _, _, _, deletions_t = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths, model_window, df_train, print_samples=num_print,
                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-# _, _, _, deletions_v = filtering_matrices(full_attn_weights_v, all_article_identifiers_v, sent_lengths_val, model_window, df_val, print_samples=num_print,
-#                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-# _, _, _, deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
-#                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-#
-# plt.hist(x=[deletions_t, deletions_v, deletions_test], bins=50, color=['blue', 'red', 'orange'])
-# plt.xlim(0, 7500)
-# plt.legend(["Train", "Val", "Test"])
-# plt.title("Deletions for mean local-filtering strategies - Model: "+model_name)
-# plt.show()
-#
-# # Mean
-# filter_type = "max"
-# _, _, _, deletions_t = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths, model_window, df_train, print_samples=num_print,
-#                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-# _, _, _, deletions_v = filtering_matrices(full_attn_weights_v, all_article_identifiers_v, sent_lengths_val, model_window, df_val, print_samples=num_print,
-#                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-# _, _, _, deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
-#                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
-#
-# plt.hist(x=[deletions_t, deletions_v, deletions_test], bins=50, color=['blue', 'red', 'orange'])
-# plt.xlim(0, 7500)
-# plt.legend(["Train", "Val", "Test"])
-# plt.title("Deletions for max local-filtering strategies - Model: "+model_name)
-# plt.show()
+_, _, _, deletions_v = filtering_matrices(full_attn_weights_v, all_article_identifiers_v, sent_lengths_val, model_window, df_val, print_samples=num_print,
+                                                                                    degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+_, _, _, deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
+                                                                                    degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+
+# Max
+filter_type = "max"
+_, _, _, x_deletions_t = filtering_matrices(full_attn_weights_t, all_article_identifiers_t, sent_lengths, model_window, df_train, print_samples=num_print,
+                                                                                    degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+_, _, _, x_deletions_v = filtering_matrices(full_attn_weights_v, all_article_identifiers_v, sent_lengths_val, model_window, df_val, print_samples=num_print,
+                                                                                    degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+_, _, _, x_deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
+                                                                                    degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
+
+plt.hist(x=[deletions_t, deletions_v, deletions_test, x_deletions_t, x_deletions_v, x_deletions_test], bins=500, color=['blue', 'cyan', 'green', 'magenta', 'red', 'orange'])
+plt.xlim(0, 7500)
+plt.legend(["Train_mean", "Val_mean", "Test_mean", "Train_max", "Val_max", "Test_max"])
+plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
+plt.show()
 
 # TODO: implement visualize h
 # def visualize(h, color):

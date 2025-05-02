@@ -31,7 +31,7 @@ def main_run(config_file , settings_file):
     df_train, df_val, df_test = load_data(**config_file["data_paths"])
 
     #################### minirun
-    df_train, df_val, df_test = df_train[:50], df_val[:50], df_test[:50]
+    df_train, df_val, df_test = df_train[:30], df_val[:30], df_test[:30]
     ####################
     
     ids2remove_train= check_dataframe(df_train)
