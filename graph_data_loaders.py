@@ -6,10 +6,10 @@ import pandas as pd
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from eval_models import filtering_matrices, get_threshold, clean_tokenization_sent, filtering_matrix
-from base_model import MHASummarizer_extended, MHASummarizer, retrieve_from_dict, MHAClassifier
+from base_model import MHASummarizer, retrieve_from_dict, MHAClassifier #, MHASummarizer_extended
 from utils import solve_by_creating_edge
 
-
+'''
 class AttentionGraphs(Dataset):
     def __init__(self, root, filename, filter_type, input_matrices, path_invert_vocab_sent='', window='', degree=0, test=False, transform=None, normalized=False, pre_transform=None): #filename is df_raw del dataset
         ### df_train, df_test, max_len, batch_size tambien en init?
@@ -185,7 +185,7 @@ class AttentionGraphs(Dataset):
             data = torch.load(os.path.join(self.processed_dir,
                                  f'data_{idx}.pt'))
         return data
-
+'''
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Class(Dataset):
@@ -255,6 +255,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
         print("Loading MHAClassifier model...")
         model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
         model_window = model_lightning.window
+        max_len = model_lightning.max_len
         print("Model correctly loaded.")
 
         if self.mode == "test":
@@ -283,6 +284,9 @@ class UnifiedAttentionGraphs_Class(Dataset):
                 except:
                     valid_sents = len(doc_ids)
                     cropped_doc = doc_ids
+
+                # if doc longer than max_len, use max_len to calculate window_size
+                valid_sents = min(valid_sents, max_len)
 
                 if self.filter_type is not None:
                     # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
@@ -478,7 +482,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
         return data
 
-
+'''
 ###################### Heuristic Graphs ######################
 # rules for constructing the graphs:
 # order: Each sentence is connected to the next sentence.
@@ -674,9 +678,9 @@ class HeuristicGraphs(Dataset):
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))        
             
         return data
-    
+'''
 
-
+'''
 ##llamar con loader usando batch size 1
 class AttentionGraphs_Sum(Dataset):
     def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode= "train", transform=None, normalized=False, binarized=False, multi_layer_model=False, pre_transform=None): #input_matrices, invert_vocab_sent
@@ -842,7 +846,7 @@ class AttentionGraphs_Sum(Dataset):
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))        
             
         return data
-
+'''
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
