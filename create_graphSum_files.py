@@ -204,14 +204,14 @@ def main_run(config_file , settings_file):
         # graphs val
         start_creation = time.time()
         filename_val = "predict_val_documents.csv"
-        dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_val, degree=tolerance, model_ckpt=path_checkpoint, mode="val", binarized=flag_binary) #, multi_layer_model=multi_flag)
+        dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance, model_ckpt=path_checkpoint, mode="val", binarized=flag_binary) #, multi_layer_model=multi_flag)
         creation_val = time.time()-start_creation
         print ("Creation time for Val Graph dataset:", creation_val, file=f)
         print ("Creation time for Val Graph dataset:", creation_val)
 
         start_creation = time.time()
         filename_test = "predict_test_documents.csv"
-        dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_test, degree=tolerance, model_ckpt=path_checkpoint, mode="test", binarized=flag_binary) #, multi_layer_model=multi_flag)
+        dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance, model_ckpt=path_checkpoint, mode="test", binarized=flag_binary) #, multi_layer_model=multi_flag)
         creation_test = time.time()-start_creation
         print ("Creation time for Test Graph dataset:", creation_test, file=f)
         print ("Creation time for Test Graph dataset:", creation_test)

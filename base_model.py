@@ -500,51 +500,54 @@ class Summarizer_Lighting(pl.LightningModule):
         self.eval()
         all_accs = []
         all_f1_scores = []
+        predicting_docs = []
+
+        if saving_file:
+            path_dataset = path_root + "/raw/"
+            if not os.path.exists(path_dataset):
+                os.makedirs(path_dataset)
+            print("\nCreating files for PyG dataset in:", path_dataset)
+
         with torch.no_grad():
-            if saving_file:
-                path_dataset = path_root+"/raw/"
-                if not os.path.exists(path_dataset):
-                    os.makedirs(path_dataset)
-                print ("\nCreating files for PyG dataset in:", path_dataset)
-                predicting_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-                predicting_docs.to_csv(path_dataset+filename, index=False)
+            for data in tqdm(test_loader, total=len(test_loader)):
+                out, _ = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device),
+                              data['matrix_mask'].to(self.device))
+                for ide, out_sample in enumerate(out):
 
-            for data in tqdm(test_loader, total=len(test_loader)):             
-                out, _ = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device), data['matrix_mask'].to(self.device))   
+                    pred = out_sample.view(-1, 2)
+                    labels_ = data['labels'][ide].view(-1)
+                    mask_not_ignore = (labels_ != -1)
+                    pred = pred[mask_not_ignore]
+                    labels_ = labels_[mask_not_ignore]
+                    pred = pred.argmax(dim=1)
 
-                pred = out.view(-1, 2)
-                labels_ = data['labels'].view(-1)                
-                mask_not_ignore = (labels_ != -1)
-                pred = pred[mask_not_ignore]
-                labels_ = labels_[mask_not_ignore]      
-                pred = pred.argmax(dim=1) 
+                    if cpu_store:
+                        pred = pred.detach().cpu().numpy()
 
-                if cpu_store:
-                    pred = pred.detach().cpu().numpy() 
+                    ### eval results of batch
+                    acc, f1_score = eval_results(torch.Tensor(pred), labels_, 2, None, print_results=False)
+                    all_accs.append(acc)
+                    all_f1_scores.append(f1_score)
 
-                ### eval results of batch 
-                acc, f1_score = eval_results(torch.Tensor(pred), labels_, 2, None, print_results=False)
-                all_accs.append(acc)
-                all_f1_scores.append(f1_score)
-                
-                label = labels_ ##
-                doc_as_ids = data['documents_ids'][0] ##
-                article_id= data['article_id'] ##
-                
-                if saving_file:
-                    try: 
-                        predicting_docs.loc[len(predicting_docs)] = {
-                            "article_id": article_id.item(),
-                            "label": label.tolist(), 
-                            "doc_as_ids": doc_as_ids[mask_not_ignore].tolist()
+                    label = labels_
+                    doc_as_ids = data['documents_ids'][ide]
+                    article_id = data['article_id'][ide]
+
+                    if saving_file:
+                        try:
+                            predicting_doc = {
+                                "article_id": article_id.item() if type(article_id) == torch.Tensor else article_id,
+                                "label": label.tolist(),
+                                "doc_as_ids": doc_as_ids[mask_not_ignore].tolist()
                             }
-                        predicting_docs.to_csv(path_dataset+filename, index=False)
-                    except:
-                        print ("Error in saving file during model prediction")
-                        break
+                            predicting_docs.append(predicting_doc)
+                        except:
+                            print("Error in saving file during model prediction")
+                            break
 
-        return all_accs, all_f1_scores #preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
+            pd.DataFrame(predicting_docs).to_csv(path_dataset + filename, index=False)
 
+        return all_accs, all_f1_scores  # preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
     def predict_single(self, batch_single, cpu_store=True):
         self.eval()
