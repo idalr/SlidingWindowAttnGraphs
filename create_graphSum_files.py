@@ -1,6 +1,6 @@
 import yaml
 import argparse
-from graph_data_loaders import AttentionGraphs_Sum, UnifiedAttentionGraphs_Sum
+from graph_data_loaders import UnifiedAttentionGraphs_Sum #, AttentionGraphs_Sum
 import torch
 import os
 import time
@@ -12,7 +12,7 @@ from nltk.tokenize import sent_tokenize
 from eval_models import retrieve_parameters
 from preprocess_data import load_data
 from data_loaders import create_loaders, check_dataframe
-from base_model import MHASummarizer_extended, MHASummarizer
+from base_model import MHASummarizer #, MHASummarizer_extended
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -56,27 +56,28 @@ def main_run(config_file , settings_file):
     print ("Loading data...")
     if config_file["load_data_paths"]["with_val"]:
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
+
+        ids2remove_val = check_dataframe(df_val)
+        for id_remove in ids2remove_val:
+            df_val = df_val.drop(id_remove)
+        df_val.reset_index(drop=True, inplace=True)
+        print ("Val shape:", df_val.shape)
+
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
 
-        ids2remove_train= check_dataframe(df_train)
-        for id_remove in ids2remove_train:
-            df_train = df_train.drop(id_remove)    
-        df_train.reset_index(drop=True, inplace=True)
-        print ("Train shape:", df_train.shape)
-        
-        if config_file["load_data_paths"]["with_val"]:
-            ids2remove_val = check_dataframe(df_val)
-            for id_remove in ids2remove_val:
-                df_val = df_val.drop(id_remove)    
-            df_val.reset_index(drop=True, inplace=True)
-            print ("Val shape:", df_val.shape)
+    ids2remove_train= check_dataframe(df_train)
+    for id_remove in ids2remove_train:
+        df_train = df_train.drop(id_remove)
+    df_train.reset_index(drop=True, inplace=True)
+    print ("Train shape:", df_train.shape)
 
     ids2remove_test = check_dataframe(df_test)
     for id_remove in ids2remove_test:
         df_test = df_test.drop(id_remove)
     df_test.reset_index(drop=True, inplace=True)
     print ("Test shape:", df_test.shape)
+
 
     max_len = config_file["max_len"]  # Maximum number of sentences in a document
     print ("Max number of sentences allowed in document:", max_len)
@@ -88,17 +89,6 @@ def main_run(config_file , settings_file):
 
     # import path_checkpoint
     print ("Pre-trained model:", model_name)
-        # ##### Create files for Graph Creation
-        # if model_name=="Extended_Sigmoid":
-        #     model= "sigmoid"
-        # elif model_name=="Extended_Anneal":
-        #     model= "anneal"
-        # elif model_name=="Extended_ReLu":
-        #     model= "relu"
-        # elif model_name=="Extended_NoTemp":
-        #     model= "notemp"
-        # else:
-        #     model= "step"
     setting_file= "config/Summarizer/multi_summarizer_"+model_name+".yaml" ###setting file from which pick the best checkpoint
 
         #if multi_flag:
@@ -186,76 +176,6 @@ def main_run(config_file , settings_file):
             f.close()
 
         print ("Finished and saved in:", path_root)
-
-    """
-    print ("Loading data...")
-    if config_file["load_data_paths"]["with_val"]:
-        df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
-    else:
-        df_train, df_test = load_data(**config_file["load_data_paths"])
-
-    ################ minirun
-    df_train, df_val, df_test = df_train[:40], df_val[:40], df_test[:40]
-    ##########################
-
-    ids2remove_train= check_dataframe(df_train)
-    for id_remove in ids2remove_train:
-        df_train = df_train.drop(id_remove)
-    df_train.reset_index(drop=True, inplace=True)
-    print ("Train shape:", df_train.shape)
-        
-    if config_file["load_data_paths"]["with_val"]:
-        ids2remove_val = check_dataframe(df_val)
-        for id_remove in ids2remove_val:
-            df_val = df_val.drop(id_remove)
-        df_val.reset_index(drop=True, inplace=True)
-        print ("Val shape:", df_val.shape)
-
-    ids2remove_test = check_dataframe(df_test)
-    for id_remove in ids2remove_test:
-        df_test = df_test.drop(id_remove)
-    df_test.reset_index(drop=True, inplace=True)
-    print ("Test shape:", df_test.shape)
-
-    max_len = config_file["max_len"]  # Maximum number of sentences in a document
-    print ("Max number of sentences allowed in document:", max_len)
-
-    if config_file["load_data_paths"]["with_val"]:
-        loader_train, loader_val, loader_test, _ , _ , _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-    else:
-        loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
-        
-    ##### Create files for Graph Creation
-    # if model_name=="Extended_Sigmoid":
-    #     model= "sigmoid"
-    # elif model_name=="Extended_Anneal":
-    #     model= "anneal"
-    # elif model_name=="Extended_ReLu":
-    #     model= "relu"
-    # elif model_name=="Extended_NoTemp":
-    #     model= "notemp"
-    # else:
-    #    model= "step"
-    setting_file= "config/Summarizer/multi_summarizer_"+model_name+".yaml" ###setting file from which pick the best checkpoint
-            
-        #if multi_flag:
-        #    tempo= df_logger.where(df_logger['Setting']==setting_file).dropna()
-        #    path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
-        #else:
-    tempo= df_logger.where(df_logger['Setting']!=setting_file).dropna() ## exclude multi-layer MHA Summarizer
-    path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
-        #path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
-
-    print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
-
-        #if multi_flag:
-        #model_lightning = MHASummarizer_extended.load_from_checkpoint(path_checkpoint)
-        #else:
-    model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
-
-    print ("Model temperature", model_lightning.temperature)
-    print ("Done")
-    """
 
 
     with open(file_results+'_'+model_name+'.txt', 'a') as f:
