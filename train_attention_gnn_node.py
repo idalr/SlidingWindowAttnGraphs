@@ -1,5 +1,8 @@
 import yaml
 import argparse
+
+from base_model import MHASummarizer
+from gnn_model import GAT_NC_model, partitions
 from graph_data_loaders import UnifiedAttentionGraphs_Sum #, AttentionGraphs_Sum
 import torch
 import os
@@ -48,41 +51,24 @@ def main_run(config_file, settings_file):
     model_name = config_file["model_name"]  # Extended_Anneal
     df_logger = pd.read_csv(path_logger + logger_name)
 
-    # if model_name == "Extended_Sigmoid":
-    #     model = "sigmoid"
-    # elif model_name == "Extended_Anneal":
-    #     model = "anneal"
-    # elif model_name == "Extended_ReLu":
-    #     model = "relu"
-    # elif model_name == "Extended_NoTemp":
-    #     model = "notemp"
-    # else:
-    #     model = "step"
-
-    # if multi_flag == True:
-    #     if dataset_name == "GovReport":
-    #         setting_file = "config/Summarizer/multi_summarizer_" + model + ".yaml"  ###setting file from which pick the best checkpoint
-    #     else:
-    #         setting_file = "config/Summarizer/" + dataset_name + "/multi_summarizer_" + model + ".yaml"  ###setting file from which pick the best checkpoint
-    # else:
-    # if dataset_name == "GovReport":
-    setting_file = "config/Summarizer/ext_summarizer_" + model_name + ".yaml"
-    #     else:
-    #         setting_file = "config/Summarizer/" + dataset_name + "/ext_summarizer_" + model + ".yaml"
+    # name setting file and model to retrieve from df_logger
+    if "Extended_NoTemp" in model_name:
+        setting_file = "config/Summarizer/ext_summarizer.yaml"
+    else:
+        if "Extended_Sigmoid" in model_name:
+            model = "sigmoid"
+        elif "Extended_Anneal" in model_name:
+            model = "anneal"
+        elif "Extended_ReLu" in model_name:
+            model = "relu"
+        elif model_name == "Extended_Step":
+            model = "step"
+        setting_file = "config/Summarizer/ext_summarizer_" + model + ".yaml"
 
     print("Matching to setting file:", setting_file)
-
-    ####only supports Sigmoid and Anneal-Softmax
-    # if multi_flag:
-    # tempo = df_logger.where(df_logger['Setting'] == setting_file).dropna()
-    # path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
-    # else:
-    tempo= df_logger.where(df_logger['Setting']!=setting_file).dropna() ## exclude multi-layer MHA Summarizer
+    tempo = df_logger.where(df_logger['Setting'] == setting_file).dropna()
     path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
 
-    # if multi_flag == True:
-    #     file_to_save = "2L-" + model_name + "_" + str(model_score)[:5]
-    # else:
     file_to_save = model_name + "_" + str(model_score)[:5]
     type_graph = config_file["type_graph"]  # full, mean, max
 
@@ -94,14 +80,6 @@ def main_run(config_file, settings_file):
         ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
         file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
     else:
-        # if multi_flag == True:
-        #     if unified_flag == True:
-        #         path_root = root_graph + model_name + "/2L-Attention/" + type_graph + "_unified"
-        #         project_name = "2L-" + model_name + "2" + type_model + "_" + type_graph + "_unified"
-        #     else:
-        #         path_root = root_graph + model_name + "/2L-Attention/" + type_graph
-        #         project_name = "2L-" + model_name + "2" + type_model + "_" + type_graph
-        # else:
         if unified_flag == True:
             path_root = root_graph + model_name + "/Attention/" + type_graph + "_unified"
             project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
@@ -191,15 +169,8 @@ def main_run(config_file, settings_file):
     with open(file_results + '.txt', 'a') as f:
         try:
             print("\nLoading pre-trained", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-            # if multi_flag:
-            #    print ("Loading 2L-MHASummarizer...")
-            try:
-                model_lightning = MHASummarizer_extended.load_from_checkpoint(path_checkpoint)
-                # print ("Done.")
-            # else:
-            except:
-                # print ("Loading 1L-MHASummarizer...")
-                model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+            print ("Loading 1L-MHASummarizer...")
+            model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
             print("Done.")
 
             print("Model temperature", model_lightning.temperature)
