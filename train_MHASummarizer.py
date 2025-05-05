@@ -124,13 +124,15 @@ def main_run(config_file , settings_file):
 
         total_time = time.time()-start_time
         print(f"Training + Testing time: {total_time:.2f} secs")    
-        print(f"Total running time: {time.time()-start_time:.2f} secs")    
+        print(f"Total running time: {time.time()-start_time:.2f} secs")
 
-        if not os.path.exists(path_models+logger_file): #"df_logger.csv"
+        path_models_logger_file = os.path.join(path_models, logger_file)
+
+        if not os.path.exists(path_models_logger_file): #"df_logger.csv"
             df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
-            df_logger.to_csv(path_models+logger_file, index=False)
+            df_logger.to_csv(path_models_logger_file, index=False)
         else: #if exist
-            df_logger = pd.read_csv(path_models+logger_file)
+            df_logger = pd.read_csv(path_models_logger_file)
         df_logger.loc[len(df_logger)] = {
             "Model":logger_name,
             "Path":trainer.checkpoint_callback.best_model_path, 
