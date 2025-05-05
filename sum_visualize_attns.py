@@ -35,6 +35,7 @@ data_train = None
 labels_train = None
 data_test = None
 labels_test = None
+max_len = 50
 
 # load data
 df_train, df_val, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=True)
@@ -83,8 +84,8 @@ for i, doc in enumerate(df_train['Cleaned_Article']):
     if len(sent_in_doc) >= 3000:
         print("Extremely long doc in row-id:", i, "with", len(sent_in_doc), "sentences.")
 
-max_len = max(sent_lengths)  # Maximum number of sentences in a document
-print("max number of sentences in train document:", max_len)
+max_len_train = max(sent_lengths)  # Maximum number of sentences in a document
+print("max number of sentences in train document:", max_len_train)
 
 ### OBTAIN MAX SEQUENCE
 sent_lengths_val = []
@@ -123,7 +124,6 @@ del invert_vocab_sent
 # ############################################################### load 4 debug
 # df_test, _, _ = load_data(in_path, data_test, labels_train, data_test, labels_test, with_val=True)
 # df_test = df_test[:30]
-max_len = 50
 #
 # print("\nChecking test")
 # ids2remove_test = check_dataframe(df_test)
@@ -131,8 +131,9 @@ max_len = 50
 #     df_test = df_test.drop(id_remove)
 # df_test.reset_index(drop=True, inplace=True)
 # print("Test shape:", df_test.shape)
-_, _, loader_test, _, _, _, _ = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
-                                                                     task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
+#
+# _, _, loader_test, _, _, _, _ = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
+#                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
 #
 # ### OBTAIN MAX SEQUENCE
 # sent_lengths_test = []
@@ -150,8 +151,8 @@ _, _, loader_test, _, _, _, _ = create_loaders(df_test, df_test, max_len, batch_
 # ############################################################### load 4 debug
 
 # load model and eval data
-path_models = "HomoGraphs_GovReports/"
-df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
+path_models_logger = os.path.join("HomoGraphs_GovReports", "df_logger_cw.csv")
+df_logger = pd.read_csv(path_models_logger)
 
 model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
 path_checkpoint, model_score= retrieve_parameters(model_name, df_logger)
@@ -159,11 +160,15 @@ path_checkpoint, model_score= retrieve_parameters(model_name, df_logger)
 print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
 model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
 print ("Model temperature", model_lightning.temperature)
+model_window = model_lightning.window
+print ("Model Window percent", model_window)
+max_len = model_lightning.max_len
+print ("Model Max length", model_lightning.max_len)
 
 print("Start Predicting...")
-preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
-preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val, cpu_store=False)
-preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
+_, full_attn_weights_t, _, _, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
+_, full_attn_weights_v, _, _, all_article_identifiers_v = model_lightning.predict(loader_val, cpu_store=False)
+_, full_attn_weights_test, _, _, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
 print("Evaluating predictions...")
 # acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
 # acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
@@ -177,9 +182,6 @@ tolerance = 0.5
 num_print = 1 #3
 granularity= "local"
 filtering=True
-max_len = model_lightning.max_len
-model_window = model_lightning.window
-# max_len = 50
 
 # compare valid_sent and max_len
 sent_lengths = [min(i,max_len) for i in sent_lengths]
@@ -204,13 +206,7 @@ _, _, _, x_deletions_v = filtering_matrices(full_attn_weights_v, all_article_ide
 _, _, _, x_deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
 
-plt.hist(x=[deletions_t, deletions_v, deletions_test, x_deletions_t, x_deletions_v, x_deletions_test], bins=500, color=['blue', 'cyan', 'green', 'magenta', 'red', 'orange'])
-plt.xlim(0, 7500)
-plt.legend(["Train_mean", "Val_mean", "Test_mean", "Train_max", "Val_max", "Test_max"])
-plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
-plt.show()
-
-# implement visualize h
+# implement visualize h in test set
 def visualize(h, color):
     z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
 
@@ -246,22 +242,8 @@ def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2
 # set variables
 type_model = "GAT"
 type_graph = "max"
-graph_construction = type_graph
-model_name = "Extended_NoTemp_w30"
-path_models = "HomoGraphs_GovReports/Extended_NoTemp_w30/"
-project_name = model_name + "2" + type_model + "_" + type_graph
-
-acc_tests = []
-f1_tests = []
-f1ma_tests = []
-all_train_times = []
-all_full_times = []
-
-root_graph = "datasets/AttnGraphs_GovReports/"
-path_root = root_graph + model_name + "/Attention/" + type_graph + '_unified'
+path_root = os.path.join("datasets", "AttnGraphs_GovReports", model_name, type_graph + '_unified')
 filename_test = "predict_test_documents.csv"
-path_checkpoint = 'HomoGraphs_GovReports/Extended_NoTemp_w30/Extended_NoTemp_w30-epoch=00-Val_f1-ma=0.08.ckpt'
-# model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
 
 # build filename_test and construct graphs for dataset_test
 _, _ = model_lightning.predict_to_file(loader_test, saving_file=True, filename=filename_test, path_root=path_root)
@@ -271,14 +253,10 @@ print("Printing samples...")
 for i in range(1):
     nl = 2
     dim = 64
-
     model = GAT_NC_model(384, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
-
-    #### first train sample before model fitting
     model.eval()
     data = dataset_test[i]
     out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
     # visualize(data.x, color=data.y)
     # visualize(out_sample, color=data.y)
-
     visualize_side_by_side(data.x, out_sample, color=data.y)
