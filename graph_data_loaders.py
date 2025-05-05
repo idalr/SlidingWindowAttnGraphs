@@ -189,7 +189,7 @@ class AttentionGraphs(Dataset):
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Class(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, window, degree=0.5, model_ckpt="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
@@ -202,7 +202,6 @@ class UnifiedAttentionGraphs_Class(Dataset):
         self.filename = filename #a crear post predict
         self.filter_type = filter_type
         self.data_loader = data_loader
-        self.window = window
         self.K = degree
         self.model_ckpt = model_ckpt
         self.mode = mode
@@ -251,11 +250,8 @@ class UnifiedAttentionGraphs_Class(Dataset):
         all_article_identifiers = self.data['article_id']
         all_batches = self.data_loader
 
-
         print("Loading MHAClassifier model...")
         model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
-        model_window = model_lightning.window
-        max_len = model_lightning.max_len
         print("Model correctly loaded.")
 
         if self.mode == "test":
@@ -286,6 +282,8 @@ class UnifiedAttentionGraphs_Class(Dataset):
                     cropped_doc = doc_ids
 
                 # if doc longer than max_len, use max_len to calculate window_size
+                model_window = model_lightning.window
+                max_len = model_lightning.max_len
                 valid_sents = min(valid_sents, max_len)
 
                 if self.filter_type is not None:

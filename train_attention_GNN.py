@@ -56,11 +56,7 @@ def main_run(config_file , settings_file):
 
     path_df_logger = os.path.join(path_logger, logger_name)
     df_logger = pd.read_csv(path_df_logger)
-
-    # if model_name=="Extended_Sigmoid":
-    #     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger, require_best=False, retrieve_index=18)
-    # else:
-    path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
+    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 
 
     file_to_save = model_name+"_"+str(model_score)[:5]
@@ -92,8 +88,7 @@ def main_run(config_file , settings_file):
         if unified_flag == True:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                    filter_type=type_graph, data_loader=None,
-                                                   window=model_window,
-                                                   model_ckpt=path_checkpoint, mode="train",
+                                                   model_ckpt=path_checkpoint, mode="train", window='',
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
                                                              filter_type=type_graph, data_loader=None,
@@ -166,6 +161,7 @@ def main_run(config_file , settings_file):
 
         print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        model_window = model_lightning.window
         print ("Done")
 
         preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
@@ -212,13 +208,13 @@ def main_run(config_file , settings_file):
         start_creation = time.time()
         if unified_flag:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-                                                        filter_type=filter_type, data_loader=loader_train, window=model_window,
+                                                        filter_type=filter_type, data_loader=loader_train,
                                                         model_ckpt=path_checkpoint, mode="train",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_train = time.time() - start_creation
             start_creation = time.time()
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                        filter_type=filter_type, data_loader=loader_test, window=model_window,
+                                                        filter_type=filter_type, data_loader=loader_test,
                                                         model_ckpt=path_checkpoint, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_test = time.time() - start_creation
