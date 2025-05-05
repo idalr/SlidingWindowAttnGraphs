@@ -193,7 +193,7 @@ class AttentionGraphs(Dataset):
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Class(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
@@ -287,7 +287,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
                     cropped_doc = doc_ids
 
                 # if doc longer than max_len, use max_len to calculate window_size
-                max_len = model_lightning.max_len
+                max_len = self.model.max_len
                 valid_sents = min(valid_sents, max_len)
 
                 if self.filter_type is not None:
@@ -684,7 +684,7 @@ class HeuristicGraphs(Dataset):
 
         return data
 
-
+'''
 ##llamar con loader usando batch size 1
 class AttentionGraphs_Sum(Dataset):
     def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
