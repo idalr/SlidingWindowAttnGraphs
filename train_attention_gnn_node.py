@@ -37,8 +37,7 @@ def main_run(config_file, settings_file):
     unified_flag = config_file["unified_nodes"]  # True for graphs with unified nodes or False for standard graphs
 
     root_graph = config_file["data_paths"]["root_graph_dataset"]  # "/scratch/datasets/AttnGraphs_GovReports/"
-    path_results = config_file["data_paths"][
-        "results_folder"]  # "/home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/"
+    path_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/"
     path_logger = config_file["data_paths"]["path_logger"]  # path_logger = "/scratch/mbugueno/HomoGraphs_GovReports/"
 
     num_classes = config_file["model_arch_args"]["num_classes"]
@@ -49,11 +48,12 @@ def main_run(config_file, settings_file):
     num_runs = config_file["model_arch_args"]["num_runs"]  # 5
 
     model_name = config_file["model_name"]  # Extended_Anneal
-    df_logger = pd.read_csv(path_logger + logger_name)
+    path_logger_name = os.path.join(path_logger, logger_name)
+    df_logger = pd.read_csv(path_logger_name)
 
     # name setting file and model to retrieve from df_logger
     if "Extended_NoTemp" in model_name:
-        setting_file = "config/Summarizer/ext_summarizer.yaml"
+        setting_file = os.path.join("config","Summarizer", "ext_summarizer.yaml")
     else:
         if "Extended_Sigmoid" in model_name:
             model = "sigmoid"
@@ -63,7 +63,7 @@ def main_run(config_file, settings_file):
             model = "relu"
         elif model_name == "Extended_Step":
             model = "step"
-        setting_file = "config/Summarizer/ext_summarizer_" + model + ".yaml"
+        setting_file = os.path.join("config","Summarizer", "ext_summarizer_" + model + ".yaml")
 
     print("Matching to setting file:", setting_file)
     tempo = df_logger.where(df_logger['Setting'] == setting_file).dropna()
@@ -72,42 +72,41 @@ def main_run(config_file, settings_file):
     file_to_save = model_name + "_" + str(model_score)[:5]
     type_graph = config_file["type_graph"]  # full, mean, max
 
-    path_models = path_logger + model_name + "/"
+    path_models = os.path.join(path_logger, model_name)
 
     if flag_binary == True:
-        path_root = root_graph + model_name + "/Attention/" + type_graph + "_binary"
+        path_root = os.path.join(root_graph, model_name, type_graph + "_binary")
         project_name = model_name + "2" + type_model + "_" + type_graph + "_binary"
         ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
-        file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_binary"
+        file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_binary")
     else:
         if unified_flag == True:
-            path_root = root_graph + model_name + "/Attention/" + type_graph + "_unified"
+            path_root = os.path.join(root_graph, model_name, type_graph + "_unified")
             project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
             ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_unified"
-            file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph + "_unified"
+            file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
         else:
-            path_root = root_graph + model_name + "/Attention/" + type_graph
+            path_root = os.path.join(root_graph, model_name, type_graph)
             project_name = model_name + "2" + type_model + "_" + type_graph
             ###file_results = path_results + dataset_name + "/" + file_to_save + "_2" + type_model + "_" + type_graph
-            file_results = path_results + "/" + file_to_save + "_2" + type_model + "_" + type_graph
+            file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
 
     filename_train = "predict_train_documents.csv"
     filename_val = "predict_val_documents.csv"
     filename_test = "predict_test_documents.csv"
 
-
     print("Running", type_model, "on Attention-based document graphs.")
     print("Loading graphs from:", path_root)
     if unified_flag == True:
-        dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train,
-                                                           filter_type=type_graph, data_loader=None, mode="train",
-                                                           binarized=flag_binary, multi_layer_model=multi_flag)
+        dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,
+                                                   data_loader=None, mode="train",
+                                                   binarized=flag_binary, multi_layer_model=multi_flag)
         dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
-                                                         data_loader=None, mode="val", binarized=flag_binary,
-                                                         multi_layer_model=multi_flag)
-        dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test,
-                                                          filter_type=type_graph, data_loader=None, mode="test",
-                                                          binarized=flag_binary, multi_layer_model=multi_flag)
+                                                 data_loader=None, mode="val",
+                                                 binarized=flag_binary, multi_layer_model=multi_flag)
+        dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph,
+                                                  data_loader=None, mode="test",
+                                                  binarized=flag_binary, multi_layer_model=multi_flag)
         print("Graphs with unified sentence nodes correctly loaded.")
     else:
         dataset_train = AttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,

@@ -27,25 +27,23 @@ def main_run(config_file , settings_file):
     folder_results = config_file["data_paths"]["results_folder"] #"/home/mbugueno/AttGraphs/GNN_Results_Summarizer/"
     save_flag = config_file["saving_file"]
     unified_flag = config_file["unified_nodes"]
-    #multi_flag= config_file["multi_layer"]
     flag_binary  = config_file["binarized"]
-    #if multi_flag:
-    #    file_results = folder_results+"Doc_Level_Results_2L"
-    #else:
     file_results = folder_results+"Doc_Level_Results"
+
+    # create folder if not exist
     if not os.path.exists(folder_results):
         os.makedirs(folder_results)
 
-    df_logger = pd.read_csv(path_logger+logger_name)   
+    path_df_logger = os.path.join(path_logger, logger_name)
+    df_logger = pd.read_csv(path_df_logger)
+
     if flag_binary:
-        path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"]+"_binary"
-    #elif multi_flag:
-    #    path_root = root_graph+model_name+"/2L-Attention/"+config_file["type_graph"]
+        path_root = os.path.join(root_graph, model_name, config_file["type_graph"]+'_binary')
     else:
         if unified_flag:
-            path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"]+"_unified"
+            path_root = os.path.join(root_graph, model_name, config_file["type_graph"]+"_unified")
         else:
-            path_root = root_graph+model_name+"/Attention/"+config_file["type_graph"]
+            path_root = os.path.join(root_graph, model_name, config_file["type_graph"])
 
     filename_train="predict_train_documents.csv"
     filename_val="predict_val_documents.csv"
@@ -78,7 +76,6 @@ def main_run(config_file , settings_file):
     df_test.reset_index(drop=True, inplace=True)
     print ("Test shape:", df_test.shape)
 
-
     max_len = config_file["max_len"]  # Maximum number of sentences in a document
     print ("Max number of sentences allowed in document:", max_len)
 
@@ -87,38 +84,36 @@ def main_run(config_file , settings_file):
     else:
         loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False, task="summarization", tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
 
-    # import path_checkpoint
-    print ("Pre-trained model:", model_name)
-    setting_file= "config/Summarizer/multi_summarizer_"+model_name+".yaml" ###setting file from which pick the best checkpoint
+    # name setting file and model to retrieve from df_logger
+    if "Extended_NoTemp" in model_name:
+        setting_file = os.path.join("config","Summarizer", "ext_summarizer.yaml")
+    else:
+        if "Extended_Sigmoid" in model_name:
+                model = "sigmoid"
+        elif "Extended_Anneal" in model_name:
+            model = "anneal"
+        elif "Extended_ReLu" in model_name:
+            model = "relu"
+        elif model_name == "Extended_Step":
+            model = "step"
+        setting_file = os.path.join("config","Summarizer", "ext_summarizer_" + model + ".yaml")
 
-        #if multi_flag:
-        #    tempo= df_logger.where(df_logger['Setting']==setting_file).dropna() ##consider only multi-layer MHA Summarizer
-        #    path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
-        #else:
-    tempo= df_logger.where(df_logger['Setting']!=setting_file).dropna() ## exclude multi-layer MHA Summarizer
+    print("Matching to setting file:", setting_file)
+    tempo = df_logger.where(df_logger['Setting'] == setting_file).dropna()
     path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
-
     print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
-        #if multi_flag:
-        #    model_lightning = MHASummarizer_extended.load_from_checkpoint(path_checkpoint)
-        #else:
     model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+    model_window = model_lightning.window
     print ("Model temperature", model_lightning.temperature)
-
     print ("Done")
 
-
-    if os.path.exists(path_root+"/raw/"+filename_train):
+    path_filename_train = os.path.join(path_root, "raw", filename_train)
+    if os.path.exists(path_filename_train):
         print ("Requirements satisfied in:", path_root)
-
-    else: #if not os.path.exists(path_root+"/raw/"+filename_train):
-
+    else: #if not os.path.exists(path_filename_train)::
         if save_flag:
             print("\nCreating required files for PyTorch Geometric Dataset Creation from pre-trained MHASummarizer...")
         else:
-            # if multi_flag:
-            #    print ("\nObtaining predictions from pre-trained 2-Layer MHASummarizer...")
-            # else:
             print("\nObtaining predictions from pre-trained Single-layer MHASummarizer...")
 
         with open(file_results+'_'+model_name+'.txt', 'a') as f:
