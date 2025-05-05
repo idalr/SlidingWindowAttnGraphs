@@ -74,12 +74,13 @@ class MultiHeadSelfAttention(nn.Module):
 
 
 class SlidingWindowMultiHeadSelfAttention(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
+    def __init__(self, input_dim, embed_dim, num_heads, max_len, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
         super().__init__()
         assert embed_dim % num_heads == 0, "Embedding dimension must be 0 module wrt the number of heads."
 
         self.embed_dim = embed_dim
         self.num_heads = num_heads
+        self.max_len = max_len
         self.head_dim = embed_dim // num_heads
         self.window_size = window_size
         self.temperature = temperature
@@ -99,7 +100,9 @@ class SlidingWindowMultiHeadSelfAttention(nn.Module):
     def create_sliding_window_mask(self, src_key_padding_mask, matrix_mask, seq_length, min_window_size=2, pad_value=-1e9):
 
         lens_valid_sent = (src_key_padding_mask == 0).sum(dim=1)
-        window_sizes = torch.ceil(lens_valid_sent*self.window_size/100).long().clamp(min=min_window_size)
+        # if valid_sent is longer than max_len, clip it to max_len
+        clipped_lens = torch.clamp(lens_valid_sent, max=self.max_len)
+        window_sizes = torch.ceil(clipped_lens*self.window_size/100).long().clamp(min=min_window_size)
         idx = torch.arange(seq_length, device=src_key_padding_mask.device)
         window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1) # if masked window, then True
         padding_mask = (matrix_mask == pad_value) # if padded, then True
@@ -218,19 +221,6 @@ class MHAClassifier(Classifier_Lighting):
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
-            
-        #print ("Attention method:", activation_attention)
-        # full MHA
-        if window == 100:
-            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
-                                                    num_heads, temperature=1, dropout=attn_dropout,
-                                                    activation_attention=activation_attention)
-
-        # sliding window MHA
-        else:
-            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
-                                                                 embed_dim, num_heads, window_size=self.window, temperature=1,
-                                                                 dropout=attn_dropout, activation_attention=activation_attention)
 
         self.num_classes = num_classes
         self.embed_dim = embed_dim
@@ -253,6 +243,19 @@ class MHAClassifier(Classifier_Lighting):
         self.temperature_scheduler = temperature_scheduler
         self.temperature_step = temperature_step
         self.global_iter = 0
+
+        #print ("Attention method:", activation_attention)
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, max_len=self.max_len, window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
 
         sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
         self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
@@ -674,19 +677,6 @@ class MHASummarizer(Summarizer_Lighting):
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
 
-        # full MHA
-        if window == 100:
-            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
-                                                    num_heads, temperature=1, dropout=attn_dropout,
-                                                    activation_attention=activation_attention)
-
-        # sliding window MHA
-        else:
-            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
-                                                                 embed_dim, num_heads, window_size=self.window, temperature=1,
-                                                                 dropout=attn_dropout, activation_attention=activation_attention)
-
-
         self.num_classes = num_classes
         self.embed_dim = embed_dim
 
@@ -706,6 +696,18 @@ class MHASummarizer(Summarizer_Lighting):
         self.temperature_scheduler = temperature_scheduler
         self.temperature_step = temperature_step
         self.global_iter = 0
+
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, max_len=self.max_len, window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
 
         sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
         self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}

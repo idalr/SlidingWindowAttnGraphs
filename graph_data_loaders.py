@@ -938,14 +938,10 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 label = clean_tokenization_sent(labels_sample, "label")
                 valid_sents = len(label)
 
-                ################### manual params
-                model_window = 100
-                max_len = 50
-                ################### manual params
-                # get model params and compare max_len and list_valid_sents
-                ###max_len = model_lightning.max_len
+                # get model params and clip valid_sents to max_len
+                model_window = model_lightning.window
+                max_len = model_lightning.max_len
                 valid_sents = min(valid_sents, max_len)
-                ###model_window = model_lightning.window
 
 
                 if self.filter_type is not None:
