@@ -39,3 +39,7 @@ trainer_args:
 early_args:
   patience: 5
   min_delta: 0.001
+
+#last_checkpoint: Extended_NoTemp_w30-epoch=02-Val_f1-ma=0.12.ckpt
+#last_epoch: 2
+#num_executions : 1

@@ -95,26 +95,39 @@ def main_run(config_file, settings_file):
             print("\n-- No class weights specificied --\n")
             model_params["class_weights"] = None
 
+        ## TRAINING SETUP
+        early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
+        wandb_logger = WandbLogger(name=logger_name, save_dir=path_models, project= file_to_save)
+
         # RESUME RUNNING
         if config_file['last_checkpoint']:
-            checkpoint_file = os.path.join(config_file['path_models'], config_file['last_checkpoint'])
+            checkpoint_file = os.path.join(config_file['path_models'],config_file['logger_name'], config_file['last_checkpoint'])
+            last_epoch = config_file['last_epoch']+1
             print("Resuming from checkpoint:", checkpoint_file)
             model_lightning = MHASummarizer.load_from_checkpoint(checkpoint_file)
+            checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1,
+                                                  dirpath=path_models + logger_name,
+                                                  filename=config_file['last_checkpoint'] + "-{epoch:02d}-{Val_f1-ma:.2f}")
+            trainer = pl.Trainer(accelerator=config_file.get("device", "gpu"), devices=1,
+                                 callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
+                                 max_epochs=config_file['trainer_args']['max_epochs']-last_epoch,
+                                 enable_progress_bar=config_file['trainer_args']['enable_progress_bar'])
 
-        ## TRAINING SETUP
+
+        ## NEW TRAINING SETUP
         else:
             model_params["max_len"] = max_len
             model_params["path_invert_vocab_sent"] = config_file["data_paths"]["in_path"]
+            # if model_params["multi_layer"]:
+            #    model_lightning = MHAClassifier_extended(**model_params)
+            # else:
             model_lightning = MHASummarizer(**model_params)  # activation_attention="softmax"
-
-        early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
-        checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1,
-                                              dirpath=path_models + logger_name,
-                                              filename=logger_name + "-{epoch:02d}-{Val_f1-ma:.2f}")
-        wandb_logger = WandbLogger(name=logger_name, save_dir=path_models, project=file_to_save)
-        trainer = pl.Trainer(accelerator=config_file.get("device", "gpu"), devices=1,
-                             callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
-                             **config_file["trainer_args"])
+            checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1,
+                                                  dirpath=path_models + logger_name,
+                                                  filename=logger_name + "-{epoch:02d}-{Val_f1-ma:.2f}")
+            trainer = pl.Trainer(accelerator=config_file.get("device", "gpu"), devices=1,
+                                 callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
+                                 **config_file["trainer_args"])
 
         ###### TRAINING ######
         start_time = time.time()
