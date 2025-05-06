@@ -1,9 +1,10 @@
-cuda_visible_devices: "0" #"7"
+# Colab
+cuda_visible_devices: "0"
 device: gpu
 
-path_models: /content/drive/MyDrive/ADG/HomoGraphs_GovReports/ #/scratch/mbugueno/HomoGraphs_GovReports/
+path_models: /content/drive/MyDrive/ADG/HomoGraphs_GovReports/
 file_to_save: MHASummarizer
-logger_name: Extended_NoTemp
+logger_name: Extended_ReLu
 logger_file: df_logger_cw.csv
 num_executions: 5
 
@@ -23,10 +24,10 @@ model_arch_args:
   dropout: 0.2
   hidden_dim : 128
   intermediate: True
-  temperature_scheduler: None
-  attn_dropout: 0.1  #default 0.0
+  activation_attention: "relu"
+  attn_dropout: 0.1
   window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
-
+  
 batch_size: 32
 max_len: 1000
 with_cw: True #or False
