@@ -29,10 +29,6 @@ def main_run(config_file , settings_file):
     logger_file= config_file["logger_file"]
 
     df_train, df_val, df_test = load_data(**config_file["data_paths"])
-
-    #################### minirun
-    df_train, df_val, df_test = df_train[:30], df_val[:30], df_test[:30]
-    ####################
     
     ids2remove_train= check_dataframe(df_train)
     for id_remove in ids2remove_train:
@@ -145,8 +141,8 @@ def main_run(config_file , settings_file):
             "Training_time": train_time,
             "Total_time": total_time        
             }
-        df_logger.to_csv(path_models+logger_file, index=False)
-        print ("\nFinished and saved in:", path_models+logger_file,"\n")
+        df_logger.to_csv(path_models_logger_file, index=False)
+        print ("\nFinished and saved in:", path_models_logger_file,"\n")
 
 
 if __name__ == "__main__":
