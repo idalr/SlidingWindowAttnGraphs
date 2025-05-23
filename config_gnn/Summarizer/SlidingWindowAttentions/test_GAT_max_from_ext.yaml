@@ -5,7 +5,7 @@ device: gpu
 saving_file: True # if False, raw files won't be saved
 
 dataset_name: GovReport
-logger_name: df_logger_cw.csv
+logger_name: test_df_logger_cw.csv
 model_name: Extended_NoTemp_w30
 type_model: GAT 
 baseline: False #Always False for attention graphs
@@ -16,12 +16,12 @@ unified_nodes: True #False
 
 
 data_paths:
-  path_logger: HomoGraphs_GovReports/
-  results_folder: AttGraphs/GNN_Results_Summarizer/
-  root_graph_dataset: datasets/AttnGraphs_GovReports/
+  path_logger: /scratch2/rldallitsako/HomoGraphs_GovReports/
+  results_folder: /home/rldallitsako/AttGraphs/GNN_Results_Summarizer/
+  root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/
 
 load_data_paths:
-  in_path: "datasets/GovReport-Sum/"
+  in_path: "scratch2/rldallitsako/datasets/GovReport-Sum/"
   data_train: "" #"articles-training-byarticle-20181122.xml"
   labels_train: "" #"ground-truth-training-byarticle-20181122.xml"
   data_test: "" #"articles-test-byarticle-20181207.xml"
@@ -36,12 +36,12 @@ model_arch_args:
   n_layers: [1] # [1, 2, 3]
   num_runs: 1 # 5
 
-batch_size: 16 #32
+batch_size: 32
 with_cw: True
 max_len: 50 #1000
 
 trainer_args:
-  max_epochs: 10 #50
+  max_epochs: 5 #50
   enable_progress_bar: False
 
 early_args:
