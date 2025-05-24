@@ -472,11 +472,11 @@ class UnifiedAttentionGraphs_Class(Dataset):
     def get(self, idx):
         """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
         if self.mode == "test":
-            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'), weights_only=False)
         if self.mode == "val":
-            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'), weights_only=False)
         else:
-            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
 
         return data
 
@@ -1131,11 +1131,11 @@ class UnifiedAttentionGraphs_Sum(Dataset):
     def get(self, idx):
         """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
         if self.mode == "test":
-            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'), weights_only=False)
         if self.mode == "val":
-            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'), weights_only=False)
         else:
-            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
 
         return data
 

@@ -155,10 +155,6 @@ def main_run(config_file, settings_file):
     df_test.reset_index(drop=True, inplace=True)
     print("Test shape:", df_test.shape)
 
-    ############################################## minirun
-    df_train, df_val, df_test = df_train[:20], df_val[:20], df_test[:20]
-    ######################################################
-
     if config_file["with_cw"] == True:
         my_class_weights, labels_counter = get_class_weights(df_train, task="summarization")
         calculated_cw = my_class_weights
@@ -323,5 +319,5 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
-    ###create_graphsum(config_file, args.settings_file)
+    create_graphsum(config_file, args.settings_file)
     main_run(config_file, args.settings_file)
