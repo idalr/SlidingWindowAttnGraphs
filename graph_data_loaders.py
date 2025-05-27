@@ -252,6 +252,8 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
         print("Loading MHAClassifier model...")
         model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
+        model_window = model_lightning.window
+        max_len = model_lightning.max_len
         print("Model correctly loaded.")
 
         if self.mode == "test":
@@ -282,8 +284,6 @@ class UnifiedAttentionGraphs_Class(Dataset):
                     cropped_doc = doc_ids
 
                 # if doc longer than max_len, use max_len to calculate window_size
-                model_window = model_lightning.window
-                max_len = model_lightning.max_len
                 valid_sents = min(valid_sents, max_len)
 
                 if self.filter_type is not None:
@@ -394,8 +394,8 @@ class UnifiedAttentionGraphs_Class(Dataset):
                         processed_ids.append(match_ids[i])
                         # final_label.append(label[i])
 
-                del match_ids, all_edges, dict_orig_to_ide_graph, filtered_matrix, final
-                gc.collect()
+                #del match_ids, all_edges, dict_orig_to_ide_graph, filtered_matrix, final
+                #gc.collect()
 
                 if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
                     print("Error in edge creation -- source and edge don't match")
@@ -462,9 +462,9 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
                 ide += 1
 
-                del generated_data, node_fea
-                torch.cuda.empty_cache()
-                gc.collect()
+                #del generated_data, node_fea
+                #torch.cuda.empty_cache()
+                #gc.collect()
 
     def len(self):
         return self.data.shape[0]  ##tamaño del dataset
@@ -900,6 +900,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
     def download(self):
         pass
 
+    # TODO: debug and improve timewise
     def process(self):
         self.data = pd.read_csv(self.raw_paths[0]).reset_index()
 
@@ -916,6 +917,8 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         #except:
         print("Loading MHASummarizer model...")
         model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model_window = model_lightning.window
+        max_len = model_lightning.max_len
         print("Model correctly loaded.")
 
         if self.mode == "test":
@@ -937,8 +940,6 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 valid_sents = len(label)
 
                 # get model params and clip valid_sents to max_len
-                model_window = model_lightning.window
-                max_len = model_lightning.max_len
                 valid_sents = min(valid_sents, max_len)
 
 

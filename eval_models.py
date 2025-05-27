@@ -19,7 +19,8 @@ def clean_tokenization_sent(list_as_document, object):
         return [int(element) for element in tok_document]
     
 def retrieve_parameters(model_name, df_logger, with_temperature=False, require_best=True, retrieve_index=None):
-    subset_df = df_logger[df_logger['Model']==model_name]
+    ###subset_df = df_logger[df_logger['Model']==model_name]
+    subset_df = df_logger[df_logger['Model'] == 'Extended_NoTemp'] # Temp setting for NoTemp
     if require_best:
         retrieve_index = subset_df['Score'].idxmax()
         best_model_ckpt = subset_df.loc[retrieve_index]['Path']
@@ -258,7 +259,7 @@ def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_
         axarr[1].set_title('Max Filtering')
         plt.show()
 
-
+# TODO: debug and improve timewise
 def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filtering=True, filtering_type="mean",
                      granularity="local", plotting=False):
     '''
