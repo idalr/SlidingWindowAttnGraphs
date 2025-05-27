@@ -866,13 +866,16 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         self.binarized = binarized
         self.multi_layer_mha = multi_layer_model
 
-        # Ensure the root is an absolute path
-        self.root = os.path.abspath(root)
-        # Create the full path for the filename (relative to the root folder)
-        raw_folder_path = os.path.join(self.root, "raw")
-        self.filename = os.path.join(raw_folder_path, filename)
-        # Normalize paths to ensure correct separators on different OS (Windows/Unix)
-        self.filename = os.path.normpath(self.filename)
+        # # Ensure the root is an absolute path
+        # self.root = os.path.abspath(root)
+        # # Create the full path for the filename (relative to the root folder)
+        # raw_folder_path = os.path.join(self.root, "raw")
+        # self.filename = os.path.join(raw_folder_path, filename)
+        # # Normalize paths to ensure correct separators on different OS (Windows/Unix)
+        # self.filename = os.path.normpath(self.filename)
+        self.root = root
+        self.filename = filename
+
 
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
@@ -1316,3 +1319,244 @@ class HeuristicGraphs(Dataset):
                                  f'data_{idx}.pt'))        
         return data
 """
+
+# TODO: adjust window_size >> as of now is 2-left and 2-right
+class UnifiedHeuristicGraphs(Dataset):
+    def __init__(self, root, filename, heuristic, path_invert_vocab_sent='', window_size=2, mode="train",
+                 task="classification", transform=None, pre_transform=None):
+        """
+        root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
+        """
+        self.task = task
+        self.mode = mode
+        self.filename = filename
+        self.heuristic = heuristic
+        self.window_size = window_size  # forwards and backwards -- hops
+        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
+        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        # self.normalized = normalized
+        self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+        for name, param in self.sent_model.named_parameters():
+            param.requires_grad = False
+
+        super(UnifiedHeuristicGraphs, self).__init__(root, transform, pre_transform)
+
+    @property
+    def raw_file_names(self):
+        """ If this file exists in raw_dir, the download is not triggered. """
+        return self.filename  # +".csv"
+
+    @property
+    def processed_file_names(self):
+        """ If these files are found in raw_dir, processing is skipped"""
+        self.data = pd.read_csv(self.raw_paths[0]).reset_index()
+
+        if self.mode == "test":
+            return [f'data_test_{i}.pt' for i in list(self.data.index)]
+        if self.mode == "val":
+            return [f'data_val_{i}.pt' for i in list(self.data.index)]
+        else:
+            return [f'data_{i}.pt' for i in list(self.data.index)]
+
+    def download(self):
+        pass
+
+    def process(self):
+        self.data = pd.read_csv(self.raw_paths[0]).reset_index()
+        all_doc_as_ids = self.data['doc_as_ids']
+        # all_labels = self.data['label']
+        # all_article_identifiers = self.data['article_id']
+
+        """remove documents with only one sentence"""
+        masking_short = []
+        for doc_ids in all_doc_as_ids:
+            try:
+                doc_ids = [int(element) for element in doc_ids[1:-1].split(",")]  ### filename list is saved as string
+                doc_ids = torch.tensor(doc_ids)
+                valid_sents = (doc_ids == 0).nonzero()[0]
+                cropped_doc = doc_ids[:valid_sents]
+            except:
+                valid_sents = len(doc_ids)
+                cropped_doc = doc_ids
+
+            if len(cropped_doc) < 2:
+                masking_short.append(False)
+            else:
+                masking_short.append(True)
+
+        data = self.data[masking_short].reset_index(drop=True)
+        all_doc_as_ids = data['doc_as_ids']
+        all_labels = data['label']
+        all_article_identifiers = data['article_id']
+
+        if self.mode == "test":
+            print("\n[TEST] Creating Graphs Objects...")
+        elif self.mode == "val":
+            print("\n[VAL] Creating Graphs Objects...")
+        else:
+            print("\n[TRAIN] Creating Graphs Objects...")
+
+        ide = 0
+        for doc_ids, label in tqdm(zip(all_doc_as_ids, all_labels), total=len(all_doc_as_ids)):
+
+            if self.task == "summarization":
+                label = clean_tokenization_sent(label, "label")
+
+            doc_ids = [int(element) for element in doc_ids[1:-1].split(",")]  ### filename list is saved as string
+            doc_ids = torch.tensor(doc_ids)
+
+            try:
+                if self.task == "summarization":
+                    valid_sents = len(label)
+                else:
+                    valid_sents = (doc_ids == 0).nonzero()[0]
+                cropped_doc = doc_ids[:valid_sents]
+            except:
+                valid_sents = len(doc_ids)
+                cropped_doc = doc_ids
+
+            """"calculating edges"""
+            # for id in cropped_doc:
+            match_ids = {k: v.item() for k, v in zip(range(len(cropped_doc)), cropped_doc)}
+
+            final_label = []
+            processed_ids = []
+            source_list = []
+            target_list = []
+            orig_source_list = []
+            orig_target_list = []
+            edge_attrs = []
+            all_edges = []
+
+            final = []
+            for elem in cropped_doc:
+                if elem.item() not in final:
+                    final.append(elem.item())
+
+            dict_orig_to_ide_graph = {k: v for k, v in
+                                      zip(final, range(len(final)))}  # key orig. sentence-id, value node-id for PyGeo
+
+
+            for i in range(len(cropped_doc)):
+                fix_with_extra_edges = False
+
+                # TODO: modify here
+                for j in range(i + 1, min(i + self.window_size + 1, len(cropped_doc))):
+                    a = match_ids[i]  # check match original ids
+                    b = match_ids[j]
+                    if a != b:
+                        if (a, b) not in all_edges:
+                            orig_source_list.append(a)
+                            orig_target_list.append(b)
+                            all_edges.append((a, b))
+                            if a in processed_ids:  # adaptar ide a la posicion del processed
+                                source_list.append(processed_ids.index(a))
+                            else:
+                                source_list.append(dict_orig_to_ide_graph[a])
+                            if b in processed_ids:  # adaptar id a posicion en processed
+                                target_list.append(processed_ids.index(b))
+                            else:
+                                target_list.append(dict_orig_to_ide_graph[b])
+                            # edge_attrs.append(1.0)
+
+                    else:
+                        fix_with_extra_edges = True
+
+                    if fix_with_extra_edges == True:
+                        if match_ids[i] not in orig_target_list:
+                            try:  # Adding edges to previous neighbor
+                                b = match_ids[j - 1]
+                                a = match_ids[i]
+                                orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                                    a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                                    edge_attrs, processed_ids, dict_orig_to_ide_graph, None)
+                            except:
+                                pass
+
+                            try:
+                                b = match_ids[j + 1]
+                                a = match_ids[i]
+                                orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                                    a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                                    edge_attrs, processed_ids, dict_orig_to_ide_graph, None)
+                            except:
+                                pass
+
+                if match_ids[i] not in processed_ids:
+                    processed_ids.append(match_ids[i])
+                    if self.task == "summarization":
+                        final_label.append(label[i])
+
+
+            if len(source_list) != len(orig_source_list):
+                print("Error in edge creation -- source and edge don't match")
+                print("numero de edges acummulados:")
+                print("source:", len(source_list))
+                print("target:", len(target_list))
+                print("orig_source:", len(orig_source_list))
+                print("orig_target:", len(orig_target_list))
+                print("edge_attrs:", len(edge_attrs))
+                break
+
+            """"calculating node features"""
+            # nodes are fixed - do not change with heuristic
+            node_fea = self.sent_model.encode(retrieve_from_dict(self.invert_vocab_sent, torch.tensor(processed_ids)))
+            node_fea = torch.tensor(node_fea).float()
+
+            # reverse edges for all heuristics
+            final_source = source_list + target_list
+            final_target = target_list + source_list
+            indexes = [final_source, final_target]
+            final_orig_source_list = orig_source_list + orig_target_list
+            final_orig_target_list = orig_target_list + orig_source_list
+            all_indexes = torch.tensor(indexes).long()
+            concat_edge_attrs = edge_attrs + edge_attrs  ### for reverse edge attributes (same weight - simetric matrix)
+            final_edge_attrs = torch.tensor(concat_edge_attrs).float()
+
+            if self.task == "summarization":
+                generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=final_edge_attrs,
+                                      y=torch.tensor(final_label).int())  # label in original graphs class
+                try:
+                    generated_data.article_id = torch.tensor(all_article_identifiers[ide])
+                except:
+                    generated_data.article_id = all_article_identifiers[ide]
+            else:
+                ## classification
+                generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=final_edge_attrs,
+                                      y=torch.tensor(label).int())
+                generated_data.article_id = torch.tensor(all_article_identifiers[ide])
+
+            generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
+
+            if generated_data.has_isolated_nodes():
+                print("Error in graph -- isolated nodes detected")
+                print(generated_data)
+                print(generated_data.edge_index)
+
+            elif generated_data.contains_self_loops():
+                print("Error in graph -- self loops detected")
+                print(generated_data)
+                print(generated_data.edge_index)
+
+            if self.mode == "test":
+                torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
+            if self.mode == "val":
+                torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'))
+            else:
+                torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
+
+            ide += 1
+
+    def len(self):
+        return self.data.shape[0]  ##tamaño del dataset
+
+    def get(self, idx):
+        """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
+        if self.mode == "test":
+            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'))
+        if self.mode == "val":
+            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'))
+        else:
+            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+
+        return data

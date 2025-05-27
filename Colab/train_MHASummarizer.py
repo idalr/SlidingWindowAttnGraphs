@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from preprocess_data import load_data
-from base_model import MHASummarizer
+from Colab.base_model import MHASummarizer
 from data_loaders import create_loaders, check_dataframe, get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -100,6 +100,8 @@ def main_run(config_file, settings_file):
         wandb_logger = WandbLogger(name=logger_name, save_dir=path_models, project= file_to_save)
 
         # RESUME RUNNING
+        # TODO: fix error when last_checkpoint not found
+        # TODO: copy the running code from Colab
         if config_file['last_checkpoint']:
             checkpoint_file = os.path.join(config_file['path_models'],config_file['logger_name'], config_file['last_checkpoint'])
             last_epoch = config_file['last_epoch']+1
@@ -129,6 +131,13 @@ def main_run(config_file, settings_file):
                                  callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                                  **config_file["trainer_args"])
 
+        # TODO: check if needed further debug
+        # need to load invert_vocab_sent manually for model_lightning
+        sent_dict_disk = pd.read_csv(config_file['data_paths']['in_path']+'vocab_sentences.csv')
+        invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        model_lightning.invert_vocab_sent = invert_vocab_sent
+        print("invert_vocab_sent Loaded.")
+
         ###### TRAINING ######
         start_time = time.time()
         trainer.fit(model_lightning, loader_train, loader_val)
@@ -139,6 +148,7 @@ def main_run(config_file, settings_file):
 
         # load best checkpoint
         model_lightning = MHASummarizer.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        model_lightning.invert_vocab_sent = invert_vocab_sent
 
         print("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print("Temperature of loaded model:", model_lightning.temperature)

@@ -1,12 +1,18 @@
-cuda_visible_devices: "5"
+cuda_visible_devices: "0"
 device: gpu
 
-logger_name: df_logger_cw.csv
-model_name: Extended_Anneal
-type_model: GAT 
-baseline: False #Always False for attention graphs
-type_graph: max
+# from predict_files
+saving_file: True # if False, raw files won't be saved
 
+dataset_name: GovReport
+logger_name: df_logger_cw.csv
+model_name: Extended_NoTemp_w30
+type_model: GAT
+baseline: False #Always False for attention graphs
+type_graph: full
+binarized: False #if True then unified must be False
+multi_layer: False
+unified_nodes: True #False
 
 data_paths:
   path_logger: /content/drive/MyDrive/ADG/HomoGraphs_GovReports/
