@@ -1083,7 +1083,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
                 """"calculating node features"""  # processed_ids === dict_orig_to_ide_graph.keys()
                 node_fea = self.sent_model.encode(
-                    retrieve_from_dict(model_lightning.invert_vocab_sent, torch.tensor(processed_ids)))
+                    retrieve_from_dict(self.model.invert_vocab_sent, torch.tensor(processed_ids)))
 
                 # reverse edges for all heuristics
                 final_source = source_list + target_list
