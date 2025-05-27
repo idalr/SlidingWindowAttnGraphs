@@ -858,7 +858,7 @@ class AttentionGraphs_Sum(Dataset):
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
@@ -870,7 +870,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         self.filter_type = filter_type
         self.data_loader = data_loader
         self.K = degree
-        self.model_ckpt = model_ckpt
+        self.model = model
         self.mode = mode
         self.normalized = normalized
         self.binarized = binarized
@@ -924,9 +924,9 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         #    print("Model correctly loaded.")
         # else:
         # except:
-        print("Loading MHASummarizer model...")
-        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        print("Model correctly loaded.")
+        # print("Loading MHASummarizer model...")
+        # model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        # print("Model correctly loaded.")
 
         if self.mode == "test":
             print("\n[TEST] Creating Graphs Objects...")
@@ -935,9 +935,12 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         else:
             print("\n[TRAIN] Creating Graphs Objects...")
 
+        model_window = self.model.window
+        max_len = self.model.max_len
+
         ide = 0
         for batch_sample in tqdm(all_batches, total=len(all_batches)):
-            pred_batch, full_matrix_batch = model_lightning.predict_single(batch_sample)
+            pred_batch, full_matrix_batch = self.model.predict_single(batch_sample)
 
             for pred, full_matrix in zip(pred_batch, full_matrix_batch):
                 doc_ids = all_doc_as_ids[ide]
@@ -946,8 +949,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 valid_sents = len(label)
 
                 # get model params and clip valid_sents to max_len
-                model_window = model_lightning.window
-                max_len = model_lightning.max_len
+
                 valid_sents = min(valid_sents, max_len)
 
                 if self.filter_type is not None:
