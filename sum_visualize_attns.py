@@ -28,24 +28,23 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 batch_size = 16
 num_classes = 2
 
-model_name = "Extended_NoTemp_w30"
-path_models = "HomoGraphs_GovReports/Extended_NoTemp_w30/"
-in_path = "datasets/GovReport-Sum/"
-data_train = None
-labels_train = None
-data_test = None
-labels_test = None
-max_len = 50
+model_name = "Extended_NoTemp" #_w30
+path_models = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_NoTemp_w30/"
+in_path = "/scratch2/rldallitsako/datasets/GovReport-Sum/"
+with_val = True
+max_len = 1000
 
 # load data
-df_train, df_val, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=True)
+df_train = pd.read_csv(in_path+"Processed/df_train.csv")
+df_val = pd.read_csv(in_path+"Processed/df_validation.csv")
+df_test = pd.read_csv(in_path+"Processed/df_test.csv")
 
 print ("df_train", df_train.shape)
 print ("df_val", df_val.shape)
 print ("df_test", df_test.shape)
 
 #################### minirun
-df_train, df_val, df_test = df_train[:30], df_val[:30], df_test[:30]
+df_train, df_val, df_test = df_train[:10], df_val[:10], df_test[:10]
 ####################
 
 print("\nChecking train")
@@ -151,7 +150,7 @@ del invert_vocab_sent
 # ############################################################### load 4 debug
 
 # load model and eval data
-path_models_logger = os.path.join("HomoGraphs_GovReports", "df_logger_cw.csv")
+path_models_logger = os.path.join("/scratch2/rldallitsako/HomoGraphs_GovReports/", "df_logger_cw.csv")
 df_logger = pd.read_csv(path_models_logger)
 
 model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
@@ -175,11 +174,55 @@ print("Evaluating predictions...")
 # acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
 
+def plot_attention_batch(attention_matrices, valid_lengths, titles=None):
+    """
+    Plots a batch of attention matrices with padding cropped.
+
+    Parameters:
+        attention_matrices (list of torch.Tensor): Each [seq_len, seq_len], possibly on GPU.
+        valid_lengths (list of int): Each indicates valid (unpadded) length for a matrix.
+        titles (list of str): Optional titles for subplots.
+    """
+    num_matrices = len(attention_matrices)
+    cols = min(4, num_matrices)
+    rows = (num_matrices + cols - 1) // cols
+
+    fig, axs = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows))
+
+    if num_matrices == 1:
+        axs = [[axs]]
+    elif rows == 1:
+        axs = [axs]
+
+    for idx, (attn, length) in enumerate(zip(attention_matrices, valid_lengths)):
+        row, col = divmod(idx, cols)
+        ax = axs[row][col] if rows > 1 else axs[0][col]
+
+        # Move to CPU and crop
+        attn = attn.detach().cpu().numpy()
+        attn = attn[:length, :length]  # crop padded part
+
+        im = ax.imshow(attn, cmap='magma')
+        ax.set_title(titles[idx] if titles else f"Matrix {idx}")
+        ax.set_xlabel("Key positions")
+        ax.set_ylabel("Query positions")
+
+    # Remove unused subplots
+    for i in range(num_matrices, rows * cols):
+        row, col = divmod(i, cols)
+        fig.delaxes(axs[row][col] if rows > 1 else axs[0][col])
+
+    plt.tight_layout()
+    plt.show()
+
+plot_attention_batch(full_attn_weights_t, sent_lengths)
+
+
 # visualize
 print("Visualize attentions...")
 
 tolerance = 0.5
-num_print = 1 #3
+num_print = 3
 granularity= "local"
 filtering=True
 

@@ -66,7 +66,7 @@ def main_run(config_file, settings_file):
         setting_file = os.path.join("config","Summarizer", "ext_summarizer_" + model + ".yaml")
 
     print("Matching to setting file:", setting_file)
-    tempo = df_logger.where(df_logger['Setting'] == setting_file).dropna()
+    tempo = df_logger.where(df_logger['Setting'].str.contains(setting_file)).dropna()
     path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
 
     file_to_save = model_name + "_" + str(model_score)[:5]

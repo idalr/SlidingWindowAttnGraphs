@@ -5,11 +5,11 @@ device: gpu
 saving_file: True # if False, raw files won't be saved
 
 dataset_name: GovReport
-logger_name: test_df_logger_cw.csv
+logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30
 type_model: GAT 
 baseline: False #Always False for attention graphs
-type_graph: max
+type_graph: mean
 binarized: False #if True then unified must be False
 multi_layer: False
 unified_nodes: True #False
@@ -32,18 +32,18 @@ model_arch_args:
   num_classes: 2
   lr: 0.001
   dropout: 0.2
-  dim_features : [64] # [64, 128, 256]
-  n_layers: [1] # [1, 2, 3]
-  num_runs: 1 # 5
+  dim_features : [64, 128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
 
 batch_size: 32
 with_cw: True
 max_len: 1000
 
 trainer_args:
-  max_epochs: 5 #50
+  max_epochs: 50
   enable_progress_bar: False
 
 early_args:
-  patience: 1 #5
+  patience: 10
   min_delta: 0.001  

@@ -7,20 +7,21 @@ saving_file: True # if False, raw files won't be saved
 dataset_name: GovReport
 logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30
-type_model: GAT
+type_model: GAT 
 baseline: False #Always False for attention graphs
-type_graph: full
+type_graph: max
 binarized: False #if True then unified must be False
 multi_layer: False
 unified_nodes: True #False
 
+
 data_paths:
-  path_logger: /content/drive/MyDrive/ADG/HomoGraphs_GovReports/
-  results_folder: /content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Summarizer/Colab/
-  root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_GovReports/
+  path_logger: /scratch2/rldallitsako/HomoGraphs_GovReports/
+  results_folder: /home/rldallitsako/AttGraphs/GNN_Results_Summarizer/
+  root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/
 
 load_data_paths:
-  in_path: "/content/drive/MyDrive/Colab Notebooks/datasets/GovReport-Sum/"
+  in_path: "scratch2/rldallitsako/datasets/GovReport-Sum/"
   data_train: "" #"articles-training-byarticle-20181122.xml"
   labels_train: "" #"ground-truth-training-byarticle-20181122.xml"
   data_test: "" #"articles-test-byarticle-20181207.xml"
@@ -44,5 +45,5 @@ trainer_args:
   enable_progress_bar: False
 
 early_args:
-  patience: 5
+  patience: 10
   min_delta: 0.001  
