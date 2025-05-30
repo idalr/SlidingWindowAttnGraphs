@@ -43,18 +43,14 @@ def main_run(config_file, settings_file):
     print("df_test", df_test.shape)
 
     ### OBTAIN MAX SEQUENCE
-    if dataset_name == "HND" or dataset_name == "BBC":
-        sent_lengths = []
-        for i, doc in enumerate(df_train['article_text']):
-            sent_in_doc = sent_tokenize(doc)
-            if len(sent_in_doc) == 0:
-                print("Empty doc en:", i)
-            sent_lengths.append(len(sent_in_doc))
-        max_len = max(sent_lengths)  # Maximum number of sentences in a document
-        print("max number of sentences in document:", max_len)
-    else:
-        max_len = config_file["max_len"]  # Maximum number of sentences in a document
-    print("Max number of sentences allowed in document:", max_len)  # 1800 for arXiv-Class
+    sent_lengths = []
+    for i, doc in enumerate(df_train['article_text']):
+        sent_in_doc = sent_tokenize(doc)
+        if len(sent_in_doc) == 0:
+            print("Empty doc en:", i)
+        sent_lengths.append(len(sent_in_doc))
+    max_len = max(sent_lengths)  # Maximum number of sentences in a document
+    print("max number of sentences in document:", max_len)
 
     for exec_i in range(config_file["num_executions"]):
         print("\n=============================")
@@ -107,7 +103,7 @@ def main_run(config_file, settings_file):
 
         ## TRAINING SETUP
         model_params["max_len"]=max_len
-        model_params["path_invert_vocab_sent"]= config_file["data_paths"]["in_path"]
+        model_params["path_invert_vocab_sent"]= config_file["load_data_paths"]["in_path"]
         #if model_params["multi_layer"]:
         #    model_lightning = MHAClassifier_extended(**model_params)
         #else:
@@ -155,6 +151,7 @@ def main_run(config_file, settings_file):
         path_models_logger_file = os.path.join(path_models, logger_file)
 
         if not os.path.exists(path_models_logger_file):
+            os.makedirs(path_models_logger_file)
             df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
             df_logger.to_csv(path_models_logger_file, index=False)
         else: #if exist
