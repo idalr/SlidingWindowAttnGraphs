@@ -153,7 +153,6 @@ def main_run(config_file, settings_file):
         path_models_logger_file = os.path.join(path_models, logger_file)
 
         if not os.path.exists(path_models_logger_file):
-            os.makedirs(path_models_logger_file)
             df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
             df_logger.to_csv(path_models_logger_file, index=False)
         else: #if exist

@@ -14,6 +14,7 @@ from base_model import MHAClassifier
 from eval_models import retrieve_parameters, eval_results
 from preprocess_data import load_data
 from data_loaders import create_loaders, get_class_weights, check_dataframe
+from create_graphSum_files import main_run as create_graphsum
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -367,4 +368,5 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
+    create_graphsum(config_file, args.settings_file)
     main_run(config_file, args.settings_file)
