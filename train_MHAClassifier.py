@@ -42,6 +42,8 @@ def main_run(config_file, settings_file):
         print("df_val", df_val.shape)
     print("df_test", df_test.shape)
 
+    #df_train, df_val, df_test =df_train[:40], df_val[:40], df_test[:40]
+
     ### OBTAIN MAX SEQUENCE
     sent_lengths = []
     for i, doc in enumerate(df_train['article_text']):

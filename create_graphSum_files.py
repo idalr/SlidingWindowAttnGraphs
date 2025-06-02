@@ -81,6 +81,10 @@ def main_run(config_file, settings_file):
     max_len = config_file["max_len"]  # Maximum number of sentences in a document
     print("Max number of sentences allowed in document:", max_len)
 
+    # #################################minirun
+    # df_train, df_test, df_val = df_train[:2], df_test[:2], df_val[:2]
+    # #################################minirun
+
     if config_file["load_data_paths"]["with_val"]:
         loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
                                                                            task="summarization",

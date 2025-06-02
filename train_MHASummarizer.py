@@ -29,6 +29,9 @@ def main_run(config_file , settings_file):
     logger_file= config_file["logger_file"]
 
     df_train, df_val, df_test = load_data(**config_file["data_paths"])
+
+    ###### minirun
+    #df_train, df_val, df_test = df_train[:30], df_val[:30], df_test[:30]
     
     ids2remove_train= check_dataframe(df_train)
     for id_remove in ids2remove_train:
