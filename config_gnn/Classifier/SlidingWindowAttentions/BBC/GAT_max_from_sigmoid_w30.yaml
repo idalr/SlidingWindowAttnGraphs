@@ -3,10 +3,10 @@ device: gpu
 
 #dataset_name: BBC
 logger_name: df_logger_cw_BBC.csv
-model_name: Extended_Anneal_BBC
+model_name: Extended_Sigmoid_BBC
 type_model: GAT #GCN
 baseline: False #Always False for learned graphs
-type_graph: full #full aka sliding window #min #max
+type_graph: max #full aka sliding window #min #max
 normalized: False
 unified_nodes: True #False
 binarized: False

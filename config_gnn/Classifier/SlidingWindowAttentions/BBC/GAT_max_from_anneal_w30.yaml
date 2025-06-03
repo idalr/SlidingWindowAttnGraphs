@@ -13,9 +13,9 @@ binarized: False
 multi_layer: False
 
 data_paths:
-  path_logger: scratch2/rldallitsako/HomoGraphs_BBC/ #/scratch/mbugueno/HomoGraphs_HND/
-  results_folder: AttGraphs/GNN_Results_Classifier/Attention/BBC/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
-  root_graph_dataset: AttnGraphs_BBC/ #/scratch/datasets/AttnGraphs_HND/
+  path_logger: /scratch2/rldallitsako/HomoGraphs_BBC/ #/scratch/mbugueno/HomoGraphs_HND/
+  results_folder: /home/rldallitsako/AttGraphs/GNN_Results_Classifier/Attention/BBC/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_BBC/ #/scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:
   in_path: "scratch2/rldallitsako/datasets/BBC/" #"/scratch/datasets/HyperNews/"
@@ -29,7 +29,7 @@ model_arch_args:
   num_classes: 5
   lr: 0.001
   dropout: 0.2
-  dim_features : [128, 256]
+  dim_features : [64, 128, 256]
   n_layers: [1, 2, 3]
   num_runs: 5
 
