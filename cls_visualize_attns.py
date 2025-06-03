@@ -50,12 +50,12 @@ for i, doc in enumerate(df_test['article_text']):
 max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
 print ("max number of sentences in document:", max_len_test)
 
-# mini run
+# minirun
 df_full_train = df_full_train.head(10)
-###df_test = df_test.head(20)
+df_test = df_test.head(20)
 sent_lengths = sent_lengths[:10]
-###sent_lengths_test = sent_lengths_test[:20]
-
+sent_lengths_test = sent_lengths_test[:20]
+# minirun
 
 ids2remove_train= check_dataframe(df_full_train, task='classification')
 for id_remove in ids2remove_train:
@@ -63,25 +63,28 @@ for id_remove in ids2remove_train:
 df_full_train.reset_index(drop=True, inplace=True)
 print ("Train shape:", df_full_train.shape)
 
+ids2remove_test = check_dataframe(df_test, task='classification')
+for id_remove in ids2remove_test:
+    df_test = df_test.drop(id_remove)
+df_test.reset_index(drop=True, inplace=True)
+print ("Test shape:", df_test.shape)
 
-# ids2remove_test = check_dataframe(df_test, task='classification')
-# for id_remove in ids2remove_test:
-#     df_test = df_test.drop(id_remove)
-# df_test.reset_index(drop=True, inplace=True)
-# print ("Test shape:", df_test.shape)
-
-
-path_models = "HomoGraphs_HND/"
-df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
-
-model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
-path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 loader_train, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_full_train, df_test, max_len, batch_size, with_val=False,
                                                                           tokenizer_from_scratch=False, path_ckpt=in_path)
-print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
+
+# Load model
+# path_models = "HomoGraphs_HND/"
+# df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
+#
+# model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
+# path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+# print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
+path_checkpoint = "datasets/models/Extended_NoTemp_w30-epoch=04-Val_f1-ma=0.77.ckpt"
+print ("\nLoading model from:", path_checkpoint)
 model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
 print ("Model temperature", model_lightning.temperature)
 
+# TODO: must debug predict
 print("Start Predicting...")
 preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
 preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
@@ -89,37 +92,37 @@ print("Evaluating predictions...")
 acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
 acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
-# path_root="/AttnGraphs_HND/"+model_name+"/Attention/full"
-# path_dataset = path_root+"/raw/"
-#
-# filename="post_predict_train_documents.csv"
-# filename_test= "post_predict_test_documents.csv"
-#
-# print ("\nCreating file for PyG dataset in:", path_dataset)
-# post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-# post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
-#
-# for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
-#     post_predict_train_docs.loc[len(post_predict_train_docs)] = {
-#     "article_id": article_id.item(),
-#     "label": label.item(),
-#     "doc_as_ids": doc_as_ids.tolist()
-#     }
-# post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
-# print ("Finished and saved in:", path_dataset+"post_predict_train_documents.csv")
-#
-#
-# post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-# post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
-#
-# for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
-#     post_predict_test_docs.loc[len(post_predict_test_docs)] = {
-#     "article_id": article_id.item(),
-#     "label": label.item(),
-#     "doc_as_ids": doc_as_ids.tolist()
-#     }
-# post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
-# print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
+path_root="datasets/HyperNews/"
+path_dataset = path_root+"/raw/"
+
+filename="post_predict_train_documents.csv"
+filename_test= "post_predict_test_documents.csv"
+
+print ("\nCreating file for PyG dataset in:", path_dataset)
+post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
+
+for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
+    post_predict_train_docs.loc[len(post_predict_train_docs)] = {
+    "article_id": article_id.item(),
+    "label": label.item(),
+    "doc_as_ids": doc_as_ids.tolist()
+    }
+post_predict_train_docs.to_csv(path_dataset+"post_predict_train_documents.csv", index=False)
+print ("Finished and saved in:", path_dataset+"post_predict_train_documents.csv")
+
+
+post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
+
+for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+    post_predict_test_docs.loc[len(post_predict_test_docs)] = {
+    "article_id": article_id.item(),
+    "label": label.item(),
+    "doc_as_ids": doc_as_ids.tolist()
+    }
+post_predict_test_docs.to_csv(path_dataset+"post_predict_test_documents.csv", index=False)
+print ("Finished and saved in:", path_dataset+"post_predict_test_documents.csv")
 
 print("Visualize attentions...")
 
@@ -137,33 +140,19 @@ sent_lengths = [min(i,max_len) for i in sent_lengths]
 for i, doc_t in enumerate(full_attn_weights_t):
     filtered_matrix = filtering_matrix(doc_t, sent_lengths[i], window=model_window, degree_std=std, with_filtering=True, filtering_type=filter_type, granularity=granularity, plotting=True)
 
-###root_graph = 'AttnGraphs_HND/'
-###path_root = os.path.join(root_graph, model_name, "full_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
-###filename="post_predict_train_documents.csv"
-###filename="post_predict_test_documents.csv"
 
-###dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-###                                                        filter_type=None, data_loader=loader_train, window=model_window,
-###                                                        model_ckpt=path_checkpoint, mode="train",
-###                                                        binarized=False, multi_layer_model=False)
-###dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-###                                                        filter_type=None, data_loader=loader_test, window=model_window,
-###                                                        model_ckpt=path_checkpoint, mode="test",
-###                                                        binarized=False, multi_layer_model=False)
-
-
-################################################################################
-# Normal viasualization
-sent_lengths_test = [min(i,max_len) for i in sent_lengths_test]
-# Test
-max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
-                                                                                                all_article_identifiers_test, sent_lengths_test,
-                                                                                                model_window, df_test, print_samples=num_print,
-                                                                                                degree_std=std, filtering_type=filter_type, granularity=granularity)
-
-
-plt.hist(x=[deletions, deletions_test, max_deletions, max_deletions_test], bins=50, color=['blue', 'lightblue', 'red', 'orange'])
-plt.xlim(0, 7500)
-plt.legend(["Mean - Train", "Mean - Test", "Max - Train", "Max - Test"])
-plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
-plt.show()
+# ################################################################################
+# # Normal viasualization
+# sent_lengths_test = [min(i,max_len) for i in sent_lengths_test]
+# # Test
+# max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
+#                                                                                                 all_article_identifiers_test, sent_lengths_test,
+#                                                                                                 model_window, df_test, print_samples=num_print,
+#                                                                                                 degree_std=std, filtering_type=filter_type, granularity=granularity)
+#
+#
+# plt.hist(x=[deletions, deletions_test, max_deletions, max_deletions_test], bins=50, color=['blue', 'lightblue', 'red', 'orange'])
+# plt.xlim(0, 7500)
+# plt.legend(["Mean - Train", "Mean - Test", "Max - Train", "Max - Test"])
+# plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
+# plt.show()
