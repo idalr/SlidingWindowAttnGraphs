@@ -22,8 +22,8 @@ def clean_tokenization_sent(list_as_document, object):
 
 
 def retrieve_parameters(model_name, df_logger, with_temperature=False, require_best=True, retrieve_index=None):
-    ###subset_df = df_logger[df_logger['Model']==model_name]
-    subset_df = df_logger[df_logger['Model'] == 'Extended_NoTemp']  # Temp setting for NoTemp
+    subset_df = df_logger[df_logger['Model'].str.contains(model_name)]
+    ##subset_df = df_logger[df_logger['Model'] == 'Extended_NoTemp']  # Temp setting for NoTemp
     if require_best:
         retrieve_index = subset_df['Score'].idxmax()
         best_model_ckpt = subset_df.loc[retrieve_index]['Path']
@@ -271,6 +271,7 @@ def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_
 
 def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filtering=True, filtering_type="mean",
                      granularity="local", plotting=False):
+
     cropped_matrix = doc_att[:valid_sents, :valid_sents]
 
     if filtering_type == "full":
@@ -289,8 +290,8 @@ def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filterin
             filtered_matrix = torch.Tensor(cropped_matrix.size())
             for i in range(cropped_matrix.size(0)):
                 filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
-            else:
-                filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
+        else:
+            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
 
         if plotting:
             # get alternative filtering

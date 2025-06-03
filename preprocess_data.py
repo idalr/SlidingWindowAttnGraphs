@@ -19,20 +19,20 @@ def clean_str(string):
 def load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=False):
     ### check if there is a folder with processed data and load from there. Otherwise, create the dfs and save
     try:
-        # load
+        #load
         if with_val:
             print("Loading from Processed folder")
-            df_train = pd.read_csv(in_path + "/Processed/df_train.csv")
+            df_train = pd.read_csv(in_path+"/Processed/df_train.csv")
             try:
-                df_val = pd.read_csv(in_path + "/Processed/df_validation.csv")
+                df_val = pd.read_csv(in_path+"/Processed/df_validation.csv")
             except:
-                df_val = pd.read_csv(in_path + "/Processed/df_val.csv")
-            df_test = pd.read_csv(in_path + "/Processed/df_test.csv")
+                df_val = pd.read_csv(in_path+"/Processed/df_val.csv")
+            df_test = pd.read_csv(in_path+"/Processed/df_test.csv")
             return df_train, df_val, df_test
         else:
             print("Loading from Processed folder")
-            df_train = pd.read_csv(in_path + "/Processed/df_train.csv")
-            df_test = pd.read_csv(in_path + "/Processed/df_test.csv")
+            df_train = pd.read_csv(in_path+"/Processed/df_train.csv")
+            df_test = pd.read_csv(in_path+"/Processed/df_test.csv")
             return df_train, df_test
 
     except:
@@ -41,13 +41,13 @@ def load_data(in_path, data_train, labels_train, data_test, labels_test, with_va
             print("Please check if the data is in the correct folder or if the data has been processed before.")
             return None, None, None
         else:
-            print("Creating dataframes...")  ### for HND dataset
+            print ("Creating dataframes...") ### for HND dataset
             df_train = create_dataframe(in_path, data_train, labels_train)
             df_test = create_dataframe(in_path, data_test, labels_test)
 
             # Save dataframes
-            df_train.to_csv(in_path + "/Processed/df_train.csv", index=False)
-            df_test.to_csv(in_path + "/Processed/df_test.csv", index=False)
+            df_train.to_csv(in_path+"/Processed/df_train.csv",index=False)
+            df_test.to_csv(in_path+"/Processed/df_test.csv",index=False)
 
             return df_train, df_test
 
