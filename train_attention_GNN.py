@@ -1,6 +1,6 @@
 import yaml
 import argparse
-from graph_data_loaders import AttentionGraphs, UnifiedAttentionGraphs_Class
+from graph_data_loaders import UnifiedAttentionGraphs_Class
 import torch
 import os
 import time
@@ -42,6 +42,7 @@ def main_run(config_file , settings_file):
     n_layers = config_file["model_arch_args"]["n_layers"] #[1, 2]
     num_runs = config_file["model_arch_args"]["num_runs"] #5
     # path to store results
+    path_vocab = config_file["load_data_paths"]["in_path"]
     root_graph = config_file["data_paths"]["root_graph_dataset"] #"/scratch/datasets/AttnGraphs_HND/"
     path_results = config_file["data_paths"]["results_folder"] #"/home/mbugueno/AttGraphs/GNN_Results/" #folder for GNN results (Heuristic_Results for baselines)
     path_logger = config_file["data_paths"]["path_logger"]  #path_logger = "/scratch/mbugueno/HomoGraphs_HND/"
@@ -56,11 +57,7 @@ def main_run(config_file , settings_file):
 
     path_df_logger = os.path.join(path_logger, logger_name)
     df_logger = pd.read_csv(path_df_logger)
-
-    # if model_name=="Extended_Sigmoid":
-    #     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger, require_best=False, retrieve_index=18)
-    # else:
-    path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
+    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 
 
     file_to_save = model_name+"_"+str(model_score)[:5]
@@ -82,6 +79,7 @@ def main_run(config_file , settings_file):
             file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
 
     filename="post_predict_train_documents.csv"
+    filename_val= "post_predict_val_documents.csv"
     filename_test= "post_predict_test_documents.csv"
 
     try:
@@ -92,21 +90,25 @@ def main_run(config_file , settings_file):
         if unified_flag == True:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
                                                    filter_type=type_graph, data_loader=None,
-                                                   window=model_window,
                                                    model_ckpt=path_checkpoint, mode="train",
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
                                                              filter_type=type_graph, data_loader=None,
-                                                             model_ckpt=path_checkpoint, mode="test",  window='',
+                                                             model_ckpt=path_checkpoint, mode="test",
+                                                             binarized=flag_binary, multi_layer_model=multi_flag)
+            if config_file['load_data_paths']['with_val']:
+                dataset_val = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_val,
+                                                             filter_type=type_graph, data_loader=None,
+                                                             model_ckpt=path_checkpoint, mode="val",
                                                              binarized=flag_binary, multi_layer_model=multi_flag)
         else:
             dataset = AttentionGraphs(root=path_root, filename=filename, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=False)
             dataset_test = AttentionGraphs(root=path_root, filename=filename_test, filter_type="", input_matrices=None, path_invert_vocab_sent='', window='', degree=0.5, test=True)
 
 
-        df_full_train, _ = load_data(**config_file["load_data_paths"])
+        df_train, _ = load_data(**config_file["load_data_paths"])
         if config_file["with_cw"]:
-            my_class_weights, labels_counter = get_class_weights(df_full_train)
+            my_class_weights, labels_counter = get_class_weights(df_train)
             calculated_cw = my_class_weights
             print ("\nClass weights - from training partition:", my_class_weights)
             print ("Class counter:", labels_counter)
@@ -121,12 +123,21 @@ def main_run(config_file , settings_file):
         print ("Type graph:", type_graph)
 
         print ("Root graph:", path_root)
-        
+
         print ("Loading data...")
-        df_full_train, df_test = load_data(**config_file["load_data_paths"])
+        if config_file['load_data_paths']['with_val']:
+            df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
+
+            ids2remove_val = check_dataframe(df_val, task='classification')
+            for id_remove in ids2remove_val:
+                df_val = df_val.drop(id_remove)
+            df_val.reset_index(drop=True, inplace=True)
+            print("Val shape:", df_val.shape)
+        else:
+            df_train, df_test = load_data(**config_file["load_data_paths"])
 
         sent_lengths=[]
-        for i, doc in enumerate(df_full_train['article_text']):
+        for i, doc in enumerate(df_train['article_text']):
             sent_in_doc = sent_tokenize(doc)
             if len(sent_in_doc)==0:
                 print ("Empty doc en:", i)
@@ -139,11 +150,11 @@ def main_run(config_file , settings_file):
         ############################################################################# mini run
 
         # filter out data entries that have only one node
-        ids2remove_train = check_dataframe(df_full_train, task='classification')
+        ids2remove_train = check_dataframe(df_train, task='classification')
         for id_remove in ids2remove_train:
-            df_full_train = df_full_train.drop(id_remove)
-        df_full_train.reset_index(drop=True, inplace=True)
-        print("Train shape:", df_full_train.shape)
+            df_train = df_train.drop(id_remove)
+        df_train.reset_index(drop=True, inplace=True)
+        print("Train shape:", df_train.shape)
 
         ids2remove_test = check_dataframe(df_test, task='classification')
         for id_remove in ids2remove_test:
@@ -151,12 +162,16 @@ def main_run(config_file , settings_file):
         df_test.reset_index(drop=True, inplace=True)
         print("Test shape:", df_test.shape)
 
-        loader_train, loader_test, _, _ = create_loaders(df_full_train, df_test, max_len, config_file["batch_size"], with_val=False, task="classification",
-                                                                                               tokenizer_from_scratch=False, path_ckpt=config_file["load_data_paths"]["in_path"])
+        if config_file["load_data_paths"]["with_val"]==True: ###REVISAR RETORNO DE LOADER CON CLASSIFICATION
+            loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"], tokenizer_from_scratch=False, path_ckpt=path_vocab,
+                                                                            df_val=df_val, task="classification")
 
-        
+        else:
+            loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"], with_val=False, tokenizer_from_scratch=False, path_ckpt=path_vocab,
+                                                                    df_val=None, task="classification")
+
         if config_file["with_cw"]:
-            my_class_weights, labels_counter = get_class_weights(df_full_train)
+            my_class_weights, labels_counter = get_class_weights(df_train)
             calculated_cw = my_class_weights
             print ("\nClass weights - from training partition:", my_class_weights)
             print ("Class counter:", labels_counter)
@@ -166,6 +181,7 @@ def main_run(config_file , settings_file):
 
         print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        model_window = model_lightning.window
         print ("Done")
 
         preds_t, full_attn_weights_t, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
@@ -192,6 +208,25 @@ def main_run(config_file , settings_file):
         post_predict_train_docs.to_csv(path_dataset_file, index=False)
         print ("Finished and saved in:", path_dataset_file)
 
+        if config_file["load_data_paths"]["with_val"]==True:
+
+            preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val, cpu_store=False)
+            acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Train")
+            path_dataset_file_val = os.path.join(path_root, "raw", filename_val)
+
+            print ("\nPredicting Val")
+            _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val, cpu_store=False) #, flag_file=True)
+            post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+            post_predict_val_docs.to_csv(path_dataset_file_val, index=False)
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
+                post_predict_val_docs.loc[len(post_predict_val_docs)] = {
+                "article_id": article_id.item(),
+                "label": label.item(),
+                "doc_as_ids": doc_as_ids.tolist()
+                }
+            post_predict_val_docs.to_csv(path_dataset_file_val, index=False)
+            print ("Finished and saved in:", path_dataset_file_val)
+
         post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
         post_predict_test_docs.to_csv(path_dataset_file_test, index=False)
         for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
@@ -204,21 +239,25 @@ def main_run(config_file , settings_file):
         print ("Finished and saved in:", path_dataset_file_test)
 
         #### create data.pt
-        if type_graph=="full":
-            filter_type=None
-        else:
-            filter_type=type_graph
-
         start_creation = time.time()
         if unified_flag:
             dataset = UnifiedAttentionGraphs_Class(root=path_root, filename=filename,
-                                                        filter_type=filter_type, data_loader=loader_train, window=model_window,
+                                                        filter_type=type_graph, data_loader=loader_train,
                                                         model_ckpt=path_checkpoint, mode="train",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_train = time.time() - start_creation
+
+            if config_file["load_data_paths"]["with_val"]==True:
+                start_creation = time.time()
+                dataset_val = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_val,
+                                                        filter_type=type_graph, data_loader=loader_val,
+                                                        model_ckpt=path_checkpoint, mode="val",
+                                                        binarized=flag_binary, multi_layer_model=multi_flag)
+                creation_val = time.time() - start_creation
+
             start_creation = time.time()
             dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                        filter_type=filter_type, data_loader=loader_test, window=model_window,
+                                                        filter_type=type_graph, data_loader=loader_test,
                                                         model_ckpt=path_checkpoint, mode="test",
                                                         binarized=flag_binary, multi_layer_model=multi_flag)
             creation_test = time.time() - start_creation
@@ -240,12 +279,19 @@ def main_run(config_file , settings_file):
             print ("[TRAIN] Acc:", acc_t.item(), file=f)
             print ("[TRAIN] F1-macro:", f1_all_t.mean().item(), file=f)
             print ("[TRAIN] F1-scores:", f1_all_t, file=f)
+            if config_file["load_data_paths"]["with_val"]==True:
+                print ("------------------------", file=f)
+                print ("[VAL] Acc:", acc_v.item(), file=f)
+                print ("[VAL] F1-macro:", f1_all_v.mean().item(), file=f)
+                print ("[VAL] F1-scores:", f1_all_v, file=f)
             print ("------------------------", file=f)
             print ("[TEST] Acc:", acc_test.item(), file=f)
             print ("[TEST] F1-macro:", f1_all_test.mean().item(), file=f)
             print ("[TEST] F1-scores:", f1_all_test, file=f)
             print ("================================================", file=f)
             print ("[TRAIN] Dataset creation time: ", creation_train, file=f)
+            if config_file["load_data_paths"]["with_val"]==True:
+                print ("[VAL] Dataset creation time: ", creation_val, file=f)
             print ("[TEST] Dataset creation time: ", creation_test, file=f)
             f.close()
 
@@ -302,7 +348,10 @@ def main_run(config_file , settings_file):
                     trainer = pl.Trainer(accelerator='gpu', devices=1, callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                                          **config_file["trainer_args"])
 
-                    train_loader, val_loader, test_loader = partitions(dataset, dataset_test, dataset_val=None, bs=config_file["batch_size"])
+                    if config_file["load_data_paths"]["with_val"]==True:
+                        train_loader, val_loader, test_loader = partitions(dataset, dataset_test, dataset_val=dataset_val, bs=config_file["batch_size"])
+                    else:
+                        train_loader, val_loader, test_loader = partitions(dataset, dataset_test, dataset_val=None, bs=config_file["batch_size"])
                     starti = time.time()
 
                     trainer.fit(model, train_loader, val_loader)
@@ -353,7 +402,7 @@ def main_run(config_file , settings_file):
     end = time.time()
     total_time = end - start
     print("\nRUNNING TIME FOR ALL THE EXPERIMENTS: "+ str(total_time))
-    
+
 
 
 if __name__ == "__main__":

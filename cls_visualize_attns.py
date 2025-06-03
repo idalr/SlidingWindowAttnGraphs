@@ -75,7 +75,7 @@ path_models = "HomoGraphs_HND/"
 df_logger = pd.read_csv(path_models+"df_logger_cw.csv")
 
 model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
-path_checkpoint, model_score, model_window = retrieve_parameters(model_name, df_logger)
+path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 loader_train, loader_test, vocab_sent, invert_vocab_sent = create_loaders(df_full_train, df_test, max_len, batch_size, with_val=False,
                                                                           tokenizer_from_scratch=False, path_ckpt=in_path)
 print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
@@ -125,13 +125,17 @@ print("Visualize attentions...")
 
 std = 0.5
 num_print = 5
+filter_type = 'max'
 granularity= "local"
+max_len = model_lightning.max_len
+model_window = model_lightning.window
+sent_lengths = [min(i,max_len) for i in sent_lengths]
 
 ##################################################################################
 # debug filter_matrix for sliding window
 
 for i, doc_t in enumerate(full_attn_weights_t):
-    filtered_matrix = filtering_matrix(doc_t, sent_lengths[i], window=model_window, degree_std=std, with_filtering=True, filtering_type="max", granularity=granularity, plotting=True)
+    filtered_matrix = filtering_matrix(doc_t, sent_lengths[i], window=model_window, degree_std=std, with_filtering=True, filtering_type=filter_type, granularity=granularity, plotting=True)
 
 ###root_graph = 'AttnGraphs_HND/'
 ###path_root = os.path.join(root_graph, model_name, "full_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
@@ -150,7 +154,7 @@ for i, doc_t in enumerate(full_attn_weights_t):
 
 ################################################################################
 # Normal viasualization
-
+sent_lengths_test = [min(i,max_len) for i in sent_lengths_test]
 # Test
 max_filtered_matrices_test, max_total_nodes_test, max_total_edges_test, max_deletions_test = filtering_matrices(full_attn_weights_test,
                                                                                                 all_article_identifiers_test, sent_lengths_test,

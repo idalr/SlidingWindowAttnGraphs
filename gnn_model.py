@@ -181,7 +181,7 @@ def partitions(dataset, dataset_test, dataset_val= None, bs=32, trainp=0.8, valp
         dataset_train = dataset[:a]
         dataset_val = dataset[a:]
     else:
-        pass
+        dataset_train = dataset
     
     bs_tr = check_bs(bs, len(dataset_train))
     bs_val = check_bs(bs, len(dataset_val))

@@ -1,0 +1,41 @@
+
+cuda_visible_devices: "6"
+device: gpu
+
+path_models: /scratch/mbugueno/HomoGraphs_GovReports/
+file_to_save: MHASummarizer
+logger_name: Extended_Sigmoid
+logger_file: df_logger_cw.csv
+num_executions: 5
+
+data_paths:
+  in_path: "/scratch/datasets/GovReport-Sum/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  embed_dim: 384 #sentence transformer
+  num_heads: 4
+  #dropout: 0.2
+  multi_layer: True
+  hidden_dim : 128
+  intermediate: True
+  activation_attention: "sigmoid"
+  attn_dropout: 0.1  
+  
+batch_size: 32
+max_len: 1000
+with_cw: True #or False
+
+trainer_args:
+  max_epochs: 20
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001  

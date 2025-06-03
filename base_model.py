@@ -1,3 +1,4 @@
+import os
 import torch
 from tqdm import tqdm
 from torch import nn
@@ -73,12 +74,13 @@ class MultiHeadSelfAttention(nn.Module):
 
 
 class SlidingWindowMultiHeadSelfAttention(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
+    def __init__(self, input_dim, embed_dim, num_heads, max_len, window_size, temperature=1, dropout=0.0, activation_attention="softmax"):
         super().__init__()
         assert embed_dim % num_heads == 0, "Embedding dimension must be 0 module wrt the number of heads."
 
         self.embed_dim = embed_dim
         self.num_heads = num_heads
+        self.max_len = max_len
         self.head_dim = embed_dim // num_heads
         self.window_size = window_size
         self.temperature = temperature
@@ -98,7 +100,9 @@ class SlidingWindowMultiHeadSelfAttention(nn.Module):
     def create_sliding_window_mask(self, src_key_padding_mask, matrix_mask, seq_length, min_window_size=2, pad_value=-1e9):
 
         lens_valid_sent = (src_key_padding_mask == 0).sum(dim=1)
-        window_sizes = torch.ceil(lens_valid_sent*self.window_size/100).long().clamp(min=min_window_size)
+        # if valid_sent is longer than max_len, clip it to max_len
+        clipped_lens = torch.clamp(lens_valid_sent, max=self.max_len)
+        window_sizes = torch.ceil(clipped_lens*self.window_size/100).long().clamp(min=min_window_size)
         idx = torch.arange(seq_length, device=src_key_padding_mask.device)
         window_mask = (idx.view(1, -1, 1) - idx.view(1, 1, -1)).abs() > window_sizes.view(-1, 1, 1) # if masked window, then True
         padding_mask = (matrix_mask == pad_value) # if padded, then True
@@ -217,19 +221,6 @@ class MHAClassifier(Classifier_Lighting):
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
-            
-        #print ("Attention method:", activation_attention)
-        # full MHA
-        if window == 100:
-            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
-                                                    num_heads, temperature=1, dropout=attn_dropout,
-                                                    activation_attention=activation_attention)
-
-        # sliding window MHA
-        else:
-            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
-                                                                 embed_dim, num_heads, window_size=self.window, temperature=1,
-                                                                 dropout=attn_dropout, activation_attention=activation_attention)
 
         self.num_classes = num_classes
         self.embed_dim = embed_dim
@@ -252,6 +243,19 @@ class MHAClassifier(Classifier_Lighting):
         self.temperature_scheduler = temperature_scheduler
         self.temperature_step = temperature_step
         self.global_iter = 0
+
+        #print ("Attention method:", activation_attention)
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, max_len=self.max_len, window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
 
         sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
         self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
@@ -317,7 +321,7 @@ class MHAClassifier(Classifier_Lighting):
             logits = self.fc2(attn_output)
         return logits, attn_weights    
 
-
+'''
 ########
 ########
 class MHAClassifier_extended(Classifier_Lighting):
@@ -418,7 +422,7 @@ class MHAClassifier_extended(Classifier_Lighting):
         return logits, attn_weights    
 ########
 ########
-
+'''
 
 def retrieve_from_dict(dict, list_ids):
     return [dict[id.item()] for id in list_ids]
@@ -499,49 +503,54 @@ class Summarizer_Lighting(pl.LightningModule):
         self.eval()
         all_accs = []
         all_f1_scores = []
+        predicting_docs = []
+
+        if saving_file:
+            path_dataset = path_root + "/raw/"
+            if not os.path.exists(path_dataset):
+                os.makedirs(path_dataset)
+            print("\nCreating files for PyG dataset in:", path_dataset)
+
         with torch.no_grad():
-            if saving_file:
-                path_dataset = path_root+"/raw/"
-                print ("\nCreating files for PyG dataset in:", path_dataset)
-                predicting_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-                predicting_docs.to_csv(path_dataset+filename, index=False)
+            for data in tqdm(test_loader, total=len(test_loader)):
+                out, _ = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device),
+                              data['matrix_mask'].to(self.device))
+                for ide, out_sample in enumerate(out):
 
-            for data in tqdm(test_loader, total=len(test_loader)):             
-                out, _ = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device), data['matrix_mask'].to(self.device))   
+                    pred = out_sample.view(-1, 2)
+                    labels_ = data['labels'][ide].view(-1)
+                    mask_not_ignore = (labels_ != -1)
+                    pred = pred[mask_not_ignore]
+                    labels_ = labels_[mask_not_ignore]
+                    pred = pred.argmax(dim=1)
 
-                pred = out.view(-1, 2)
-                labels_ = data['labels'].view(-1)                
-                mask_not_ignore = (labels_ != -1)
-                pred = pred[mask_not_ignore]
-                labels_ = labels_[mask_not_ignore]      
-                pred = pred.argmax(dim=1) 
+                    if cpu_store:
+                        pred = pred.detach().cpu().numpy()
 
-                if cpu_store:
-                    pred = pred.detach().cpu().numpy() 
+                    ### eval results of batch
+                    acc, f1_score = eval_results(torch.Tensor(pred), labels_, 2, None, print_results=False)
+                    all_accs.append(acc)
+                    all_f1_scores.append(f1_score)
 
-                ### eval results of batch 
-                acc, f1_score = eval_results(torch.Tensor(pred), labels_, 2, None, print_results=False)
-                all_accs.append(acc)
-                all_f1_scores.append(f1_score)
-                
-                label = labels_ ##
-                doc_as_ids = data['documents_ids'][0] ##
-                article_id= data['article_id'] ##
-                
-                if saving_file:
-                    try: 
-                        predicting_docs.loc[len(predicting_docs)] = {
-                            "article_id": article_id.item(),
-                            "label": label.tolist(), 
-                            "doc_as_ids": doc_as_ids[mask_not_ignore].tolist()
+                    label = labels_
+                    doc_as_ids = data['documents_ids'][ide]
+                    article_id = data['article_id'][ide]
+
+                    if saving_file:
+                        try:
+                            predicting_doc = {
+                                "article_id": article_id.item() if type(article_id) == torch.Tensor else article_id,
+                                "label": label.tolist(),
+                                "doc_as_ids": doc_as_ids[mask_not_ignore].tolist()
                             }
-                        predicting_docs.to_csv(path_dataset+filename, index=False)
-                    except:
-                        print ("Error in saving file during model prediction")
-                        break
+                            predicting_docs.append(predicting_doc)
+                        except:
+                            print("Error in saving file during model prediction")
+                            break
 
-        return all_accs, all_f1_scores #preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
+            pd.DataFrame(predicting_docs).to_csv(path_dataset + filename, index=False)
 
+        return all_accs, all_f1_scores  # preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
     def predict_single(self, batch_single, cpu_store=True):
         self.eval()
@@ -563,8 +572,9 @@ class Summarizer_Lighting(pl.LightningModule):
             preds = torch.Tensor(preds)
         
         return preds, att_w
-    
 
+
+'''
 class MHASummarizer_extended(Summarizer_Lighting):
     def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, 
                  intermediate=False, num_heads=4, multi_layer=False, class_weights = [], #criterion = nn.CrossEntropyLoss() 
@@ -653,97 +663,108 @@ class MHASummarizer_extended(Summarizer_Lighting):
         return logits, attn_weights    
     
     ##########################
-
+'''
 
 class MHASummarizer(Summarizer_Lighting):
-    def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, 
-                 intermediate=False, num_heads=4, dropout=False, class_weights = [], #criterion = nn.CrossEntropyLoss() 
+    def __init__(self, embed_dim, num_classes, hidden_dim, max_len, lr, window,
+                 intermediate=False, num_heads=4, dropout=False, class_weights=[],  # criterion = nn.CrossEntropyLoss()
                  temperature_scheduler=None, temperature_step=None, attn_dropout=0.0,
-                 path_invert_vocab_sent = '', activation_attention="softmax"):
-        #print ("Creating Summarizer Model...")
+                 path_invert_vocab_sent='', activation_attention="softmax"):
+        # print ("Creating Summarizer Model...")
+        self.window = window
         super(MHASummarizer, self).__init__()
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
-            
-        #print ("Attention method:", activation_attention)    
-        self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim, num_heads, temperature=1, dropout=attn_dropout, activation_attention=activation_attention)
+
         self.num_classes = num_classes
         self.embed_dim = embed_dim
 
         if not intermediate:
             self.fc = nn.Linear(self.embed_dim, num_classes)
-        else: 
+        else:
             self.fc1 = nn.Linear(self.embed_dim, hidden_dim)  # First linear layer
             self.fc2 = nn.Linear(hidden_dim, num_classes)  # Second linear layer
 
-        self.dropout = dropout #nn.Dropout(p=dropout)
+        self.dropout = dropout  # nn.Dropout(p=dropout)
         self.max_len = max_len
         self.lr = lr
-        self.intermediate=intermediate  
-        self.criterion = nn.CrossEntropyLoss(weight=class_weights)  #criterion
+        self.intermediate = intermediate
+        self.criterion = nn.CrossEntropyLoss(weight=class_weights)  # criterion
         self.dropout = dropout
-        self.temperature = 1 #torch.nn.parameter.Parameter(torch.Tensor(1), requires_grad=False) #1
+        self.temperature = 1  # torch.nn.parameter.Parameter(torch.Tensor(1), requires_grad=False) #1
         self.temperature_scheduler = temperature_scheduler
         self.temperature_step = temperature_step
         self.global_iter = 0
-        
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
-        self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
-        #print ("Done.")
 
-        self.save_hyperparameters(ignore=["invert_vocab_sent"]) ### for loading later
-    
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
+
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, max_len=self.max_len, window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout, activation_attention=activation_attention)
+
+        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
+        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        # print ("Done.")
+
+        self.save_hyperparameters(ignore=["invert_vocab_sent"])  ### for loading later
+
     def training_step(self, batch, batch_idx):
         return_val = super(MHASummarizer, self).training_step(batch, batch_idx)
-        if self.temperature_scheduler=="anneal_decrease":
-            #step should be a very low value, 1e-4 or ( 1e-3 or 1e-5)
-            self.temperature = max(0.1, np.exp(- self.temperature_step*self.global_iter) )
-        self.global_iter+=1
+        if self.temperature_scheduler == "anneal_decrease":
+            # step should be a very low value, 1e-4 or ( 1e-3 or 1e-5)
+            self.temperature = max(0.1, np.exp(- self.temperature_step * self.global_iter))
+        self.global_iter += 1
 
         return return_val
 
     def on_train_epoch_end(self):
-        return_val = super(MHASummarizer, self).on_train_epoch_end()  
-        if self.temperature_scheduler=="step_decrease":
+        return_val = super(MHASummarizer, self).on_train_epoch_end()
+        if self.temperature_scheduler == "step_decrease":
             self.temperature = self.temperature - self.temperature_step
         self.temperature = max(self.temperature, 0.1)
-        if self.temperature_scheduler=="step_decrease" or self.temperature_scheduler=="anneal_decrease":
-            print ("Temperature at the end of epoch:", self.temperature)
-        
+        if self.temperature_scheduler == "step_decrease" or self.temperature_scheduler == "anneal_decrease":
+            print("Temperature at the end of epoch:", self.temperature)
+
         return return_val
-    
+
     def on_save_checkpoint(self, checkpoint) -> None:
-        #Objects to include in checkpoint file
+        # Objects to include in checkpoint file
         checkpoint["temperature_end_of_epoch"] = self.temperature
 
     def on_load_checkpoint(self, checkpoint) -> None:
-        #Objects to retrieve from checkpoint file
-        self.temperature= checkpoint["temperature_end_of_epoch"]
-        
-    def forward(self, doc_ids, src_key_padding_mask, matrix_mask):
-        #### TODO: HACER CARGA EMBEDDINGS PRE-TRAINED     
-        x_emb=[]        
-        for doc in doc_ids: 
-            source= self.sent_model.encode(retrieve_from_dict(self.invert_vocab_sent, doc[doc!= 0]))
-            complement= np.zeros((len(doc[doc== 0]), self.embed_dim))
-            temp_emb= np.concatenate((source, complement)) #np.array
-            x_emb.append(temp_emb)
-        
-        x_emb=torch.tensor(x_emb)
-        attn_output, attn_weights = self.attention(x_emb.float().to(self.device), src_key_padding_mask, matrix_mask, temperature=self.temperature)
+        # Objects to retrieve from checkpoint file
+        self.temperature = checkpoint["temperature_end_of_epoch"]
 
-        if self.dropout!=False:
+    def forward(self, doc_ids, src_key_padding_mask, matrix_mask):
+        #### TODO: HACER CARGA EMBEDDINGS PRE-TRAINED
+        x_emb = []
+        for doc in doc_ids:
+            source = self.sent_model.encode(retrieve_from_dict(self.invert_vocab_sent, doc[doc != 0]))
+            complement = np.zeros((len(doc[doc == 0]), self.embed_dim))
+            temp_emb = np.concatenate((source, complement))  # np.array
+            x_emb.append(temp_emb)
+
+        x_emb = torch.tensor(x_emb)
+        attn_output, attn_weights = self.attention(x_emb.float().to(self.device), src_key_padding_mask, matrix_mask,
+                                                   temperature=self.temperature)
+
+        if self.dropout != False:
             attn_output = F.dropout(attn_output, p=self.dropout, training=self.training)
-               
 
         if not self.intermediate:
             logits = self.fc(attn_output)
-        #with 2 layers:
-        else: 
+        # with 2 layers:
+        else:
             attn_output = torch.relu(self.fc1(attn_output))
             logits = self.fc2(attn_output)
 
-        return logits, attn_weights  
-    
-    ##########################
+        return logits, attn_weights
+
+        ##########################

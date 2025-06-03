@@ -1,0 +1,40 @@
+cuda_visible_devices: "0"
+device: gpu
+
+path_models: /scratch2/rldallitsako/HomoGraphs_GovReports/
+file_to_save: MHASummarizer
+logger_name: Extended_NoTemp_w30
+logger_file: test_df_logger_cw.csv
+num_executions: 2 #5
+
+data_paths:
+  in_path: "/scratch2/rldallitsako/datasets/GovReport-Sum/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  embed_dim: 384 #sentence transformer
+  num_heads: 4
+  dropout: 0.2
+  hidden_dim : 64 #128
+  intermediate: True
+  temperature_scheduler: None
+  attn_dropout: 0.1  #default 0.0
+  window: 30 # xx percent of no. token # 100 for full-attention # min_window_size = 2 # full self-attentions up to 2*2+1 tokens
+  
+batch_size: 32
+max_len: 50 #1000
+with_cw: True #or False
+
+trainer_args:
+  max_epochs: 10 #20
+  enable_progress_bar: False
+
+early_args:
+  patience: 1 #5
+  min_delta: 0.001  
