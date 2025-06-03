@@ -189,12 +189,12 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
                     # a plotting function
                     if color is None:
                         color = 'magma'
-                    plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color,
+                    plot_filtering_matrix(cropped_matrix, mean, max_v, std, degree_std, color,
                                           filtering_type, filtered_matrix, other_filtered_matrix)
                 else:
                     if color is None:
                         color = 'viridis'
-                    plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color)
+                    plot_filtering_matrix(cropped_matrix, mean, max_v, std, degree_std, color)
 
                 printed += 1
 
@@ -227,16 +227,15 @@ def print_filtering_matrix(df, article_identifier, no_valid_sents):
             print("Stopping evaluation...")
 
 
-def plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color, filtering_type=False,
-                          filtered_matrix=None, other_filtered_matrix=None):
+def plot_filtering_matrix(cropped_matrix,
+                         mean, max_v, std, degree_std, color, filtering_type=False,
+                         filtered_matrix=None, other_filtered_matrix=None):
+
     f, axarr = plt.subplots(1, 2, figsize=(10, 4.5))
 
     # convert to array and only use values in sliding window
     cropped_array = torch.reshape(cropped_matrix, (-1,)).cpu().detach().numpy().flatten()
-    window_array = torch.reshape(window_mask, (-1,)).cpu().detach().numpy().flatten()
-    valid_array = cropped_array[~window_array]
-
-    n, bins, patches = axarr[1].hist(valid_array, bins=25, color='b', histtype='bar', density=True)
+    n, bins, patches = axarr[1].hist(cropped_array, bins=25, color='b', histtype='bar', density=True)
     y = ((1 / (np.sqrt(2 * np.pi) * std.mean().cpu().numpy())) * np.exp(
         -0.5 * (1 / std.mean().cpu().numpy() * (bins - mean.mean().cpu().numpy())) ** 2))
     axarr[0].plot(bins, y, '--')
@@ -312,27 +311,8 @@ def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filterin
                 other_filtered_matrix = torch.where(cropped_matrix < other_threshold_min, 0., cropped_matrix.double())
 
             # display
-            plot_filtering_matrix(cropped_matrix, window_mask, mean, max_v, std, degree_std, color=None,
+            plot_filtering_matrix(cropped_matrix, mean, max_v, std, degree_std, color=None,
                                   filtering_type=filtering_type,
                                   filtered_matrix=filtered_matrix, other_filtered_matrix=other_filtered_matrix)
 
         return filtered_matrix
-
-# def filtering_matrix(doc_att, valid_sents, degree_std=0.5, with_filtering=True, filtering_type="mean",
-#                      granularity="local"):
-#     cropped_matrix = doc_att[:valid_sents, :valid_sents]
-#
-#     if with_filtering:
-#         max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type, mode=granularity)
-#
-#         if granularity == "local":
-#             filtered_matrix = torch.Tensor(cropped_matrix.size())
-#             for i in range(cropped_matrix.size(0)):
-#                 filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
-#         else:
-#             filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
-#
-#     else:
-#         filtered_matrix = cropped_matrix
-#
-#     return filtered_matrix
