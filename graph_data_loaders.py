@@ -687,7 +687,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
     def download(self):
         pass
 
-    # TODO: debug and improve timewise
+    # TODO: add multiprocessing
     def process(self):
         self.data = pd.read_csv(self.raw_paths[0]).reset_index()
 
@@ -926,3 +926,302 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
 
         return data
+
+'''
+This is the original UnifiedAttentionGraphs_Sum, don't touch!
+##llamar con loader usando batch size 1
+class ActualUnifiedAttentionGraphs_Sum(Dataset):
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
+                 transform=None, normalized=False, binarized=False, multi_layer_model=False,
+                 pre_transform=None):  # input_matrices, invert_vocab_sent
+        ### df_train, df_test, max_len, batch_size tambien en init?
+        """
+        root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
+        """
+
+        self.filename = filename
+        self.filter_type = filter_type
+        self.data_loader = data_loader
+        self.K = degree
+        self.model_ckpt = model_ckpt
+        self.mode = mode
+        self.normalized = normalized
+        self.binarized = binarized
+        self.multi_layer_mha = multi_layer_model
+
+        # # Ensure the root is an absolute path
+        # self.root = os.path.abspath(root)
+        # # Create the full path for the filename (relative to the root folder)
+        # raw_folder_path = os.path.join(self.root, "raw")
+        # self.filename = os.path.join(raw_folder_path, filename)
+        # # Normalize paths to ensure correct separators on different OS (Windows/Unix)
+        # self.filename = os.path.normpath(self.filename)
+        self.root = root
+        self.filename = filename
+
+
+        self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+        for name, param in self.sent_model.named_parameters():
+            param.requires_grad = False
+
+        super(ActualUnifiedAttentionGraphs_Sum, self).__init__(root, transform, pre_transform)
+
+    @property
+    def raw_file_names(self):
+        """ If this file exists in raw_dir, the download is not triggered. """
+        return self.filename  # +".csv"
+
+    @property
+    def processed_file_names(self):
+        """ If these files are found in raw_dir, processing is skipped"""
+        self.data = pd.read_csv(self.raw_paths[0]).reset_index()
+
+        if self.mode == "test":
+            return [f'data_test_{i}.pt' for i in list(self.data.index)]
+        if self.mode == "val":
+            return [f'data_val_{i}.pt' for i in list(self.data.index)]
+        else:
+            return [f'data_{i}.pt' for i in list(self.data.index)]
+
+    def download(self):
+        pass
+
+    def process(self):
+        self.data = pd.read_csv(self.raw_paths[0]).reset_index()
+
+        all_doc_as_ids = self.data['doc_as_ids']
+        all_labels = self.data['label']
+        all_article_identifiers = self.data['article_id']
+        all_batches = self.data_loader
+
+        #try:  # if self.multi_layer_mha:
+        #    print("Loading MHASummarizer_extended model...")
+        #    model_lightning = MHASummarizer_extended.load_from_checkpoint(self.model_ckpt)
+        #    print("Model correctly loaded.")
+        # else:
+        #except:
+        print("Loading MHASummarizer model...")
+        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model_window = model_lightning.window
+        max_len = model_lightning.max_len
+        print("Model correctly loaded.")
+
+        if self.mode == "test":
+            print("\n[TEST] Creating Graphs Objects...")
+        elif self.mode == "val":
+            print("\n[VAL] Creating Graphs Objects...")
+        else:
+            print("\n[TRAIN] Creating Graphs Objects...")
+
+
+        ide = 0
+        for batch_sample in tqdm(all_batches, total=len(all_batches)):
+            pred_batch, full_matrix_batch = model_lightning.predict_single(batch_sample)
+
+            for pred, full_matrix in zip(pred_batch, full_matrix_batch):
+                doc_ids = all_doc_as_ids[ide]
+                labels_sample = all_labels[ide]
+                label = clean_tokenization_sent(labels_sample, "label")
+                valid_sents = len(label)
+
+                # get model params and clip valid_sents to max_len
+                valid_sents = min(valid_sents, max_len)
+
+
+                if self.filter_type is not None:
+                    # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
+                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
+                                                       degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
+                else:
+                    # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=False)
+                    filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
+                                                       degree_std=self.K, with_filtering=False)
+
+                doc_ids = [int(element) for element in doc_ids[1:-1].split(",")]
+                doc_ids = torch.tensor(doc_ids)
+
+                try:
+                    # valid_sents= (doc_ids == 0).nonzero()[0]
+                    cropped_doc = doc_ids[:valid_sents]
+                except:
+                    # valid_sents = len(doc_ids)
+                    cropped_doc = doc_ids
+
+                """"calculating edges"""
+                match_ids = {k: v.item() for k, v in
+                             zip(range(len(filtered_matrix)), cropped_doc)}  # key pos-i, value orig. sentence-id
+
+                final_label = []
+                processed_ids = []
+                source_list = []
+                target_list = []
+                orig_source_list = []
+                orig_target_list = []
+                edge_attrs = []
+                all_edges = []
+
+                final = []
+                for elem in cropped_doc:
+                    if elem.item() not in final:
+                        final.append(elem.item())
+
+                dict_orig_to_ide_graph = {k: v for k, v in zip(final, range(
+                    len(final)))}  # key orig. sentence-id, value node-id for PyGeo
+
+                for i in range(len(filtered_matrix)):
+                    only_one_entry = False
+                    fix_with_extra_edges = False
+                    if filtered_matrix[i].count_nonzero().item() == 1:
+                        only_one_entry = True
+
+                    for j in range(len(filtered_matrix)):
+                        if filtered_matrix[i, j] != 0 and i != j:  # no self loops
+                            a = match_ids[i]  # check match original ids
+                            b = match_ids[j]
+                            if a != b:
+                                if (a,
+                                    b) not in all_edges:  # do not aggregate an edge if matched source and target are the same sentence
+                                    orig_source_list.append(a)
+                                    orig_target_list.append(b)
+                                    all_edges.append((a, b))
+                                    # has_edges = True
+
+                                    if a in processed_ids:  # adaptar ide a la posicion del processed
+                                        source_list.append(processed_ids.index(a))  # requires int from 0 to len
+                                    else:
+                                        source_list.append(dict_orig_to_ide_graph[a])  # requires int from 0 to len
+
+                                    if b in processed_ids:  # adaptar id a posicion en processed
+                                        target_list.append(processed_ids.index(b))  # requires int from 0 to len
+                                    else:
+                                        target_list.append(dict_orig_to_ide_graph[b])  # requires int from 0 to len
+
+                                    if self.binarized:
+                                        edge_attrs.append(1.0)
+                                    else:
+                                        edge_attrs.append(filtered_matrix[
+                                                              i, j].item())  # attention weight: as calculated by MHA trained model
+
+                                else:  # (a,b) in all_edges:
+                                    pos_edge = all_edges.index((a, b))  # check update edge weights
+                                    if edge_attrs[pos_edge] < filtered_matrix[i, j].item():
+                                        edge_attrs[pos_edge] = filtered_matrix[i, j].item()
+                            else:
+                                # if only_one_entry == True:
+                                fix_with_extra_edges = True
+
+                        if filtered_matrix[i, j] != 0 and i == j and (
+                                only_one_entry == True):  # check self-loop potentialy producing disconnected graphs
+                            fix_with_extra_edges = True
+
+                        if fix_with_extra_edges == True:
+                            if match_ids[i] not in orig_target_list:
+                                try:  # Adding edges to previous neighbor
+                                    b = match_ids[j - 1]
+                                    a = match_ids[i]
+                                    if self.binarized:
+                                        new_weight = 1.0
+                                    else:
+                                        new_weight = filtered_matrix[i, j].item() / 2
+                                    orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                                        a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                                        edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                                except:
+                                    pass
+
+                                try:
+                                    b = match_ids[j + 1]
+                                    a = match_ids[i]
+                                    if self.binarized:
+                                        new_weight = 1.0
+                                    else:
+                                        new_weight = filtered_matrix[i, j].item() / 2
+                                    orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                                        a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                                        edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                                except:
+                                    pass
+
+                    if match_ids[i] not in processed_ids:
+                        processed_ids.append(match_ids[i])
+                        final_label.append(label[i])
+
+                if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
+                    print("Error in edge creation -- source and edge don't match")
+                    print("numero de edges acummulados:")
+                    print("source:", len(source_list))
+                    print("target:", len(target_list))
+                    print("orig_source:", len(orig_source_list))
+                    print("orig_target:", len(orig_target_list))
+                    print("edge_attrs:", len(edge_attrs))
+                    break
+
+                """"calculating node features"""  # processed_ids === dict_orig_to_ide_graph.keys()
+                node_fea = self.sent_model.encode(
+                    retrieve_from_dict(model_lightning.invert_vocab_sent, torch.tensor(processed_ids)))
+
+                # reverse edges for all heuristics
+                final_source = source_list + target_list
+                final_target = target_list + source_list
+                indexes = [final_source, final_target]
+                final_orig_source_list = orig_source_list + orig_target_list
+                final_orig_target_list = orig_target_list + orig_source_list
+                edge_attrs = edge_attrs + edge_attrs  ### for reverse edge attributes (same weight - simetric matrix)
+
+                all_indexes = torch.tensor(indexes).long()
+                edge_attrs = torch.tensor(edge_attrs).float()
+
+                if self.normalized:
+                    if all_indexes.shape[1] != 0:
+                        num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
+                        adj_matrix = torch.zeros(num_sent, num_sent)
+                        for i in range(len(all_indexes[0])):
+                            adj_matrix[all_indexes[0][i], all_indexes[1][i]] = edge_attrs[i]
+                        for row in range(len(adj_matrix)):
+                            adj_matrix[row] = adj_matrix[row] / adj_matrix[row].max()
+
+                        temp = adj_matrix.reshape(-1)
+                        edge_attrs = temp[temp.nonzero()].reshape(-1)
+
+                node_fea = torch.tensor(node_fea).float()
+                generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=edge_attrs,
+                                      y=torch.tensor(final_label).int())  # label in original graphs class
+                try:
+                    generated_data.article_id = torch.tensor(all_article_identifiers[ide])
+                except:
+                    generated_data.article_id = all_article_identifiers[ide]
+
+                generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
+
+                if generated_data.has_isolated_nodes():
+                    print("Error in graph -- isolated nodes detected")
+                    print(generated_data)
+                    print(generated_data.edge_index)
+                elif generated_data.contains_self_loops():
+                    print("Error in graph -- self loops detected")
+                    print(generated_data)
+                    print(generated_data.edge_index)
+
+                if self.mode == "test":
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
+                if self.mode == "val":
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'))
+                else:
+                    torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
+
+                ide += 1
+
+    def len(self):
+        return self.data.shape[0]  ##tamaño del dataset
+
+    def get(self, idx):
+        """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
+        if self.mode == "test":
+            data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'), weights_only=False)
+        if self.mode == "val":
+            data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'), weights_only=False)
+        else:
+            data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
+
+        return data
+'''
