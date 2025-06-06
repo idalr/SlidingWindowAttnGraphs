@@ -32,7 +32,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def process_single(args):
     return _process_one(*args)
 
-def _process_one(idx, pred, full_matrix, doc_ids, labels_sample, article_id,
+def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
                  filter_type, K, binarized, normalized,
                  model_window, max_len, sent_model, model_vocab):
 
@@ -53,6 +53,7 @@ def _process_one(idx, pred, full_matrix, doc_ids, labels_sample, article_id,
     doc_ids = [int(x) for x in doc_ids[1:-1].split(",")]
     doc_ids = torch.tensor(doc_ids)
     cropped_doc = doc_ids[:valid_sents]
+
 
     match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
     final = list(dict.fromkeys(x.item() for x in cropped_doc))
@@ -98,9 +99,14 @@ def _process_one(idx, pred, full_matrix, doc_ids, labels_sample, article_id,
             processed_ids.append(match_ids[i])
             final_label.append(label[i])
 
-    node_fea = sent_model.encode(
-        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
-    )
+    if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
+        print("numero de edges acummulados:")
+        print("source:", len(source_list))
+        print("target:", len(target_list))
+        print("orig_source:", len(orig_source_list))
+        print("orig_target:", len(orig_target_list))
+        print("edge_attrs:", len(edge_attrs))
+        raise ValueError("Error in edge creation -- source and edge don't match")
 
     final_source = source_list + target_list
     final_target = target_list + source_list
@@ -120,17 +126,30 @@ def _process_one(idx, pred, full_matrix, doc_ids, labels_sample, article_id,
                 adj[row] /= adj[row].max()
         edge_attr = adj[adj != 0]
 
+    node_fea = sent_model.encode(
+        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
+    )
+
     node_fea = torch.tensor(node_fea, dtype=torch.float)
-    data = Data(
+    generated_data = Data(
         x=node_fea,
         edge_index=edge_index,
         edge_attr=edge_attr,
         y=torch.tensor(final_label, dtype=torch.int),
     )
-    data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
-    data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
+    generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
+    generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
 
-    return idx, data
+    if generated_data .has_isolated_nodes():
+        print("Error in graph -- isolated nodes detected")
+        print(generated_data)
+        print(generated_data.edge_index)
+    elif generated_data .contains_self_loops():
+        print("Error in graph -- self loops detected")
+        print(generated_data)
+        print(generated_data.edge_index)
+
+    return article_id, generated_data
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
@@ -211,12 +230,11 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         args_list = [
             (
-                idx,
+                all_article_ids[idx],
                 pred,
                 matrix,
                 all_doc_as_ids[idx],
                 all_labels[idx],
-                all_article_ids[idx],
                 self.filter_type,
                 self.K,
                 self.binarized,
@@ -234,8 +252,8 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             results = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
 
         print(f"[{self.mode.upper()}] Saving processed graphs...")
-        for idx, data in results:
-            out_name = f"data_{self.mode}_{idx}.pt" if self.mode in ["test", "val"] else f"data_{idx}.pt"
+        for article_id, data in results:
+            out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
             torch.save(data, os.path.join(self.processed_dir, out_name))
 
     def len(self):
@@ -318,7 +336,7 @@ def main_run():
     print("Max number of sentences allowed in document:", max_len)
 
     # #################################minirun
-    df_train, df_test = df_train[-20:], df_test[-20:]
+    df_train, df_test = df_train[:20], df_test[:20]
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
