@@ -29,6 +29,7 @@ from eval_models import retrieve_parameters
 from preprocess_data import load_data
 from data_loaders import create_loaders, check_dataframe
 from Colab.base_model import MHASummarizer
+import multiprocessing as mp
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -256,4 +257,5 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
+    mp.set_start_method("spawn", force=True)
     main_run(config_file, args.settings_file)
