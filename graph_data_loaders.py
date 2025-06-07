@@ -852,7 +852,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             for idx, (pred, matrix) in enumerate(predictions)
         ]
 
-        num_workers = len(os.sched_getaffinity(0))
+        num_workers = min(4,len(os.sched_getaffinity(0)))
         with mp.get_context("spawn").Pool(processes=num_workers) as pool:
             results = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
 
