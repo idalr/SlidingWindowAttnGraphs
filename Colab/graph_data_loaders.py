@@ -1081,9 +1081,17 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             for article_id in [all_article_ids[idx]]
         ]
 
+        mp.set_start_method("spawn", force=True)
+        print("Starting multiprocessing pool...")
         num_workers = min(4, len(os.sched_getaffinity(0)))
-        with mp.get_context("spawn").Pool(processes=num_workers) as pool:
+        pool = mp.Pool(processes=num_workers)
+        try:
             results = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
+        finally:
+            print("Closing pool...")
+            pool.close()  # No more tasks
+            pool.join()  # Wait for workers to finish
+            print("Pool closed and joined.")
 
         for article_id, data in results:
             out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"

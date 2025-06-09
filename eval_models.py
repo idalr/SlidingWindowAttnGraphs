@@ -23,7 +23,7 @@ def clean_tokenization_sent(list_as_document, object):
 
 def retrieve_parameters(model_name, df_logger, with_temperature=False, require_best=True, retrieve_index=None):
     subset_df = df_logger[df_logger['Model'].str.contains(model_name)]
-    ##subset_df = df_logger[df_logger['Model'] == 'Extended_NoTemp']  # Temp setting for NoTemp
+    subset_df = df_logger[df_logger['Model'] == 'Extended_NoTemp']  # Temp setting for NoTemp
     if require_best:
         retrieve_index = subset_df['Score'].idxmax()
         best_model_ckpt = subset_df.loc[retrieve_index]['Path']
