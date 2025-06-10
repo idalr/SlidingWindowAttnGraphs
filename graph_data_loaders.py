@@ -810,7 +810,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
     def download(self):
         pass
 
-    # TODO: add multiprocessing
+    # TODO: update multiprocessing as in test_graphsum_mp.py
     def process(self):
         self.data = pd.read_csv(self.raw_paths[0]).reset_index()
         all_doc_as_ids = self.data['doc_as_ids']
