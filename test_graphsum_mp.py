@@ -15,6 +15,7 @@ from eval_models import retrieve_parameters
 from preprocess_data import load_data
 from data_loaders import create_loaders, check_dataframe
 from base_model import MHASummarizer  # , MHASummarizer_extended
+import multiprocessing as mp
 
 import gc
 from torch_geometric.data import Data, Dataset
@@ -32,32 +33,27 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def process_single(args):
     return _process_one(*args)
 
-def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
+#def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
+def _process_one(article_id, full_matrix, doc_ids_str, labels_sample,
                  filter_type, K, binarized, normalized,
-                 model_window, max_len, sent_model, model_vocab):
+                 model_window, max_len, id_to_embedding):
 
     label = clean_tokenization_sent(labels_sample, "label")
     valid_sents = min(len(label), max_len)
 
     if filter_type is not None:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=True, filtering_type=filter_type
-        )
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
+                                           degree_std=K, with_filtering=True, filtering_type=filter_type)
     else:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=False
-        )
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
+                                           degree_std=K, with_filtering=False)
 
-    doc_ids = [int(x) for x in doc_ids[1:-1].split(",")]
-    doc_ids = torch.tensor(doc_ids)
+    doc_ids = [int(element) for element in doc_ids_str[1:-1].split(",")]
     cropped_doc = doc_ids[:valid_sents]
 
-
-    match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
-    final = list(dict.fromkeys(x.item() for x in cropped_doc))
-    dict_orig_to_graph = {k: v for v, k in enumerate(final)}
+    match_ids = {k: v for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
+    final = list(dict.fromkeys(cropped_doc))
+    dict_orig_to_ide_graph = {k: v for v, k in enumerate(final)}
 
     final_label = []
     processed_ids = []
@@ -71,29 +67,28 @@ def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
     for i in range(len(filtered_matrix)):
         for j in range(len(filtered_matrix)):
             if filtered_matrix[i, j] != 0 and i != j:
-                a, b = match_ids[i], match_ids[j]
+                a = match_ids[i]
+                b = match_ids[j]
                 if a != b and (a, b) not in all_edges:
                     orig_source_list.append(a)
                     orig_target_list.append(b)
                     all_edges.append((a, b))
-                    source_list.append(dict_orig_to_graph[a])
-                    target_list.append(dict_orig_to_graph[b])
+                    source_list.append(dict_orig_to_ide_graph[a])
+                    target_list.append(dict_orig_to_ide_graph[b])
                     edge_attrs.append(1.0 if binarized else filtered_matrix[i, j].item())
                 elif (a, b) in all_edges:
-                    pos = all_edges.index((a, b))
-                    edge_attrs[pos] = max(edge_attrs[pos], filtered_matrix[i, j].item())
+                    pos_edge = all_edges.index((a, b))
+                    edge_attrs[pos_edge] = max(edge_attrs[pos_edge], filtered_matrix[i, j].item())
             elif not skip_extra_edges and filtered_matrix[i, j] != 0 and i == j:
                 if match_ids[i] not in orig_target_list:
                     for neighbor in [j - 1, j + 1]:
                         if 0 <= neighbor < len(filtered_matrix):
-                            a = match_ids[i]
                             b = match_ids[neighbor]
-                            weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
+                            a = match_ids[i]
+                            new_weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
                             orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, _ = solve_by_creating_edge(
-                                a, b, orig_source_list, orig_target_list, all_edges,
-                                source_list, target_list, edge_attrs,
-                                processed_ids, dict_orig_to_graph, weight
-                            )
+                                a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                                edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
 
         if match_ids[i] not in processed_ids:
             processed_ids.append(match_ids[i])
@@ -110,35 +105,31 @@ def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
 
     final_source = source_list + target_list
     final_target = target_list + source_list
-    final_orig_source = orig_source_list + orig_target_list
-    final_orig_target = orig_target_list + orig_source_list
+    final_orig_source_list = orig_source_list + orig_target_list
+    final_orig_target_list = orig_target_list + orig_source_list
     edge_attrs = edge_attrs + edge_attrs
 
-    edge_index = torch.tensor([final_source, final_target], dtype=torch.long)
-    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+    all_indexes = torch.tensor([final_source, final_target]).long()
+    edge_attrs = torch.tensor(edge_attrs).float()
 
-    if normalized and edge_index.shape[1] > 0:
-        num_nodes = edge_index.max().item() + 1
-        adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float)
-        adj[edge_index[0], edge_index[1]] = edge_attr
-        for row in range(num_nodes):
-            if adj[row].max() > 0:
-                adj[row] /= adj[row].max()
-        edge_attr = adj[adj != 0]
+    if normalized and all_indexes.shape[1] > 0:
+        num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
+        adj_matrix = torch.zeros(num_sent, num_sent)
+        for i in range(all_indexes.shape[1]):
+            adj_matrix[all_indexes[0, i], all_indexes[1, i]] = edge_attrs[i]
+        for row in range(len(adj_matrix)):
+            if adj_matrix[row].max() != 0:
+                adj_matrix[row] /= adj_matrix[row].max()
+        edge_attrs = adj_matrix.view(-1)[adj_matrix.view(-1).nonzero()].view(-1)
 
-    node_fea = sent_model.encode(
-        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
-    )
+    # Retrieve embeddings
+    node_fea = torch.tensor([id_to_embedding[i] for i in processed_ids]).float()
 
-    node_fea = torch.tensor(node_fea, dtype=torch.float)
-    generated_data = Data(
-        x=node_fea,
-        edge_index=edge_index,
-        edge_attr=edge_attr,
-        y=torch.tensor(final_label, dtype=torch.int),
-    )
+    generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=edge_attrs,
+                          y=torch.tensor(final_label).int())
     generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
-    generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
+    generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
+
 
     if generated_data .has_isolated_nodes():
         print("Error in graph -- isolated nodes detected")
@@ -153,21 +144,19 @@ def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
-        # data loader es input_matrices, path_invert_vocab_sent='' puede ser model_ckpt, test=False es mode
-
         """
         root = Where the dataset should be stored. This folder is split into raw_dir (downloaded dataset) and processed_dir (processed data).
         """
 
-        self.filename = filename #a crear post predict
+        self.filename = filename
         self.filter_type = filter_type
         self.data_loader = data_loader
         self.K = degree
-        self.model_ckpt = model_ckpt
+        self.model = model
         self.mode = mode
         self.normalized = normalized
         self.binarized = binarized
@@ -184,6 +173,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         self.sent_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
+
         super(UnifiedAttentionGraphs_Sum, self).__init__(root, transform, pre_transform)
 
     @property
@@ -213,25 +203,43 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         all_article_ids = self.data['article_id']
         all_batches = self.data_loader  # DO NOT pass this into multiprocessing workers
 
-        print("Loading MHASummarizer model...")
-        model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        model_window = model.window
-        max_len = model.max_len
-        invert_vocab_sent = model.invert_vocab_sent
+        #print("Loading MHASummarizer model...")
+        #model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model_window = self.model.window
+        max_len = self.model.max_len
         print("Model correctly loaded.")
 
-        print(f"[{self.mode.upper()}] Predicting in batches...")
+        print("Encoding all unique sentence IDs to node features...")
+        # Collect all sentence IDs across samples
+        all_ids_set = set()
+        for ids in all_doc_as_ids:
+            ids_clean = [int(i) for i in ids[1:-1].split(',')]
+            all_ids_set.update(ids_clean)
+
+        all_ids_list = list(all_ids_set)
+        all_ids_tensor = torch.tensor(all_ids_list)
+
+        # Encode all sentence embeddings once (on CPU)
+        with torch.no_grad():
+            all_embeddings = self.sent_model.encode(
+                retrieve_from_dict(self.invert_vocab_sent, all_ids_tensor)
+            )
+        id_to_embedding = {
+            int(k): v for k, v in zip(all_ids_list, all_embeddings)
+        }
+
+        print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
+
         predictions = []
         for batch_sample in tqdm(all_batches, total=len(all_batches)):
-            pred_batch, matrix_batch = model.predict_single(batch_sample)
+            pred_batch, matrix_batch = self.model.predict_single(batch_sample)
+            pred_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in pred_batch]
+            matrix_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in matrix_batch]
             predictions.extend(zip(pred_batch, matrix_batch))
-
-        print(f"[{self.mode.upper()}] Processing with multiprocessing...")
 
         args_list = [
             (
-                all_article_ids[idx],
-                pred,
+                article_id,
                 matrix,
                 all_doc_as_ids[idx],
                 all_labels[idx],
@@ -241,17 +249,24 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 self.normalized,
                 model_window,
                 max_len,
-                self.sent_model,
-                invert_vocab_sent,
-                )
-            for idx, (pred, matrix) in enumerate(predictions)
+                id_to_embedding
+            )
+            for idx, (matrix, (_, matrix)) in enumerate(zip(predictions, predictions))
+            for article_id in [all_article_ids[idx]]
         ]
 
-        num_workers = len(os.sched_getaffinity(0))
-        with multiprocessing.get_context("spawn").Pool(processes=num_workers) as pool:
+        mp.set_start_method("spawn", force=True)
+        print("Starting multiprocessing pool...")
+        num_workers = min(4, len(os.sched_getaffinity(0)))
+        pool = mp.Pool(processes=num_workers)
+        try:
             results = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
+        finally:
+            print("Closing pool...")
+            pool.close()  # No more tasks
+            pool.join()  # Wait for workers to finish
+            print("Pool closed and joined.")
 
-        print(f"[{self.mode.upper()}] Saving processed graphs...")
         for article_id, data in results:
             out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
             torch.save(data, os.path.join(self.processed_dir, out_name))
@@ -270,7 +285,6 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         return data
 
-# TODO: mp seems to work, but need to check quality of the code and outputs, esp compare to non-multiprocessing
 
 def main_run():
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
