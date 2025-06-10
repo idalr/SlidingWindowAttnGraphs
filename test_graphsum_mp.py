@@ -207,6 +207,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         #model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
         model_window = self.model.window
         max_len = self.model.max_len
+
         print("Model correctly loaded.")
 
         print("Encoding all unique sentence IDs to node features...")
@@ -222,7 +223,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         # Encode all sentence embeddings once (on CPU)
         with torch.no_grad():
             all_embeddings = self.sent_model.encode(
-                retrieve_from_dict(self.invert_vocab_sent, all_ids_tensor)
+                retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
             )
         id_to_embedding = {
             int(k): v for k, v in zip(all_ids_list, all_embeddings)
@@ -315,24 +316,24 @@ def main_run():
     path_root = os.path.join(root_graph, model_name, filter_type + "_unified")
 
     filename_train = "predict_train_documents.csv"
-    #filename_val = "predict_val_documents.csv"
+    filename_val = "predict_val_documents.csv"
     filename_test = "predict_test_documents.csv"
 
     # import loader_data
     print("Loading data...")
     # if config_file["load_data_paths"]["with_val"]:
-    #     df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
-    #
-    #     ids2remove_val = check_dataframe(df_val)
-    #     for id_remove in ids2remove_val:
-    #         df_val = df_val.drop(id_remove)
-    #     df_val.reset_index(drop=True, inplace=True)
-    #     print("Val shape:", df_val.shape)
+    df_train, df_val, df_test = load_data(in_path, "", "", "", "", True)
+
+    ids2remove_val = check_dataframe(df_val)
+    for id_remove in ids2remove_val:
+        df_val = df_val.drop(id_remove)
+    df_val.reset_index(drop=True, inplace=True)
+    print("Val shape:", df_val.shape)
     #
     # else:
     #     df_train, df_test = load_data(**config_file["load_data_paths"])
 
-    df_train, df_test = load_data(in_path, "", "", "", "")
+    # df_train, df_test = load_data(in_path, "", "", "", "")
 
     ids2remove_train = check_dataframe(df_train)
     for id_remove in ids2remove_train:
@@ -350,19 +351,18 @@ def main_run():
     print("Max number of sentences allowed in document:", max_len)
 
     # #################################minirun
-    df_train, df_test = df_train[:20], df_test[:20]
+    #df_train, df_test = df_train[:20], df_test[:20]
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
-    #     loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
-    #                                                                        task="summarization",
-    #                                                                        tokenizer_from_scratch=False,
-    #                                                                        path_ckpt=config_file["load_data_paths"][
-    #                                                                            "in_path"])
+    loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+                                                                           task="summarization",
+                                                                           tokenizer_from_scratch=False,
+                                                                           path_ckpt=in_path)
     # else:
-    loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
-                                                         task="summarization", tokenizer_from_scratch=False,
-                                                         path_ckpt=in_path)
+    #     loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
+    #                                                      task="summarization", tokenizer_from_scratch=False,
+    #                                                      path_ckpt=in_path)
 
     path_checkpoint = os.path.join(path_logger, model_name, "Extended_NoTemp-epoch=11-Val_f1-ma=0.52.ckpt")
     print("\nLoading", model_name, "from:", path_checkpoint)
@@ -371,8 +371,8 @@ def main_run():
     print("Model temperature", model_lightning.temperature)
     print("Done")
 
-    path_filename_train = os.path.join(path_root, "raw", filename_train)
-    if os.path.exists(path_filename_train):
+    path_filename_val = os.path.join(path_root, "raw", filename_val)
+    if os.path.exists(path_filename_val):
         print("Requirements satisfied in:", path_root)
     else:  # if not os.path.exists(path_filename_train)::
         if save_flag:
@@ -408,19 +408,19 @@ def main_run():
             print("================================================")
 
             # if config_file["load_data_paths"]["with_val"]:
-            #     start_creation = time.time()
-            #     partition = "VAL"
-            #     accs_v, f1s_v = model_lightning.predict_to_file(loader_val, saving_file=save_flag,
-            #                                                     filename=filename_val, path_root=path_root)
-            #     creation_time = time.time() - start_creation
-            #     print("[" + partition + "] File creation time:", creation_time, file=f)
-            #     print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item(), file=f)
-            #     print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy(), file=f)
-            #     print("================================================", file=f)
-            #     print("[" + partition + "] File creation time:", creation_time)
-            #     print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item())
-            #     print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy())
-            #     print("================================================")
+            start_creation = time.time()
+            partition = "VAL"
+            accs_v, f1s_v = model_lightning.predict_to_file(loader_val, saving_file=save_flag,
+                                                                filename=filename_val, path_root=path_root)
+            creation_time = time.time() - start_creation
+            # print("[" + partition + "] File creation time:", creation_time, file=f)
+            # print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item(), file=f)
+            # print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy(), file=f)
+            # print("================================================", file=f)
+            print("[" + partition + "] File creation time:", creation_time)
+            print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item())
+            print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy())
+            print("================================================")
             # else:
             #     pass
 
@@ -455,31 +455,31 @@ def main_run():
         start_creation = time.time()
         filename_train = "predict_train_documents.csv"
         dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
-                                                   degree=tolerance, model_ckpt=path_checkpoint, mode="train",
+                                                   degree=tolerance, model=model_lightning, mode="train",
                                                    binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_train = time.time() - start_creation
         print("Creation time for Train Graph dataset:", creation_train, file=f)
         print("Creation time for Train Graph dataset:", creation_train)
 
         # # graphs val
-        # start_creation = time.time()
-        # filename_val = "predict_val_documents.csv"
-        # dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
-        #                                          model_ckpt=path_checkpoint, mode="val",
-        #                                          binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        # creation_val = time.time() - start_creation
-        # print("Creation time for Val Graph dataset:", creation_val, file=f)
-        # print("Creation time for Val Graph dataset:", creation_val)
+        start_creation = time.time()
+        filename_val = "predict_val_documents.csv"
+        dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
+                                                 model_ckpt=path_checkpoint, mode="val",
+                                                 binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        creation_val = time.time() - start_creation
+        print("Creation time for Val Graph dataset:", creation_val, file=f)
+        print("Creation time for Val Graph dataset:", creation_val)
 
-        # start_creation = time.time()
-        # filename_test = "predict_test_documents.csv"
-        # dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
-        #                                           model_ckpt=path_checkpoint, mode="test",
-        #                                           binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        # creation_test = time.time() - start_creation
-        # print("Creation time for Test Graph dataset:", creation_test, file=f)
-        # print("Creation time for Test Graph dataset:", creation_test)
-        # print("================================================", file=f)
+        start_creation = time.time()
+        filename_test = "predict_test_documents.csv"
+        dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
+                                                  model=model_lightning, mode="test",
+                                                  binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        creation_test = time.time() - start_creation
+        print("Creation time for Test Graph dataset:", creation_test, file=f)
+        print("Creation time for Test Graph dataset:", creation_test)
+        print("================================================", file=f)
 
         f.close()
 
