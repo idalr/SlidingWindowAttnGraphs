@@ -33,27 +33,35 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def process_single(args):
     return _process_one(*args)
 
+# TODO: check quality
+## problem with doc_ids and doc_ids_str?
 #def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
-def _process_one(article_id, full_matrix, doc_ids_str, labels_sample,
+def _process_one(article_id, full_matrix, doc_ids, labels_sample,
                  filter_type, K, binarized, normalized,
-                 model_window, max_len, id_to_embedding):
+                 model_window, max_len, mode, sent_model, model_vocab, processed_dir):
 
     label = clean_tokenization_sent(labels_sample, "label")
     valid_sents = min(len(label), max_len)
 
     if filter_type is not None:
-        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
-                                           degree_std=K, with_filtering=True, filtering_type=filter_type)
+        filtered_matrix = filtering_matrix(
+            full_matrix, valid_sents=valid_sents, window=model_window,
+            degree_std=K, with_filtering=True, filtering_type=filter_type
+        )
     else:
-        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
-                                           degree_std=K, with_filtering=False)
+        filtered_matrix = filtering_matrix(
+            full_matrix, valid_sents=valid_sents, window=model_window,
+            degree_std=K, with_filtering=False
+        )
 
-    doc_ids = [int(element) for element in doc_ids_str[1:-1].split(",")]
+    doc_ids = [int(x) for x in doc_ids[1:-1].split(",")]
+    doc_ids = torch.tensor(doc_ids)
     cropped_doc = doc_ids[:valid_sents]
 
-    match_ids = {k: v for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
-    final = list(dict.fromkeys(cropped_doc))
-    dict_orig_to_ide_graph = {k: v for v, k in enumerate(final)}
+
+    match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
+    final = list(dict.fromkeys(x.item() for x in cropped_doc))
+    dict_orig_to_graph = {k: v for v, k in enumerate(final)}
 
     final_label = []
     processed_ids = []
@@ -67,28 +75,29 @@ def _process_one(article_id, full_matrix, doc_ids_str, labels_sample,
     for i in range(len(filtered_matrix)):
         for j in range(len(filtered_matrix)):
             if filtered_matrix[i, j] != 0 and i != j:
-                a = match_ids[i]
-                b = match_ids[j]
+                a, b = match_ids[i], match_ids[j]
                 if a != b and (a, b) not in all_edges:
                     orig_source_list.append(a)
                     orig_target_list.append(b)
                     all_edges.append((a, b))
-                    source_list.append(dict_orig_to_ide_graph[a])
-                    target_list.append(dict_orig_to_ide_graph[b])
+                    source_list.append(dict_orig_to_graph[a])
+                    target_list.append(dict_orig_to_graph[b])
                     edge_attrs.append(1.0 if binarized else filtered_matrix[i, j].item())
                 elif (a, b) in all_edges:
-                    pos_edge = all_edges.index((a, b))
-                    edge_attrs[pos_edge] = max(edge_attrs[pos_edge], filtered_matrix[i, j].item())
+                    pos = all_edges.index((a, b))
+                    edge_attrs[pos] = max(edge_attrs[pos], filtered_matrix[i, j].item())
             elif not skip_extra_edges and filtered_matrix[i, j] != 0 and i == j:
                 if match_ids[i] not in orig_target_list:
                     for neighbor in [j - 1, j + 1]:
                         if 0 <= neighbor < len(filtered_matrix):
-                            b = match_ids[neighbor]
                             a = match_ids[i]
-                            new_weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
+                            b = match_ids[neighbor]
+                            weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
                             orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, _ = solve_by_creating_edge(
-                                a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
-                                edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                                a, b, orig_source_list, orig_target_list, all_edges,
+                                source_list, target_list, edge_attrs,
+                                processed_ids, dict_orig_to_graph, weight
+                            )
 
         if match_ids[i] not in processed_ids:
             processed_ids.append(match_ids[i])
@@ -105,31 +114,36 @@ def _process_one(article_id, full_matrix, doc_ids_str, labels_sample,
 
     final_source = source_list + target_list
     final_target = target_list + source_list
-    final_orig_source_list = orig_source_list + orig_target_list
-    final_orig_target_list = orig_target_list + orig_source_list
+    final_orig_source = orig_source_list + orig_target_list
+    final_orig_target = orig_target_list + orig_source_list
     edge_attrs = edge_attrs + edge_attrs
 
-    all_indexes = torch.tensor([final_source, final_target]).long()
-    edge_attrs = torch.tensor(edge_attrs).float()
+    edge_index = torch.tensor([final_source, final_target], dtype=torch.long)
+    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
 
-    if normalized and all_indexes.shape[1] > 0:
-        num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
-        adj_matrix = torch.zeros(num_sent, num_sent)
-        for i in range(all_indexes.shape[1]):
-            adj_matrix[all_indexes[0, i], all_indexes[1, i]] = edge_attrs[i]
-        for row in range(len(adj_matrix)):
-            if adj_matrix[row].max() != 0:
-                adj_matrix[row] /= adj_matrix[row].max()
-        edge_attrs = adj_matrix.view(-1)[adj_matrix.view(-1).nonzero()].view(-1)
+    if normalized and edge_index.shape[1] > 0:
+        num_nodes = edge_index.max().item() + 1
+        adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float)
+        adj[edge_index[0], edge_index[1]] = edge_attr
+        for row in range(num_nodes):
+            if adj[row].max() > 0:
+                adj[row] /= adj[row].max()
+        edge_attr = adj[adj != 0]
 
-    # Retrieve embeddings
-    node_fea = torch.tensor([id_to_embedding[i] for i in processed_ids]).float()
+    # get node features
+    node_fea = sent_model.encode(
+        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
+    )
 
-    generated_data = Data(x=node_fea, edge_index=all_indexes, edge_attr=edge_attrs,
-                          y=torch.tensor(final_label).int())
+    node_fea = torch.tensor(node_fea, dtype=torch.float)
+    generated_data = Data(
+        x=node_fea,
+        edge_index=edge_index,
+        edge_attr=edge_attr,
+        y=torch.tensor(final_label, dtype=torch.int),
+    )
     generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
-    generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
-
+    generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
 
     if generated_data .has_isolated_nodes():
         print("Error in graph -- isolated nodes detected")
@@ -139,6 +153,9 @@ def _process_one(article_id, full_matrix, doc_ids_str, labels_sample,
         print("Error in graph -- self loops detected")
         print(generated_data)
         print(generated_data.edge_index)
+
+    out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
+    torch.save(generated_data, os.path.join(processed_dir, out_name))
 
     return article_id, generated_data
 
@@ -210,24 +227,24 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         print("Model correctly loaded.")
 
-        print("Encoding all unique sentence IDs to node features...")
-        # Collect all sentence IDs across samples
-        all_ids_set = set()
-        for ids in all_doc_as_ids:
-            ids_clean = [int(i) for i in ids[1:-1].split(',')]
-            all_ids_set.update(ids_clean)
-
-        all_ids_list = list(all_ids_set)
-        all_ids_tensor = torch.tensor(all_ids_list)
-
-        # Encode all sentence embeddings once (on CPU)
-        with torch.no_grad():
-            all_embeddings = self.sent_model.encode(
-                retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
-            )
-        id_to_embedding = {
-            int(k): v for k, v in zip(all_ids_list, all_embeddings)
-        }
+        # print("Encoding all unique sentence IDs to node features...")
+        # # Collect all sentence IDs across samples
+        # all_ids_set = set()
+        # for ids in all_doc_as_ids:
+        #     ids_clean = [int(i) for i in ids[1:-1].split(',')]
+        #     all_ids_set.update(ids_clean)
+        #
+        # all_ids_list = list(all_ids_set)
+        # all_ids_tensor = torch.tensor(all_ids_list)
+        #
+        # # Encode all sentence embeddings once (on CPU)
+        # with torch.no_grad():
+        #     all_embeddings = self.sent_model.encode(
+        #         retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
+        #     )
+        # id_to_embedding = {
+        #     int(k): v for k, v in zip(all_ids_list, all_embeddings)
+        # }
 
         print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
 
@@ -250,10 +267,13 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 self.normalized,
                 model_window,
                 max_len,
-                id_to_embedding
+                self.mode,
+                self.sent_model,
+                self.model.invert_vocab_sent,
+                self.processed_dir
             )
-            for idx, (matrix, (_, matrix)) in enumerate(zip(predictions, predictions))
-            for article_id in [all_article_ids[idx]]
+            for idx, (_, matrix) in enumerate(predictions)
+            for article_id in [all_article_ids[idx]] # cannot do in portions
         ]
 
         mp.set_start_method("spawn", force=True)
@@ -261,16 +281,18 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         num_workers = min(4, len(os.sched_getaffinity(0)))
         pool = mp.Pool(processes=num_workers)
         try:
-            results = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
+            _ = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
         finally:
+            # TODO: look what really happening here?
             print("Closing pool...")
             pool.close()  # No more tasks
             pool.join()  # Wait for workers to finish
             print("Pool closed and joined.")
 
-        for article_id, data in results:
-            out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
-            torch.save(data, os.path.join(self.processed_dir, out_name))
+        # # moved this into mp
+        # for article_id, data in results:
+        #     out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
+        #     torch.save(data, os.path.join(self.processed_dir, out_name))
 
     def len(self):
         return self.data.shape[0]  ##tamaño del dataset
@@ -286,11 +308,37 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         return data
 
+# TODO: check quality of the data
+# TODO: this is the current log, must study and improve it?
+'''
+[VAL] Creating Graphs Objects with multiprocessing...
+100%|██████████| 100/100 [00:49<00:00,  2.01it/s]
+  0%|          | 0/100 [00:00<?, ?it/s]Starting multiprocessing pool...
+100%|██████████| 100/100 [12:57<00:00,  7.78s/it]
+Closing pool...
+Pool closed and joined.
+Creation time for Val Graph dataset: 830.56130027771
+Done!
+'''
+## this is log before the latest edit
+'''
+Done
+Requirements satisfied in: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_NoTemp/full_unified
+Creating graphs with filter: full
+Processing...
+Model correctly loaded.
+[VAL] Creating Graphs Objects with multiprocessing...
+100%|██████████| 970/970 [42:10<00:00,  2.61s/it]
+Starting multiprocessing pool...
+  0%|          | 0/970 [00:15<?, ?it/s]
+Closing pool...
+'''
+
 
 def main_run():
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     logger_name = "df_logger_cw.csv"
-    model_name = "Extended_NoTemp"
+    model_name = "Extended_NoTemp" ####### Extended_NoTemp_w30 is old data
 
     path_logger = "/scratch2/rldallitsako/HomoGraphs_GovReports/"
     root_graph = "/scratch2/rldallitsako/datasets/AttnGraphs_GovReports/"
@@ -300,7 +348,7 @@ def main_run():
     unified_flag = True #config_file["unified_nodes"]
     flag_binary = False #config_file["binarized"]
     file_results = folder_results + "Doc_Level_Results"
-    with_val = False
+    with_val = True #False
     in_path = "scratch2/rldallitsako/datasets/GovReport-Sum/"
 
     # create folder if not exist
@@ -352,6 +400,7 @@ def main_run():
 
     # #################################minirun
     #df_train, df_test = df_train[:20], df_test[:20]
+    df_val = df_val[100:110] #df_val[:100]
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
@@ -452,34 +501,34 @@ def main_run():
             print("Creating graphs with filter:", filter_type, file=f)
             print("Creating graphs with filter:", filter_type)
         print("-----------------------------------------------", file=f)
-        start_creation = time.time()
-        filename_train = "predict_train_documents.csv"
-        dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
-                                                   degree=tolerance, model=model_lightning, mode="train",
-                                                   binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        creation_train = time.time() - start_creation
-        print("Creation time for Train Graph dataset:", creation_train, file=f)
-        print("Creation time for Train Graph dataset:", creation_train)
+        # start_creation = time.time()
+        # filename_train = "predict_train_documents.csv"
+        # dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
+        #                                            degree=tolerance, model=model_lightning, mode="train",
+        #                                            binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        # creation_train = time.time() - start_creation
+        # print("Creation time for Train Graph dataset:", creation_train, file=f)
+        # print("Creation time for Train Graph dataset:", creation_train)
 
         # # graphs val
         start_creation = time.time()
         filename_val = "predict_val_documents.csv"
         dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
-                                                 model_ckpt=path_checkpoint, mode="val",
+                                                 model=model_lightning, mode="val",
                                                  binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_val = time.time() - start_creation
         print("Creation time for Val Graph dataset:", creation_val, file=f)
         print("Creation time for Val Graph dataset:", creation_val)
 
-        start_creation = time.time()
-        filename_test = "predict_test_documents.csv"
-        dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
-                                                  model=model_lightning, mode="test",
-                                                  binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        creation_test = time.time() - start_creation
-        print("Creation time for Test Graph dataset:", creation_test, file=f)
-        print("Creation time for Test Graph dataset:", creation_test)
-        print("================================================", file=f)
+        # start_creation = time.time()
+        # filename_test = "predict_test_documents.csv"
+        # dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
+        #                                           model=model_lightning, mode="test",
+        #                                           binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        # creation_test = time.time() - start_creation
+        # print("Creation time for Test Graph dataset:", creation_test, file=f)
+        # print("Creation time for Test Graph dataset:", creation_test)
+        # print("================================================", file=f)
 
         f.close()
 
