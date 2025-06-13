@@ -33,8 +33,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def process_single(args):
     return _process_one(*args)
 
-# TODO: check quality
-## problem with doc_ids and doc_ids_str?
 #def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
 def _process_one(article_id, full_matrix, doc_ids, labels_sample,
                  filter_type, K, binarized, normalized,
@@ -157,7 +155,7 @@ def _process_one(article_id, full_matrix, doc_ids, labels_sample,
     out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
     torch.save(generated_data, os.path.join(processed_dir, out_name))
 
-    return article_id, generated_data
+    return None #article_id, generated_data
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
@@ -273,7 +271,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 self.processed_dir
             )
             for idx, (_, matrix) in enumerate(predictions)
-            for article_id in [all_article_ids[idx]] # cannot do in portions
+            for article_id in [all_article_ids[idx]] # cannot do in portions # TODO: check if can numbering by art_ids
         ]
 
         mp.set_start_method("spawn", force=True)
@@ -310,6 +308,28 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
 # TODO: check quality of the data
 # TODO: this is the current log, must study and improve it?
+## all VAL data (972 pt's) #970 # 801 and 950 not exist
+'''
+[VAL] Creating Graphs Objects with multiprocessing...
+100%|██████████| 970/970 [06:27<00:00,  2.50it/s]
+  0%|          | 0/970 [00:00<?, ?it/s]Starting multiprocessing pool...
+ 93%|█████████▎| 905/970 [2:38:40<20:00, 18.47s/it]
+100%|██████████| 970/970 [3:09:06<00:00, 11.70s/it] 
+Closing pool...
+Pool closed and joined.
+Creation time for Val Graph dataset: 11737.002381324768
+Done!
+
+[TEST] Creating Graphs Objects with multiprocessing...
+100%|██████████| 972/972 [06:35<00:00,  2.46it/s]
+  0%|          | 0/972 [00:00<?, ?it/s]Starting multiprocessing pool...
+100%|██████████| 972/972 [2:15:43<00:00,  8.38s/it]
+Closing pool...
+Pool closed and joined.
+Done!
+Creation time for Test Graph dataset: 8543.168995141983
+
+'''
 '''
 [VAL] Creating Graphs Objects with multiprocessing...
 100%|██████████| 100/100 [00:49<00:00,  2.01it/s]
@@ -364,7 +384,7 @@ def main_run():
     path_root = os.path.join(root_graph, model_name, filter_type + "_unified")
 
     filename_train = "predict_train_documents.csv"
-    filename_val = "predict_val_documents.csv"
+    #filename_val = "predict_val_documents.csv"
     filename_test = "predict_test_documents.csv"
 
     # import loader_data
@@ -372,11 +392,11 @@ def main_run():
     # if config_file["load_data_paths"]["with_val"]:
     df_train, df_val, df_test = load_data(in_path, "", "", "", "", True)
 
-    ids2remove_val = check_dataframe(df_val)
-    for id_remove in ids2remove_val:
-        df_val = df_val.drop(id_remove)
-    df_val.reset_index(drop=True, inplace=True)
-    print("Val shape:", df_val.shape)
+    # ids2remove_val = check_dataframe(df_val)
+    # for id_remove in ids2remove_val:
+    #     df_val = df_val.drop(id_remove)
+    # df_val.reset_index(drop=True, inplace=True)
+    # print("Val shape:", df_val.shape)
     #
     # else:
     #     df_train, df_test = load_data(**config_file["load_data_paths"])
@@ -400,18 +420,20 @@ def main_run():
 
     # #################################minirun
     #df_train, df_test = df_train[:20], df_test[:20]
-    df_val = df_val[100:110] #df_val[:100]
+    #df_val = df_val[100:110] #df_val[:100]
+
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
-    loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
-                                                                           task="summarization",
-                                                                           tokenizer_from_scratch=False,
-                                                                           path_ckpt=in_path)
+    #loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+    #loader_train, _, _, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+    #                                                                       task="summarization",
+     #                                                                      tokenizer_from_scratch=False,
+      #                                                                     path_ckpt=in_path)
     # else:
-    #     loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
-    #                                                      task="summarization", tokenizer_from_scratch=False,
-    #                                                      path_ckpt=in_path)
+    loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
+                                                         task="summarization", tokenizer_from_scratch=False,
+                                                         path_ckpt=in_path)
 
     path_checkpoint = os.path.join(path_logger, model_name, "Extended_NoTemp-epoch=11-Val_f1-ma=0.52.ckpt")
     print("\nLoading", model_name, "from:", path_checkpoint)
@@ -420,8 +442,8 @@ def main_run():
     print("Model temperature", model_lightning.temperature)
     print("Done")
 
-    path_filename_val = os.path.join(path_root, "raw", filename_val)
-    if os.path.exists(path_filename_val):
+    path_filename_val = os.path.join(path_root, "raw", filename_train)
+    if os.path.exists(path_filename_train):
         print("Requirements satisfied in:", path_root)
     else:  # if not os.path.exists(path_filename_train)::
         if save_flag:
@@ -431,15 +453,15 @@ def main_run():
 
         with open(file_results + '_' + model_name + '.txt', 'a') as f:
             if save_flag:
-                #print("\n\n================================================", file=f)
-                #print("Creating prediction files from pre-trained model:", model_name, file=f)
+                print("\n\n================================================", file=f)
+                print("Creating prediction files from pre-trained model:", model_name, file=f)
                 print("Creating prediction files from pre-trained model:", model_name)
-                #print("================================================", file=f)
+                print("================================================", file=f)
             else:
-                #print("\n\n================================================", file=f)
-                #print("Obtaining predictions from pre-trained model:", model_name, file=f)
+                print("\n\n================================================", file=f)
+                print("Obtaining predictions from pre-trained model:", model_name, file=f)
                 print("Obtaining predictions from pre-trained model:", model_name)
-                #print("================================================", file=f)
+                print("================================================", file=f)
             start_creation = time.time()
             partition = "TRAIN"
             accs_tr, f1s_tr = model_lightning.predict_to_file(loader_train, saving_file=save_flag,
@@ -456,37 +478,37 @@ def main_run():
             print("[" + partition + "] Avg. F1-score (doc-level):", torch.stack(f1s_tr, dim=0).mean(dim=0).numpy())
             print("================================================")
 
-            # if config_file["load_data_paths"]["with_val"]:
-            start_creation = time.time()
-            partition = "VAL"
-            accs_v, f1s_v = model_lightning.predict_to_file(loader_val, saving_file=save_flag,
-                                                                filename=filename_val, path_root=path_root)
-            creation_time = time.time() - start_creation
+            # # if config_file["load_data_paths"]["with_val"]:
+            # start_creation = time.time()
+            # partition = "VAL"
+            # accs_v, f1s_v = model_lightning.predict_to_file(loader_val, saving_file=save_flag,
+            #                                                     filename=filename_val, path_root=path_root)
+            # creation_time = time.time() - start_creation
             # print("[" + partition + "] File creation time:", creation_time, file=f)
             # print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item(), file=f)
             # print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy(), file=f)
             # print("================================================", file=f)
-            print("[" + partition + "] File creation time:", creation_time)
-            print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item())
-            print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy())
-            print("================================================")
-            # else:
-            #     pass
-
-            start_creation = time.time()
-            partition = "TEST"
-            accs_t, f1s_t = model_lightning.predict_to_file(loader_test, saving_file=save_flag, filename=filename_test,
-                                                            path_root=path_root)
-            creation_time = time.time() - start_creation
-            #print("[" + partition + "] File creation time:", creation_time, file=f)
-            #print("[" + partition + "] Avg. Acc:", torch.tensor(accs_t).mean().item(), file=f)
-            #print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy(), file=f)
-            #print("================================================", file=f)
-            print("[" + partition + "] File creation time:", creation_time)
-            print("[" + partition + "] Avg. Acc:", torch.tensor(accs_t).mean().item())
-            print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy())
-            #print("================================================")
-            f.close()
+            # print("[" + partition + "] File creation time:", creation_time)
+            # print("[" + partition + "] Avg. Acc:", torch.tensor(accs_v).mean().item())
+            # print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_v, dim=0).mean(dim=0).numpy())
+            # print("================================================")
+            # # else:
+            # #     pass
+            #
+            # start_creation = time.time()
+            # partition = "TEST"
+            # accs_t, f1s_t = model_lightning.predict_to_file(loader_test, saving_file=save_flag, filename=filename_test,
+            #                                                 path_root=path_root)
+            # creation_time = time.time() - start_creation
+            # print("[" + partition + "] File creation time:", creation_time, file=f)
+            # print("[" + partition + "] Avg. Acc:", torch.tensor(accs_t).mean().item(), file=f)
+            # print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy(), file=f)
+            # print("================================================", file=f)
+            # print("[" + partition + "] File creation time:", creation_time)
+            # print("[" + partition + "] Avg. Acc:", torch.tensor(accs_t).mean().item())
+            # print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy())
+            # print("================================================")
+            # f.close()
 
         print("Finished and saved in:", path_root)
 
@@ -501,24 +523,24 @@ def main_run():
             print("Creating graphs with filter:", filter_type, file=f)
             print("Creating graphs with filter:", filter_type)
         print("-----------------------------------------------", file=f)
-        # start_creation = time.time()
-        # filename_train = "predict_train_documents.csv"
-        # dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
-        #                                            degree=tolerance, model=model_lightning, mode="train",
-        #                                            binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        # creation_train = time.time() - start_creation
-        # print("Creation time for Train Graph dataset:", creation_train, file=f)
-        # print("Creation time for Train Graph dataset:", creation_train)
+        start_creation = time.time()
+        filename_train = "predict_train_documents.csv"
+        dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
+                                                   degree=tolerance, model=model_lightning, mode="train",
+                                                   binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        creation_train = time.time() - start_creation
+        print("Creation time for Train Graph dataset:", creation_train, file=f)
+        print("Creation time for Train Graph dataset:", creation_train)
 
         # # graphs val
-        start_creation = time.time()
-        filename_val = "predict_val_documents.csv"
-        dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
-                                                 model=model_lightning, mode="val",
-                                                 binarized=flag_binary)  # , multi_layer_model=multi_flag)
-        creation_val = time.time() - start_creation
-        print("Creation time for Val Graph dataset:", creation_val, file=f)
-        print("Creation time for Val Graph dataset:", creation_val)
+        # start_creation = time.time()
+        # filename_val = "predict_val_documents.csv"
+        # dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
+        #                                          model=model_lightning, mode="val",
+        #                                          binarized=flag_binary)  # , multi_layer_model=multi_flag)
+        # creation_val = time.time() - start_creation
+        # print("Creation time for Val Graph dataset:", creation_val, file=f)
+        # print("Creation time for Val Graph dataset:", creation_val)
 
         # start_creation = time.time()
         # filename_test = "predict_test_documents.csv"
@@ -533,4 +555,5 @@ def main_run():
         f.close()
 
 if __name__ == "__main__":
+    torch.cuda.empty_cache()
     main_run()
