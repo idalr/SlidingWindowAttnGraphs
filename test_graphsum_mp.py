@@ -442,7 +442,7 @@ def main_run():
     print("Model temperature", model_lightning.temperature)
     print("Done")
 
-    path_filename_val = os.path.join(path_root, "raw", filename_train)
+    path_filename_train = os.path.join(path_root, "raw", filename_train)
     if os.path.exists(path_filename_train):
         print("Requirements satisfied in:", path_root)
     else:  # if not os.path.exists(path_filename_train)::
