@@ -87,121 +87,194 @@ def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
     """
 
     label = clean_tokenization_sent(labels_sample, "label")
-    valid_sents = min(len(label), max_len)
-
-    if filter_type is not None:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=True, filtering_type=filter_type
-        )
-    else:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=False
-        )
-
-    # Parse sentence IDs from string, crop to valid sentence count
     doc_ids = [int(x) for x in doc_as_ids[1:-1].split(",")]
     doc_ids = torch.tensor(doc_ids)
-    cropped_doc = doc_ids[:valid_sents]
 
-    # Map filtered matrix indices to original doc IDs
-    match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
-    # Unique nodes after filtering, maintaining order
-    final = list(dict.fromkeys(x.item() for x in cropped_doc))
-    dict_orig_to_graph = {k: v for v, k in enumerate(final)}
+    try:
+        valid_sents = (doc_ids == 0).nonzero()[0]
+        valid_sents = min(len(valid_sents), max_len)
+        cropped_doc = doc_ids[:valid_sents]
+    except:
+        valid_sents = len(doc_ids)
+        cropped_doc = doc_ids
 
-    final_label = []
+    if filter_type is not None:
+        # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K, with_filtering=True,
+                                           filtering_type=filter_type)
+    else:
+        # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=False)
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K,
+                                           with_filtering=False)
+
+    """"calculating edges"""
+    match_ids = {k: v.item() for k, v in
+                 zip(range(len(filtered_matrix)), cropped_doc)}  # key pos-i, value orig. sentence-id
+
+    # === NEW ===
+    # Get unique IDs and build a mapping from original sentence ID to unique node index
+    unique_ids = []
+    for v in match_ids.values():
+        if v not in unique_ids:
+            unique_ids.append(v)
+    id_to_node_idx = {orig_id: idx for idx, orig_id in enumerate(unique_ids)}
+
+    # final_label = []
     processed_ids = []
-    source_list, target_list = [], []
-    orig_source_list, orig_target_list = [], []
+    source_list = []
+    target_list = []
+    orig_source_list = []
+    orig_target_list = []
     edge_attrs = []
     all_edges = []
 
-    skip_extra_edges = filter_type == "full"
+    final = []
+    for elem in cropped_doc:
+        if elem.item() not in final:
+            final.append(elem.item())
+
+    dict_orig_to_ide_graph = {k: v for k, v in
+                              zip(final, range(len(final)))}  # key orig. sentence-id, value node-id for PyGeo
 
     for i in range(len(filtered_matrix)):
-        for j in range(len(filtered_matrix)):
-            if filtered_matrix[i, j] != 0 and i != j:
-                a, b = match_ids[i], match_ids[j]
-                if a != b and (a, b) not in all_edges:
-                    orig_source_list.append(a)
-                    orig_target_list.append(b)
-                    all_edges.append((a, b))
-                    source_list.append(dict_orig_to_graph[a])
-                    target_list.append(dict_orig_to_graph[b])
-                    edge_attrs.append(1.0 if binarized else filtered_matrix[i, j].item())
-                elif (a, b) in all_edges:
-                    pos = all_edges.index((a, b))
-                    edge_attrs[pos] = max(edge_attrs[pos], filtered_matrix[i, j].item())
-            elif not skip_extra_edges and filtered_matrix[i, j] != 0 and i == j:
-                if match_ids[i] not in orig_target_list:
-                    for neighbor in [j - 1, j + 1]:
-                        if 0 <= neighbor < len(filtered_matrix):
-                            a = match_ids[i]
-                            b = match_ids[neighbor]
-                            weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
-                            orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, _ = solve_by_creating_edge(
-                                a, b, orig_source_list, orig_target_list, all_edges,
-                                source_list, target_list, edge_attrs,
-                                processed_ids, dict_orig_to_graph, weight
-                            )
+        only_one_entry = False
+        fix_with_extra_edges = False
+        if np.count_nonzero(filtered_matrix[i]) == 1:
+            only_one_entry = True
 
+        for j in range(len(filtered_matrix)):
+            if filtered_matrix[i, j] != 0 and i != j:  # no self loops
+                a = match_ids[i]  # original ID
+                b = match_ids[j]
+                if a != b:
+                    if (a,
+                        b) not in all_edges:  # do not aggregate an edge if matched source and target are the same sentence
+                        orig_source_list.append(a)
+                        orig_target_list.append(b)
+                        all_edges.append((a, b))
+                        # has_edges = True
+
+                        # === CHANGED: use unique node idx, NOT processed_ids.index or dict_orig_to_ide_graph ===
+                        source_list.append(id_to_node_idx[a])
+                        target_list.append(id_to_node_idx[b])
+
+                        if binarized:
+                            edge_attrs.append(1.0)
+                        else:
+                            edge_attrs.append(
+                                filtered_matrix[i, j].item())  # attention weight: as calculated by MHA trained model
+
+                    else:  # (a,b) in all_edges:
+                        pos_edge = all_edges.index((a, b))  # check update edge weights
+                        if edge_attrs[pos_edge] < filtered_matrix[i, j].item():
+                            edge_attrs[pos_edge] = filtered_matrix[i, j].item()
+                else:
+                    # if only_one_entry == True:
+                    fix_with_extra_edges = True
+
+            if filtered_matrix[i, j] != 0 and i == j and (
+                    only_one_entry == True):  # check self-loop potentially producing disconnected graphs
+                fix_with_extra_edges = True
+
+            if fix_with_extra_edges == True:
+                if match_ids[i] not in orig_target_list:
+                    try:  # Adding edges to previous neighbor
+                        b = match_ids[j - 1]
+                        a = match_ids[i]
+                        if binarized:
+                            new_weight = 1.0
+                        else:
+                            new_weight = filtered_matrix[i, j].item() / 2
+                        orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                            a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                            edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                    except:
+                        pass
+
+                    try:
+                        b = match_ids[j + 1]
+                        a = match_ids[i]
+                        if binarized:
+                            new_weight = 1.0
+                        else:
+                            new_weight = filtered_matrix[i, j].item() / 2
+                        orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                            a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                            edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                    except:
+                        pass
+
+        # === CHANGED: append unique nodes only once ===
         if match_ids[i] not in processed_ids:
             processed_ids.append(match_ids[i])
-            #final_label.append(label[i])
+            # final_label.append(label[i])
+
+    # === CHANGED: adjust label vector to match unique nodes ===
+    # Assuming `label` is aligned to filtered_matrix rows, pick labels for unique nodes
+    # If multiple duplicate nodes, choose the first occurrence's label (you can change logic if needed)
+    unique_labels = []
+    for uid in unique_ids:
+        # Find first index where match_ids has uid, get corresponding label
+        idx = next(k for k, v in match_ids.items() if v == uid)
+        unique_labels.append(label[idx])
+
+    x_unique = []
+    for uid in unique_ids:
+        idx = next(k for k, v in match_ids.items() if v == uid)
+        x_unique.append(x[idx])
+
+    x_unique = torch.stack(x_unique, dim=0)
 
     if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
+        print("Error in edge creation -- source and edge don't match")
         print("numero de edges acummulados:")
         print("source:", len(source_list))
         print("target:", len(target_list))
         print("orig_source:", len(orig_source_list))
         print("orig_target:", len(orig_target_list))
         print("edge_attrs:", len(edge_attrs))
-        raise ValueError("Error in edge creation -- source and edge don't match")
 
+    # reverse edges for all heuristics
     final_source = source_list + target_list
     final_target = target_list + source_list
-    final_orig_source = orig_source_list + orig_target_list
-    final_orig_target = orig_target_list + orig_source_list
-    edge_attrs = edge_attrs + edge_attrs
+    indexes = [final_source, final_target]
+    final_orig_source_list = orig_source_list + orig_target_list
+    final_orig_target_list = orig_target_list + orig_source_list
+    edge_attrs = edge_attrs + edge_attrs  ### for reverse edge attributes (same weight - simetric matrix)
 
-    edge_index = torch.tensor([final_source, final_target], dtype=torch.long)
-    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+    all_indexes = torch.tensor(indexes).long()
+    edge_attrs = torch.tensor(edge_attrs).float()
 
-    # Optional normalization of edge attributes (row-wise)
-    if normalized and edge_index.shape[1] > 0:
-        num_nodes = edge_index.max().item() + 1
-        adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float)
-        adj[edge_index[0], edge_index[1]] = edge_attr
-        for row in range(num_nodes):
-            if adj[row].max() > 0:
-                adj[row] /= adj[row].max()
-        edge_attr = adj[adj != 0]
+    if normalized:
+        if all_indexes.shape[1] != 0:
+            num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
+            adj_matrix = torch.zeros(num_sent, num_sent)
+            for i in range(len(all_indexes[0])):
+                adj_matrix[all_indexes[0][i], all_indexes[1][i]] = edge_attrs[i]
+            for row in range(len(adj_matrix)):
+                adj_matrix[row] = adj_matrix[row] / adj_matrix[row].max()
 
-    # Build node feature tensor by stacking embeddings from id_to_embedding dict
-    # node_fea = torch.stack([id_to_embedding[sent_id.item()] for sent_id in doc_ids])
+            temp = adj_matrix.reshape(-1)
+            edge_attrs = temp[temp.nonzero()].reshape(-1)
 
-    # get node features
-    # node_fea = torch.stack([id_to_embedding[sent_id] for sent_id in doc_ids])
-    # node_fea = sent_model.encode(
-    #     retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
-    # )
-    #
-    # node_fea = torch.tensor(node_fea, dtype=torch.float)
-    generated_data = Data(
-        x=x,
-        edge_index=edge_index,
-        edge_attr=edge_attr,
-        y=torch.tensor(label).int(), #torch.tensor(final_label, dtype=torch.int),
-    )
-    generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
-    generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
+    generated_data = Data(x=x_unique, edge_index=all_indexes, edge_attr=edge_attrs,
+                          y=torch.tensor(unique_labels).int())  # labels adjusted for unique nodes
 
-    if generated_data.has_isolated_nodes():
-        print("Error in graph -- isolated nodes detected")
-        print(generated_data)
-        print(generated_data.edge_index)
+    # generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
+    generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
+
+    if generated_data.has_isolated_nodes(): # when there's duplicates in match_ids, it flags this error
+        num_nodes = generated_data.num_nodes
+        edge_index = generated_data.edge_index
+        connected_nodes = torch.unique(edge_index.flatten())
+        all_nodes = torch.arange(num_nodes)
+        isolated_nodes = torch.tensor([n for n in all_nodes if n not in connected_nodes])
+        if isolated_nodes.numel() > 0:
+            print("Error in graph -- isolated nodes detected")
+            print(generated_data)
+            print(generated_data.edge_index)
+            print("Isolated nodes:", isolated_nodes.tolist())
+            print('debug')
     elif generated_data.contains_self_loops():
         print("Error in graph -- self loops detected")
         print(generated_data)
