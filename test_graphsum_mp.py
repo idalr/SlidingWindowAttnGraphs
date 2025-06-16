@@ -33,10 +33,11 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 def process_single(args):
     return _process_one(*args)
 
+
 #def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
-def _process_one(article_id, full_matrix, doc_ids, labels_sample,
+def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
                  filter_type, K, binarized, normalized,
-                 model_window, max_len, mode, sent_model, model_vocab, processed_dir):
+                 model_window, max_len, mode, processed_dir):
 
     label = clean_tokenization_sent(labels_sample, "label")
     valid_sents = min(len(label), max_len)
@@ -129,13 +130,14 @@ def _process_one(article_id, full_matrix, doc_ids, labels_sample,
         edge_attr = adj[adj != 0]
 
     # get node features
-    node_fea = sent_model.encode(
-        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
-    )
+    # node_fea = sent_model.encode(
+    #     retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
+    # )
+    #
+    # node_fea = torch.tensor(node_fea, dtype=torch.float)
 
-    node_fea = torch.tensor(node_fea, dtype=torch.float)
     generated_data = Data(
-        x=node_fea,
+        x=x,
         edge_index=edge_index,
         edge_attr=edge_attr,
         y=torch.tensor(final_label, dtype=torch.int),
@@ -220,72 +222,100 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         #print("Loading MHASummarizer model...")
         #model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        model_window = self.model.window
-        max_len = self.model.max_len
+        # model_window = self.model.window
+        # max_len = self.model.max_len
 
         print("Model correctly loaded.")
 
-        # print("Encoding all unique sentence IDs to node features...")
-        # # Collect all sentence IDs across samples
-        # all_ids_set = set()
-        # for ids in all_doc_as_ids:
-        #     ids_clean = [int(i) for i in ids[1:-1].split(',')]
-        #     all_ids_set.update(ids_clean)
+        # id_embed_path = os.path.join(self.processed_dir, "ids_to_embeddings.pt")
         #
-        # all_ids_list = list(all_ids_set)
-        # all_ids_tensor = torch.tensor(all_ids_list)
+        # if os.path.exists(id_embed_path):
+        #     print("Found existing encoded embeddings. Loading...")
+        #     id_to_embedding = torch.load(id_embed_path)
+        # else:
+        #     print("Encoding all unique sentence IDs to node features...")
+        #     all_ids_set = set()
+        #     for ids in all_doc_as_ids:
+        #         ids_clean = [int(i) for i in ids[1:-1].split(',')]
+        #         all_ids_set.update(ids_clean)
         #
-        # # Encode all sentence embeddings once (on CPU)
-        # with torch.no_grad():
-        #     all_embeddings = self.sent_model.encode(
-        #         retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
-        #     )
-        # id_to_embedding = {
-        #     int(k): v for k, v in zip(all_ids_list, all_embeddings)
-        # }
+        #     all_ids_list = list(all_ids_set)
+        #     all_ids_tensor = torch.tensor(all_ids_list)
+        #
+        #     with torch.no_grad():
+        #         all_embeddings = self.sent_model.encode(
+        #             retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
+        #         )
+        #     id_to_embedding = {
+        #         int(k): v for k, v in zip(all_ids_list, all_embeddings)
+        #     }
+        #     torch.save(id_to_embedding, id_embed_path)
 
-        print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
+        print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing within batch...")
 
-        predictions = []
         for batch_sample in tqdm(all_batches, total=len(all_batches)):
             pred_batch, matrix_batch = self.model.predict_single(batch_sample)
-            pred_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in pred_batch]
-            matrix_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in matrix_batch]
-            predictions.extend(zip(pred_batch, matrix_batch))
 
-        args_list = [
-            (
-                article_id,
-                matrix,
-                all_doc_as_ids[idx],
-                all_labels[idx],
-                self.filter_type,
-                self.K,
-                self.binarized,
-                self.normalized,
-                model_window,
-                max_len,
-                self.mode,
-                self.sent_model,
-                self.model.invert_vocab_sent,
-                self.processed_dir
-            )
-            for idx, (_, matrix) in enumerate(predictions)
-            for article_id in [all_article_ids[idx]] # cannot do in portions # TODO: check if can numbering by art_ids
-        ]
+            args_list = []
+            for idx, (pred, matrix) in enumerate(zip(pred_batch, matrix_batch)):
+                article_id = all_article_ids[idx]
+                doc_as_ids = all_doc_as_ids[idx]
+                # get node features
+                node_ids = [int(i) for i in doc_as_ids[1:-1].split(',')]
+                node_fea = self.sent_model.encode(
+                    retrieve_from_dict(self.model.invert_vocab_sent, torch.tensor(node_ids))
+                )
+                node_fea = torch.tensor(node_fea, dtype=torch.float)
 
-        mp.set_start_method("spawn", force=True)
-        print("Starting multiprocessing pool...")
-        num_workers = min(4, len(os.sched_getaffinity(0)))
-        pool = mp.Pool(processes=num_workers)
-        try:
-            _ = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
-        finally:
-            # TODO: look what really happening here?
-            print("Closing pool...")
-            pool.close()  # No more tasks
-            pool.join()  # Wait for workers to finish
-            print("Pool closed and joined.")
+                #x = torch.tensor([id_to_embedding[i] for i in node_ids], dtype=torch.float)
+
+                args = (
+                    article_id,
+                    matrix,
+                    node_fea,
+                    all_doc_as_ids[idx],
+                    all_labels[idx],
+                    self.filter_type,
+                    self.K,
+                    self.binarized,
+                    self.normalized,
+                    self.model.window,
+                    self.model.max_len,
+                    self.mode,
+                    self.processed_dir
+                )
+                args_list.append(args)
+
+            # for idx, (_, matrix) in enumerate(zip(pred_batch, matrix_batch)):
+            #     article_id = all_article_ids[idx]
+            #     args_list = (
+            #         article_id,
+            #         matrix,
+            #         all_doc_as_ids[idx],
+            #         all_labels[idx],
+            #         self.filter_type,
+            #         self.K,
+            #         self.binarized,
+            #         self.normalized,
+            #         self.model.window,
+            #         self.model.max_len,
+            #         self.processed_dir,
+            #         self.sent_model,
+            #         self.model.invert_vocab_sent,
+            #     )
+
+            mp.set_start_method("spawn", force=True)
+            print("Starting multiprocessing pool...")
+            num_workers = min(4, len(os.sched_getaffinity(0)))
+            pool = mp.Pool(processes=num_workers)
+            try:
+                _ = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
+            finally:
+                # TODO: look what really happening here?
+                ##print("Closing pool...")
+                pool.close()  # No more tasks
+                pool.join()  # Wait for workers to finish
+                ##print("Pool closed and joined.")
 
         # # moved this into mp
         # for article_id, data in results:
