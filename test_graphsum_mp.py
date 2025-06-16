@@ -42,7 +42,7 @@ def _init_worker(config):
 # def process_single(args):
 #     return _process_one(*args)
 
-def _process_one(matrix, embeddings, article_id, doc_as_ids, label):  # ,
+def _process_one(matrix, embeddings, article_id, doc_tensor, label):  # ,
     # filter_type, K, normalized, binarized,
     # model_ckpt, sent_model, mode, processed_dir):
     """
@@ -52,10 +52,9 @@ def _process_one(matrix, embeddings, article_id, doc_as_ids, label):  # ,
 
     # Call graph construction logic
     graph_data = process_single(
-        article_id=article_id,
         full_matrix=matrix,
         x=embeddings,
-        doc_as_ids=doc_as_ids,
+        doc_ids=doc_tensor,
         labels_sample=label,
         filter_type=_shared_config['filter_type'],
         K=_shared_config['K'],
@@ -71,11 +70,7 @@ def _process_one(matrix, embeddings, article_id, doc_as_ids, label):  # ,
     torch.save(graph_data, os.path.join(_shared_config['processed_dir'], filename))
 
 
-# def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
-# def _process_one(article_id, full_matrix, doc_ids, labels_sample,
-#                  filter_type, K, binarized, normalized,
-#                  model_window, max_len, mode, sent_model, model_vocab, processed_dir):
-def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
+def process_single(full_matrix, x, doc_ids, labels_sample,
                    filter_type, K, normalized, binarized,
                    model_window, max_len):
     """
@@ -87,23 +82,15 @@ def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
     """
 
     label = clean_tokenization_sent(labels_sample, "label")
-    doc_ids = [int(x) for x in doc_as_ids[1:-1].split(",")]
-    doc_ids = torch.tensor(doc_ids)
-
-    try:
-        valid_sents = (doc_ids == 0).nonzero()[0]
-        valid_sents = min(len(valid_sents), max_len)
-        cropped_doc = doc_ids[:valid_sents]
-    except:
-        valid_sents = len(doc_ids)
-        cropped_doc = doc_ids
+    #doc_ids = [int(x) for x in doc_as_ids[1:-1].split(",")]
+    #doc_ids = torch.tensor(doc_ids)
+    valid_sents = min(len(label), max_len)
+    cropped_doc = doc_ids[:valid_sents]
 
     if filter_type is not None:
-        # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=True, filtering_type=self.filter_type)
         filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K, with_filtering=True,
                                            filtering_type=filter_type)
     else:
-        # filtered_matrix = filtering_matrix(full_matrix[0], valid_sents=valid_sents, degree_std=self.K, with_filtering=False)
         filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K,
                                            with_filtering=False)
 
@@ -111,7 +98,6 @@ def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
     match_ids = {k: v.item() for k, v in
                  zip(range(len(filtered_matrix)), cropped_doc)}  # key pos-i, value orig. sentence-id
 
-    # === NEW ===
     # Get unique IDs and build a mapping from original sentence ID to unique node index
     unique_ids = []
     for v in match_ids.values():
@@ -209,7 +195,6 @@ def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
             processed_ids.append(match_ids[i])
             # final_label.append(label[i])
 
-    # === CHANGED: adjust label vector to match unique nodes ===
     # Assuming `label` is aligned to filtered_matrix rows, pick labels for unique nodes
     # If multiple duplicate nodes, choose the first occurrence's label (you can change logic if needed)
     unique_labels = []
@@ -260,7 +245,6 @@ def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
     generated_data = Data(x=x_unique, edge_index=all_indexes, edge_attr=edge_attrs,
                           y=torch.tensor(unique_labels).int())  # labels adjusted for unique nodes
 
-    # generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
     generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
 
     if generated_data.has_isolated_nodes(): # when there's duplicates in match_ids, it flags this error
@@ -350,6 +334,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         print("Loading model...")
         model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
         model.eval()
+        print('Model Loaded.')
 
         shared_config = {
             'model_ckpt': self.model_ckpt,
@@ -364,78 +349,15 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             'processed_dir': self.processed_dir
         }
 
-        #print("Running batched prediction and collecting data...")
-
-        # args_list = []
-        # for idx, sample in tqdm(enumerate(all_batches), total=len(all_batches)):
-        #     args_list.append((
-        #         all_article_ids[idx],
-        #         sample,
-        #         all_doc_as_ids[idx],
-        #         all_labels[idx]))
-        # batch_size = 32  # or whatever works for your setup
-        # for start in tqdm(range(0, len(self.data), batch_size)):
-        #     end = start + batch_size
-        #     batch_doc_ids = all_doc_as_ids[start:end].tolist()
-        #     batch_labels = all_labels[start:end].tolist()
-        #     batch_article_ids = all_article_ids[start:end].tolist()
-        #
-        #     batch_data = all_batches(batch_doc_ids, batch_labels, batch_article_ids)
-        #
-        #     args_list = []
-        #     for idx, sample in enumerate(batch_data):
-        #         args_list.append((
-        #             batch_article_ids[idx],
-        #             sample,
-        #             batch_doc_ids[idx],
-        #             batch_labels[idx],
-        #         ))
-        #
-        #     print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
-        #     mp.set_start_method("spawn", force=True)
-        #
-        #     print("Starting multiprocessing pool...")
-        #     num_workers = min(4, len(os.sched_getaffinity(0)))
-        #     pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
-        #     try:
-        #         pool.starmap(_process_one, args_list)
-        #     finally:
-        #         # TODO: look what really happening here?
-        #         print("Closing pool...")
-        #         pool.close()  # No more tasks
-        #         pool.join()  # Wait for workers to finish
-        #         print("Pool closed and joined.")
-
-        # args_list = []
-        # for idx, batch_sample in enumerate(tqdm(all_batches, total=len(all_batches))):
-        #     args = (
-        #         batch_sample,
-        #         all_doc_as_ids[idx],
-        #         all_labels[idx],
-        #         all_article_ids[idx],
-        #         # self.model_ckpt,
-        #         # self.filter_type,
-        #         # self.K,
-        #         # self.binarized,
-        #         # self.normalized,
-        #         # self.mode,
-        #         # self.sent_model,
-        #         # #self.model.invert_vocab_sent,
-        #         # self.processed_dir
-        #         )
-        #     args_list.append(args)
-
+        # starting multiprocessing
         mp.set_start_method("spawn", force=True)
         num_workers = min(4, len(os.sched_getaffinity(0)))
 
-        # Load model and set eval
-        model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        print('Model Loaded.')
-
-        # split data
-        num_splits = 10000 #32
-        total_samples = len(self.data_loader)  # if you can't get length, use len(self.data)
+        # splitting data
+        num_splits = 32
+        total_samples = len(self.data_loader)
         split_size = np.ceil(total_samples / num_splits)
+        print(f'Splitting data into {num_splits} chunks.')
 
         for split_idx in range(num_splits):
             start = split_idx * split_size
@@ -453,8 +375,6 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 doc_ids = [int(i) for i in doc_as_ids[1:-1].split(',') if i.strip().isdigit()]
                 doc_tensor = torch.tensor(doc_ids)
 
-                #cleaned_labels = clean_tokenization_sent(all_labels[idx], "label")
-
                 # Retrieve sentences using model's invert vocab and encode to embeddings
                 sentences = retrieve_from_dict(model.invert_vocab_sent, doc_tensor)
                 with torch.no_grad():
@@ -467,7 +387,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                     matrix.squeeze(0).cpu().numpy(),
                     embeddings,
                     all_article_ids[idx],
-                    all_doc_as_ids[idx],
+                    doc_tensor,
                     all_labels[idx],
                 )
                 args_buffer.append(args)
@@ -479,7 +399,6 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
                 pool.starmap(_process_one, args_buffer)
             finally:
-                # TODO: look what really happening here?
                 print("Closing pool...")
                 pool.close()  # No more tasks
                 pool.join()  # Wait for workers to finish
@@ -487,51 +406,6 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
             args_buffer.clear()
 
-        # model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        # predictions = []
-        # for batch_sample in tqdm(all_batches, total=len(all_batches)):
-        #     pred_batch, matrix_batch = model.predict_single(batch_sample)
-        #     pred_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in pred_batch]
-        #     matrix_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in matrix_batch]
-        #     predictions.extend(zip(pred_batch, matrix_batch))
-
-        # args_list = [
-        #     (
-        #         article_id,
-        #         matrix,
-        #         all_doc_as_ids[idx],
-        #         all_labels[idx],
-        #         self.filter_type,
-        #         self.K,
-        #         self.binarized,
-        #         self.normalized,
-        #         self.model_ckpt,
-        #         self.mode,
-        #         self.sent_model,
-        #         self.model.invert_vocab_sent,
-        #         self.processed_dir
-        #     )
-        #     for idx, (_, matrix) in enumerate(predictions)
-        #     for article_id in [all_article_ids[idx]] # cannot do in portions
-        # ]
-
-        # mp.set_start_method("spawn", force=True)
-        # print("Starting multiprocessing pool...")
-        # num_workers = min(4, len(os.sched_getaffinity(0)))
-        # pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
-        # try:
-        #     pool.starmap(_process_one, args_list)
-        # finally:
-        #     # TODO: look what really happening here?
-        #     print("Closing pool...")
-        #     pool.close()  # No more tasks
-        #     pool.join()  # Wait for workers to finish
-        #     print("Pool closed and joined.")
-
-        # # moved this into mp
-        # for article_id, data in results:
-        #     out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
-        #     torch.save(data, os.path.join(self.processed_dir, out_name))
 
     def len(self):
         return self.data.shape[0]  ##tamaño del dataset
