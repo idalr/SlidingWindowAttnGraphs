@@ -247,18 +247,12 @@ def process_single(full_matrix, x, doc_ids, labels_sample,
 
     generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
 
-    if generated_data.has_isolated_nodes(): # when there's duplicates in match_ids, it flags this error
-        num_nodes = generated_data.num_nodes
-        edge_index = generated_data.edge_index
-        connected_nodes = torch.unique(edge_index.flatten())
-        all_nodes = torch.arange(num_nodes)
-        isolated_nodes = torch.tensor([n for n in all_nodes if n not in connected_nodes])
-        if isolated_nodes.numel() > 0:
-            print("Error in graph -- isolated nodes detected")
-            print(generated_data)
-            print(generated_data.edge_index)
-            print("Isolated nodes:", isolated_nodes.tolist())
-            print('debug')
+    if generated_data.has_isolated_nodes():
+        print("Error in graph -- isolated nodes detected")
+        print(generated_data)
+        print(generated_data.edge_index)
+        print("Isolated nodes:", isolated_nodes.tolist())
+        print('debug')
     elif generated_data.contains_self_loops():
         print("Error in graph -- self loops detected")
         print(generated_data)
