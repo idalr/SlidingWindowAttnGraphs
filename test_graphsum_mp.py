@@ -251,8 +251,6 @@ def process_single(full_matrix, x, doc_ids, labels_sample,
         print("Error in graph -- isolated nodes detected")
         print(generated_data)
         print(generated_data.edge_index)
-        print("Isolated nodes:", isolated_nodes.tolist())
-        print('debug')
     elif generated_data.contains_self_loops():
         print("Error in graph -- self loops detected")
         print(generated_data)
