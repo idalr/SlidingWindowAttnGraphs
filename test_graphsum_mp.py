@@ -1,6 +1,6 @@
 import yaml
 import argparse
-#from graph_data_loaders import UnifiedAttentionGraphs_Sum  # , AttentionGraphs_Sum
+# from graph_data_loaders import UnifiedAttentionGraphs_Sum  # , AttentionGraphs_Sum
 import torch
 import os
 import time
@@ -25,19 +25,66 @@ import pandas as pd
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from eval_models import filtering_matrices, get_threshold, clean_tokenization_sent, filtering_matrix
-from base_model import MHASummarizer, retrieve_from_dict, MHAClassifier #, MHASummarizer_extended
+from base_model import MHASummarizer, retrieve_from_dict, MHAClassifier  # , MHASummarizer_extended
 from utils import solve_by_creating_edge
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
-def process_single(args):
-    return _process_one(*args)
+# Global variable to hold shared config in workers
+_shared_config = None
 
 
-#def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
-def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
-                 filter_type, K, binarized, normalized,
-                 model_window, max_len, mode, processed_dir):
+def _init_worker(config):
+    global _shared_config
+    _shared_config = config
+
+
+# def process_single(args):
+#     return _process_one(*args)
+
+def _process_one(matrix, embeddings, article_id, doc_as_ids, label):  # ,
+    # filter_type, K, normalized, binarized,
+    # model_ckpt, sent_model, mode, processed_dir):
+    """
+    Loads model, encodes embeddings, predicts adjacency matrix in batch,
+    calls process_single, saves the resulting PyG Data object.
+    """
+
+    # Call graph construction logic
+    graph_data = process_single(
+        article_id=article_id,
+        full_matrix=matrix,
+        x=embeddings,
+        doc_as_ids=doc_as_ids,
+        labels_sample=label,
+        filter_type=_shared_config['filter_type'],
+        K=_shared_config['K'],
+        binarized=_shared_config['binarized'],
+        normalized=_shared_config['normalized'],
+        model_window=_shared_config['model_window'],
+        max_len=_shared_config['max_len'],
+    )
+
+    # Save graph data file (name depends on mode)
+    filename = f"data_{_shared_config['mode']}_{article_id}.pt" if _shared_config['mode'] in ["test",
+                                                                                              "val"] else f"data_{article_id}.pt"
+    torch.save(graph_data, os.path.join(_shared_config['processed_dir'], filename))
+
+
+# def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
+# def _process_one(article_id, full_matrix, doc_ids, labels_sample,
+#                  filter_type, K, binarized, normalized,
+#                  model_window, max_len, mode, sent_model, model_vocab, processed_dir):
+def process_single(article_id, full_matrix, x, doc_as_ids, labels_sample,
+                   filter_type, K, normalized, binarized,
+                   model_window, max_len):
+    """
+    Process one graph sample:
+    - Filters adjacency matrix
+    - Builds graph edges and attributes
+    - Creates node features tensor from id_to_embedding dict
+    - Returns PyG Data object with x, edge_index, edge_attr, y
+    """
 
     label = clean_tokenization_sent(labels_sample, "label")
     valid_sents = min(len(label), max_len)
@@ -53,12 +100,14 @@ def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
             degree_std=K, with_filtering=False
         )
 
-    doc_ids = [int(x) for x in doc_ids[1:-1].split(",")]
+    # Parse sentence IDs from string, crop to valid sentence count
+    doc_ids = [int(x) for x in doc_as_ids[1:-1].split(",")]
     doc_ids = torch.tensor(doc_ids)
     cropped_doc = doc_ids[:valid_sents]
 
-
+    # Map filtered matrix indices to original doc IDs
     match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
+    # Unique nodes after filtering, maintaining order
     final = list(dict.fromkeys(x.item() for x in cropped_doc))
     dict_orig_to_graph = {k: v for v, k in enumerate(final)}
 
@@ -100,7 +149,7 @@ def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
 
         if match_ids[i] not in processed_ids:
             processed_ids.append(match_ids[i])
-            final_label.append(label[i])
+            #final_label.append(label[i])
 
     if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
         print("numero de edges acummulados:")
@@ -120,6 +169,7 @@ def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
     edge_index = torch.tensor([final_source, final_target], dtype=torch.long)
     edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
 
+    # Optional normalization of edge attributes (row-wise)
     if normalized and edge_index.shape[1] > 0:
         num_nodes = edge_index.max().item() + 1
         adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float)
@@ -129,39 +179,43 @@ def _process_one(article_id, full_matrix, x, doc_ids, labels_sample,
                 adj[row] /= adj[row].max()
         edge_attr = adj[adj != 0]
 
+    # Build node feature tensor by stacking embeddings from id_to_embedding dict
+    # node_fea = torch.stack([id_to_embedding[sent_id.item()] for sent_id in doc_ids])
+
     # get node features
+    # node_fea = torch.stack([id_to_embedding[sent_id] for sent_id in doc_ids])
     # node_fea = sent_model.encode(
     #     retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
     # )
     #
     # node_fea = torch.tensor(node_fea, dtype=torch.float)
-
     generated_data = Data(
         x=x,
         edge_index=edge_index,
         edge_attr=edge_attr,
-        y=torch.tensor(final_label, dtype=torch.int),
+        y=torch.tensor(label).int(), #torch.tensor(final_label, dtype=torch.int),
     )
     generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
     generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
 
-    if generated_data .has_isolated_nodes():
+    if generated_data.has_isolated_nodes():
         print("Error in graph -- isolated nodes detected")
         print(generated_data)
         print(generated_data.edge_index)
-    elif generated_data .contains_self_loops():
+    elif generated_data.contains_self_loops():
         print("Error in graph -- self loops detected")
         print(generated_data)
         print(generated_data.edge_index)
 
-    out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
-    torch.save(generated_data, os.path.join(processed_dir, out_name))
+    # out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
+    # torch.save(generated_data, os.path.join(processed_dir, out_name))
 
-    return None #article_id, generated_data
+    return generated_data
+
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
                  pre_transform=None):  # input_matrices, invert_vocab_sent
         ### df_train, df_test, max_len, batch_size tambien en init?
@@ -173,7 +227,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         self.filter_type = filter_type
         self.data_loader = data_loader
         self.K = degree
-        self.model = model
+        self.model_ckpt = model_ckpt
         self.mode = mode
         self.normalized = normalized
         self.binarized = binarized
@@ -220,102 +274,186 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         all_article_ids = self.data['article_id']
         all_batches = self.data_loader  # DO NOT pass this into multiprocessing workers
 
-        #print("Loading MHASummarizer model...")
-        #model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        # model_window = self.model.window
-        # max_len = self.model.max_len
+        print("Loading model...")
+        model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model.eval()
 
-        print("Model correctly loaded.")
+        shared_config = {
+            'model_ckpt': self.model_ckpt,
+            'filter_type': self.filter_type,
+            'K': self.K,
+            'binarized': self.binarized,
+            'normalized': self.normalized,
+            'sent_model': self.sent_model,
+            'mode': self.mode,
+            'model_window': model.window,
+            'max_len': model.max_len,
+            'processed_dir': self.processed_dir
+        }
 
-        # id_embed_path = os.path.join(self.processed_dir, "ids_to_embeddings.pt")
+        #print("Running batched prediction and collecting data...")
+
+        # args_list = []
+        # for idx, sample in tqdm(enumerate(all_batches), total=len(all_batches)):
+        #     args_list.append((
+        #         all_article_ids[idx],
+        #         sample,
+        #         all_doc_as_ids[idx],
+        #         all_labels[idx]))
+        # batch_size = 32  # or whatever works for your setup
+        # for start in tqdm(range(0, len(self.data), batch_size)):
+        #     end = start + batch_size
+        #     batch_doc_ids = all_doc_as_ids[start:end].tolist()
+        #     batch_labels = all_labels[start:end].tolist()
+        #     batch_article_ids = all_article_ids[start:end].tolist()
         #
-        # if os.path.exists(id_embed_path):
-        #     print("Found existing encoded embeddings. Loading...")
-        #     id_to_embedding = torch.load(id_embed_path)
-        # else:
-        #     print("Encoding all unique sentence IDs to node features...")
-        #     all_ids_set = set()
-        #     for ids in all_doc_as_ids:
-        #         ids_clean = [int(i) for i in ids[1:-1].split(',')]
-        #         all_ids_set.update(ids_clean)
+        #     batch_data = all_batches(batch_doc_ids, batch_labels, batch_article_ids)
         #
-        #     all_ids_list = list(all_ids_set)
-        #     all_ids_tensor = torch.tensor(all_ids_list)
+        #     args_list = []
+        #     for idx, sample in enumerate(batch_data):
+        #         args_list.append((
+        #             batch_article_ids[idx],
+        #             sample,
+        #             batch_doc_ids[idx],
+        #             batch_labels[idx],
+        #         ))
         #
-        #     with torch.no_grad():
-        #         all_embeddings = self.sent_model.encode(
-        #             retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
+        #     print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
+        #     mp.set_start_method("spawn", force=True)
+        #
+        #     print("Starting multiprocessing pool...")
+        #     num_workers = min(4, len(os.sched_getaffinity(0)))
+        #     pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
+        #     try:
+        #         pool.starmap(_process_one, args_list)
+        #     finally:
+        #         # TODO: look what really happening here?
+        #         print("Closing pool...")
+        #         pool.close()  # No more tasks
+        #         pool.join()  # Wait for workers to finish
+        #         print("Pool closed and joined.")
+
+        # args_list = []
+        # for idx, batch_sample in enumerate(tqdm(all_batches, total=len(all_batches))):
+        #     args = (
+        #         batch_sample,
+        #         all_doc_as_ids[idx],
+        #         all_labels[idx],
+        #         all_article_ids[idx],
+        #         # self.model_ckpt,
+        #         # self.filter_type,
+        #         # self.K,
+        #         # self.binarized,
+        #         # self.normalized,
+        #         # self.mode,
+        #         # self.sent_model,
+        #         # #self.model.invert_vocab_sent,
+        #         # self.processed_dir
         #         )
-        #     id_to_embedding = {
-        #         int(k): v for k, v in zip(all_ids_list, all_embeddings)
-        #     }
-        #     torch.save(id_to_embedding, id_embed_path)
+        #     args_list.append(args)
 
-        print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing within batch...")
+        mp.set_start_method("spawn", force=True)
+        num_workers = min(4, len(os.sched_getaffinity(0)))
 
-        for batch_sample in tqdm(all_batches, total=len(all_batches)):
-            pred_batch, matrix_batch = self.model.predict_single(batch_sample)
+        # Load model and set eval
+        model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        print('Model Loaded.')
 
-            args_list = []
-            for idx, (pred, matrix) in enumerate(zip(pred_batch, matrix_batch)):
-                article_id = all_article_ids[idx]
+        # split data
+        num_splits = 10000 #32
+        total_samples = len(self.data_loader)  # if you can't get length, use len(self.data)
+        split_size = np.ceil(total_samples / num_splits)
+
+        for split_idx in range(num_splits):
+            start = split_idx * split_size
+            end = min(start + split_size, total_samples)
+
+            args_buffer = []
+            for idx, batch_sample in enumerate(tqdm(self.data_loader)):
+                if idx < start:
+                    continue
+                if idx >= end:
+                    break
+
+                # Convert doc_as_ids string to list of ints
                 doc_as_ids = all_doc_as_ids[idx]
-                # get node features
-                node_ids = [int(i) for i in doc_as_ids[1:-1].split(',')]
-                node_fea = self.sent_model.encode(
-                    retrieve_from_dict(self.model.invert_vocab_sent, torch.tensor(node_ids))
-                )
-                node_fea = torch.tensor(node_fea, dtype=torch.float)
+                doc_ids = [int(i) for i in doc_as_ids[1:-1].split(',') if i.strip().isdigit()]
+                doc_tensor = torch.tensor(doc_ids)
 
-                #x = torch.tensor([id_to_embedding[i] for i in node_ids], dtype=torch.float)
+                #cleaned_labels = clean_tokenization_sent(all_labels[idx], "label")
+
+                # Retrieve sentences using model's invert vocab and encode to embeddings
+                sentences = retrieve_from_dict(model.invert_vocab_sent, doc_tensor)
+                with torch.no_grad():
+                    embeddings = self.sent_model.encode(sentences, convert_to_tensor=True)
+
+                # Get attention weights
+                _, matrix = model.predict_single(batch_sample)
 
                 args = (
-                    article_id,
-                    matrix,
-                    node_fea,
+                    matrix.squeeze(0).cpu().numpy(),
+                    embeddings,
+                    all_article_ids[idx],
                     all_doc_as_ids[idx],
                     all_labels[idx],
-                    self.filter_type,
-                    self.K,
-                    self.binarized,
-                    self.normalized,
-                    self.model.window,
-                    self.model.max_len,
-                    self.mode,
-                    self.processed_dir
                 )
-                args_list.append(args)
+                args_buffer.append(args)
 
-            # for idx, (_, matrix) in enumerate(zip(pred_batch, matrix_batch)):
-            #     article_id = all_article_ids[idx]
-            #     args_list = (
-            #         article_id,
-            #         matrix,
-            #         all_doc_as_ids[idx],
-            #         all_labels[idx],
-            #         self.filter_type,
-            #         self.K,
-            #         self.binarized,
-            #         self.normalized,
-            #         self.model.window,
-            #         self.model.max_len,
-            #         self.processed_dir,
-            #         self.sent_model,
-            #         self.model.invert_vocab_sent,
-            #     )
+            # Process this chunk with multiprocessing as before
 
-            mp.set_start_method("spawn", force=True)
             print("Starting multiprocessing pool...")
-            num_workers = min(4, len(os.sched_getaffinity(0)))
-            pool = mp.Pool(processes=num_workers)
             try:
-                _ = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
+                pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
+                pool.starmap(_process_one, args_buffer)
             finally:
                 # TODO: look what really happening here?
-                ##print("Closing pool...")
+                print("Closing pool...")
                 pool.close()  # No more tasks
                 pool.join()  # Wait for workers to finish
-                ##print("Pool closed and joined.")
+                print("Pool closed and joined.")
+
+            args_buffer.clear()
+
+        # model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        # predictions = []
+        # for batch_sample in tqdm(all_batches, total=len(all_batches)):
+        #     pred_batch, matrix_batch = model.predict_single(batch_sample)
+        #     pred_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in pred_batch]
+        #     matrix_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in matrix_batch]
+        #     predictions.extend(zip(pred_batch, matrix_batch))
+
+        # args_list = [
+        #     (
+        #         article_id,
+        #         matrix,
+        #         all_doc_as_ids[idx],
+        #         all_labels[idx],
+        #         self.filter_type,
+        #         self.K,
+        #         self.binarized,
+        #         self.normalized,
+        #         self.model_ckpt,
+        #         self.mode,
+        #         self.sent_model,
+        #         self.model.invert_vocab_sent,
+        #         self.processed_dir
+        #     )
+        #     for idx, (_, matrix) in enumerate(predictions)
+        #     for article_id in [all_article_ids[idx]] # cannot do in portions
+        # ]
+
+        # mp.set_start_method("spawn", force=True)
+        # print("Starting multiprocessing pool...")
+        # num_workers = min(4, len(os.sched_getaffinity(0)))
+        # pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
+        # try:
+        #     pool.starmap(_process_one, args_list)
+        # finally:
+        #     # TODO: look what really happening here?
+        #     print("Closing pool...")
+        #     pool.close()  # No more tasks
+        #     pool.join()  # Wait for workers to finish
+        #     print("Pool closed and joined.")
 
         # # moved this into mp
         # for article_id, data in results:
@@ -335,6 +473,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
 
         return data
+
 
 # TODO: check quality of the data
 # TODO: this is the current log, must study and improve it?
@@ -388,17 +527,17 @@ Closing pool...
 def main_run():
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     logger_name = "df_logger_cw.csv"
-    model_name = "Extended_NoTemp" ####### Extended_NoTemp_w30 is old data
+    model_name = "Extended_NoTemp"  ####### Extended_NoTemp_w30 is old data
 
     path_logger = "/scratch2/rldallitsako/HomoGraphs_GovReports/"
     root_graph = "/scratch2/rldallitsako/datasets/AttnGraphs_GovReports/"
     folder_results = "/home/rldallitsako/AttGraphs/GNN_Results_Summarizer/"
     filter_type = "full"
-    save_flag = True #config_file["saving_file"]
-    unified_flag = True #config_file["unified_nodes"]
-    flag_binary = False #config_file["binarized"]
+    save_flag = True  # config_file["saving_file"]
+    unified_flag = True  # config_file["unified_nodes"]
+    flag_binary = False  # config_file["binarized"]
     file_results = folder_results + "Doc_Level_Results"
-    with_val = True #False
+    with_val = True  # False
     in_path = "scratch2/rldallitsako/datasets/GovReport-Sum/"
 
     # create folder if not exist
@@ -408,13 +547,13 @@ def main_run():
     path_df_logger = os.path.join(path_logger, logger_name)
     df_logger = pd.read_csv(path_df_logger)
 
-    #if flag_binary:
-    #else:
+    # if flag_binary:
+    # else:
     #    if unified_flag:
     path_root = os.path.join(root_graph, model_name, filter_type + "_unified")
 
     filename_train = "predict_train_documents.csv"
-    #filename_val = "predict_val_documents.csv"
+    # filename_val = "predict_val_documents.csv"
     filename_test = "predict_test_documents.csv"
 
     # import loader_data
@@ -449,28 +588,28 @@ def main_run():
     print("Max number of sentences allowed in document:", max_len)
 
     # #################################minirun
-    #df_train, df_test = df_train[:20], df_test[:20]
-    #df_val = df_val[100:110] #df_val[:100]
+    # df_train, df_test = df_train[:20], df_test[:20]
+    # df_val = df_val[100:110] #df_val[:100]
 
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
-    #loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
-    #loader_train, _, _, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+    # loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+    # loader_train, _, _, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
     #                                                                       task="summarization",
-     #                                                                      tokenizer_from_scratch=False,
-      #                                                                     path_ckpt=in_path)
+    #                                                                      tokenizer_from_scratch=False,
+    #                                                                     path_ckpt=in_path)
     # else:
     loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
-                                                         task="summarization", tokenizer_from_scratch=False,
-                                                         path_ckpt=in_path)
+                                                     task="summarization", tokenizer_from_scratch=False,
+                                                     path_ckpt=in_path)
 
     path_checkpoint = os.path.join(path_logger, model_name, "Extended_NoTemp-epoch=11-Val_f1-ma=0.52.ckpt")
-    print("\nLoading", model_name, "from:", path_checkpoint)
-    model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
-    model_window = model_lightning.window
-    print("Model temperature", model_lightning.temperature)
-    print("Done")
+    # print("\nLoading", model_name, "from:", path_checkpoint)
+    # model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+    # model_window = model_lightning.window
+    # print("Model temperature", model_lightning.temperature)
+    # print("Done")
 
     path_filename_train = os.path.join(path_root, "raw", filename_train)
     if os.path.exists(path_filename_train):
@@ -498,11 +637,11 @@ def main_run():
                                                               filename=filename_train,
                                                               path_root=path_root)  # /scratch/datasets/AttnGraphs_GovReports/Extended_Anneal/Attention/mean
             creation_time = time.time() - start_creation
-            #print("[" + partition + "] File creation time:", creation_time, file=f)
-            #print("[" + partition + "] Avg. Acc (doc-level):", torch.tensor(accs_tr).mean().item(), file=f)
-            #print("[" + partition + "] Avg. F1-score (doc-level):", torch.stack(f1s_tr, dim=0).mean(dim=0).numpy(),
+            # print("[" + partition + "] File creation time:", creation_time, file=f)
+            # print("[" + partition + "] Avg. Acc (doc-level):", torch.tensor(accs_tr).mean().item(), file=f)
+            # print("[" + partition + "] Avg. F1-score (doc-level):", torch.stack(f1s_tr, dim=0).mean(dim=0).numpy(),
             #      file=f)
-            #print("================================================", file=f)
+            # print("================================================", file=f)
             print("[" + partition + "] File creation time:", creation_time)
             print("[" + partition + "] Avg. Acc (doc-level):", torch.tensor(accs_tr).mean().item())
             print("[" + partition + "] Avg. F1-score (doc-level):", torch.stack(f1s_tr, dim=0).mean(dim=0).numpy())
@@ -556,7 +695,8 @@ def main_run():
         start_creation = time.time()
         filename_train = "predict_train_documents.csv"
         dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
-                                                   degree=tolerance, model=model_lightning, mode="train",
+                                                   # degree=tolerance, model=model_lightning, mode="train",
+                                                   degree=tolerance, model_ckpt=path_checkpoint, mode="train",
                                                    binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_train = time.time() - start_creation
         print("Creation time for Train Graph dataset:", creation_train, file=f)
@@ -583,6 +723,7 @@ def main_run():
         # print("================================================", file=f)
 
         f.close()
+
 
 if __name__ == "__main__":
     torch.cuda.empty_cache()
