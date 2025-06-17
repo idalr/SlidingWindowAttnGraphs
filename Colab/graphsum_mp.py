@@ -9,6 +9,7 @@ import os
 import time
 import pandas as pd
 import warnings
+import gc
 import multiprocessing
 # Get the absolute path of the repository root
 repo_root = os.path.abspath(os.path.join('/content', 'Attention-DocumentGraphs-Rin'))
@@ -40,134 +41,239 @@ from utils import solve_by_creating_edge
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
-def process_single(args):
-    return _process_one(*args)
+# Global variable to hold shared config in workers
+_shared_config = None
 
-# TODO: check quality
-## problem with doc_ids and doc_ids_str?
-#def _process_one(article_id, pred, full_matrix, doc_ids, labels_sample,
-def _process_one(article_id, full_matrix, doc_ids, labels_sample,
-                 filter_type, K, binarized, normalized,
-                 model_window, max_len, mode, sent_model, model_vocab, processed_dir):
+
+def _init_worker(config):
+    global _shared_config
+    _shared_config = config
+
+
+# def process_single(args):
+#     return _process_one(*args)
+
+def _process_one(matrix, embeddings, article_id, doc_tensor, label):  # ,
+    # filter_type, K, normalized, binarized,
+    # model_ckpt, sent_model, mode, processed_dir):
+    """
+    Loads model, encodes embeddings, predicts adjacency matrix in batch,
+    calls process_single, saves the resulting PyG Data object.
+    """
+
+    # Call graph construction logic
+    graph_data = process_single(
+        full_matrix=matrix,
+        x=embeddings,
+        doc_ids=doc_tensor,
+        labels_sample=label,
+        filter_type=_shared_config['filter_type'],
+        K=_shared_config['K'],
+        binarized=_shared_config['binarized'],
+        normalized=_shared_config['normalized'],
+        model_window=_shared_config['model_window'],
+        max_len=_shared_config['max_len'],
+    )
+
+    del matrix, embeddings, doc_tensor
+    gc.collect()
+
+    # Save graph data file (name depends on mode)
+    filename = f"data_{_shared_config['mode']}_{article_id}.pt" if _shared_config['mode'] in ["test",
+                                                                                              "val"] else f"data_{article_id}.pt"
+    torch.save(graph_data, os.path.join(_shared_config['processed_dir'], filename))
+
+
+def process_single(full_matrix, x, doc_ids, labels_sample,
+                   filter_type, K, normalized, binarized,
+                   model_window, max_len):
+    """
+    Process one graph sample:
+    - Filters adjacency matrix
+    - Builds graph edges and attributes
+    - Creates node features tensor from id_to_embedding dict
+    - Returns PyG Data object with x, edge_index, edge_attr, y
+    """
 
     label = clean_tokenization_sent(labels_sample, "label")
+    #doc_ids = [int(x) for x in doc_as_ids[1:-1].split(",")]
+    #doc_ids = torch.tensor(doc_ids)
     valid_sents = min(len(label), max_len)
-
-    if filter_type is not None:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=True, filtering_type=filter_type
-        )
-    else:
-        filtered_matrix = filtering_matrix(
-            full_matrix, valid_sents=valid_sents, window=model_window,
-            degree_std=K, with_filtering=False
-        )
-
-    doc_ids = [int(x) for x in doc_ids[1:-1].split(",")]
-    doc_ids = torch.tensor(doc_ids)
     cropped_doc = doc_ids[:valid_sents]
 
+    if filter_type is not None:
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K, with_filtering=True,
+                                           filtering_type=filter_type)
+    else:
+        filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window, degree_std=K,
+                                           with_filtering=False)
 
-    match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)}
-    final = list(dict.fromkeys(x.item() for x in cropped_doc))
-    dict_orig_to_graph = {k: v for v, k in enumerate(final)}
+    """"calculating edges"""
+    match_ids = {k: v.item() for k, v in
+                 zip(range(len(filtered_matrix)), cropped_doc)}  # key pos-i, value orig. sentence-id
 
-    final_label = []
+    # Get unique IDs and build a mapping from original sentence ID to unique node index
+    unique_ids = []
+    for v in match_ids.values():
+        if v not in unique_ids:
+            unique_ids.append(v)
+    id_to_node_idx = {orig_id: idx for idx, orig_id in enumerate(unique_ids)}
+
+    # final_label = []
     processed_ids = []
-    source_list, target_list = [], []
-    orig_source_list, orig_target_list = [], []
+    source_list = []
+    target_list = []
+    orig_source_list = []
+    orig_target_list = []
     edge_attrs = []
     all_edges = []
 
-    skip_extra_edges = filter_type == "full"
+    final = []
+    for elem in cropped_doc:
+        if elem.item() not in final:
+            final.append(elem.item())
+
+    dict_orig_to_ide_graph = {k: v for k, v in
+                              zip(final, range(len(final)))}  # key orig. sentence-id, value node-id for PyGeo
 
     for i in range(len(filtered_matrix)):
-        for j in range(len(filtered_matrix)):
-            if filtered_matrix[i, j] != 0 and i != j:
-                a, b = match_ids[i], match_ids[j]
-                if a != b and (a, b) not in all_edges:
-                    orig_source_list.append(a)
-                    orig_target_list.append(b)
-                    all_edges.append((a, b))
-                    source_list.append(dict_orig_to_graph[a])
-                    target_list.append(dict_orig_to_graph[b])
-                    edge_attrs.append(1.0 if binarized else filtered_matrix[i, j].item())
-                elif (a, b) in all_edges:
-                    pos = all_edges.index((a, b))
-                    edge_attrs[pos] = max(edge_attrs[pos], filtered_matrix[i, j].item())
-            elif not skip_extra_edges and filtered_matrix[i, j] != 0 and i == j:
-                if match_ids[i] not in orig_target_list:
-                    for neighbor in [j - 1, j + 1]:
-                        if 0 <= neighbor < len(filtered_matrix):
-                            a = match_ids[i]
-                            b = match_ids[neighbor]
-                            weight = 1.0 if binarized else filtered_matrix[i, j].item() / 2
-                            orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, _ = solve_by_creating_edge(
-                                a, b, orig_source_list, orig_target_list, all_edges,
-                                source_list, target_list, edge_attrs,
-                                processed_ids, dict_orig_to_graph, weight
-                            )
+        only_one_entry = False
+        fix_with_extra_edges = False
+        if np.count_nonzero(filtered_matrix[i]) == 1:
+            only_one_entry = True
 
+        for j in range(len(filtered_matrix)):
+            if filtered_matrix[i, j] != 0 and i != j:  # no self loops
+                a = match_ids[i]  # original ID
+                b = match_ids[j]
+                if a != b:
+                    if (a,
+                        b) not in all_edges:  # do not aggregate an edge if matched source and target are the same sentence
+                        orig_source_list.append(a)
+                        orig_target_list.append(b)
+                        all_edges.append((a, b))
+                        # has_edges = True
+
+                        # === CHANGED: use unique node idx, NOT processed_ids.index or dict_orig_to_ide_graph ===
+                        source_list.append(id_to_node_idx[a])
+                        target_list.append(id_to_node_idx[b])
+
+                        if binarized:
+                            edge_attrs.append(1.0)
+                        else:
+                            edge_attrs.append(
+                                filtered_matrix[i, j].item())  # attention weight: as calculated by MHA trained model
+
+                    else:  # (a,b) in all_edges:
+                        pos_edge = all_edges.index((a, b))  # check update edge weights
+                        if edge_attrs[pos_edge] < filtered_matrix[i, j].item():
+                            edge_attrs[pos_edge] = filtered_matrix[i, j].item()
+                else:
+                    # if only_one_entry == True:
+                    fix_with_extra_edges = True
+
+            if filtered_matrix[i, j] != 0 and i == j and (
+                    only_one_entry == True):  # check self-loop potentially producing disconnected graphs
+                fix_with_extra_edges = True
+
+            if fix_with_extra_edges == True:
+                if match_ids[i] not in orig_target_list:
+                    try:  # Adding edges to previous neighbor
+                        b = match_ids[j - 1]
+                        a = match_ids[i]
+                        if binarized:
+                            new_weight = 1.0
+                        else:
+                            new_weight = filtered_matrix[i, j].item() / 2
+                        orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                            a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                            edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                    except:
+                        pass
+
+                    try:
+                        b = match_ids[j + 1]
+                        a = match_ids[i]
+                        if binarized:
+                            new_weight = 1.0
+                        else:
+                            new_weight = filtered_matrix[i, j].item() / 2
+                        orig_source_list, orig_target_list, all_edges, source_list, target_list, edge_attrs, flag_inserted = solve_by_creating_edge(
+                            a, b, orig_source_list, orig_target_list, all_edges, source_list, target_list,
+                            edge_attrs, processed_ids, dict_orig_to_ide_graph, new_weight)
+                    except:
+                        pass
+
+        # === CHANGED: append unique nodes only once ===
         if match_ids[i] not in processed_ids:
             processed_ids.append(match_ids[i])
-            final_label.append(label[i])
+            # final_label.append(label[i])
+
+    # Assuming `label` is aligned to filtered_matrix rows, pick labels for unique nodes
+    # If multiple duplicate nodes, choose the first occurrence's label (you can change logic if needed)
+    unique_labels = []
+    for uid in unique_ids:
+        # Find first index where match_ids has uid, get corresponding label
+        idx = next(k for k, v in match_ids.items() if v == uid)
+        unique_labels.append(label[idx])
+
+    x_unique = []
+    for uid in unique_ids:
+        idx = next(k for k, v in match_ids.items() if v == uid)
+        x_unique.append(x[idx])
+
+    x_unique = torch.stack(x_unique, dim=0)
 
     if len(source_list) != len(orig_source_list) or len(orig_source_list) != len(edge_attrs):
+        print("Error in edge creation -- source and edge don't match")
         print("numero de edges acummulados:")
         print("source:", len(source_list))
         print("target:", len(target_list))
         print("orig_source:", len(orig_source_list))
         print("orig_target:", len(orig_target_list))
         print("edge_attrs:", len(edge_attrs))
-        raise ValueError("Error in edge creation -- source and edge don't match")
 
+    # reverse edges for all heuristics
     final_source = source_list + target_list
     final_target = target_list + source_list
-    final_orig_source = orig_source_list + orig_target_list
-    final_orig_target = orig_target_list + orig_source_list
-    edge_attrs = edge_attrs + edge_attrs
+    indexes = [final_source, final_target]
+    final_orig_source_list = orig_source_list + orig_target_list
+    final_orig_target_list = orig_target_list + orig_source_list
+    edge_attrs = edge_attrs + edge_attrs  ### for reverse edge attributes (same weight - simetric matrix)
 
-    edge_index = torch.tensor([final_source, final_target], dtype=torch.long)
-    edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+    all_indexes = torch.tensor(indexes).long()
+    edge_attrs = torch.tensor(edge_attrs).float()
 
-    if normalized and edge_index.shape[1] > 0:
-        num_nodes = edge_index.max().item() + 1
-        adj = torch.zeros((num_nodes, num_nodes), dtype=torch.float)
-        adj[edge_index[0], edge_index[1]] = edge_attr
-        for row in range(num_nodes):
-            if adj[row].max() > 0:
-                adj[row] /= adj[row].max()
-        edge_attr = adj[adj != 0]
+    if normalized:
+        if all_indexes.shape[1] != 0:
+            num_sent = torch.max(all_indexes[0].max(), all_indexes[1].max()) + 1
+            adj_matrix = torch.zeros(num_sent, num_sent)
+            for i in range(len(all_indexes[0])):
+                adj_matrix[all_indexes[0][i], all_indexes[1][i]] = edge_attrs[i]
+            for row in range(len(adj_matrix)):
+                adj_matrix[row] = adj_matrix[row] / adj_matrix[row].max()
 
-    # get node features
-    node_fea = sent_model.encode(
-        retrieve_from_dict(model_vocab, torch.tensor(processed_ids))
-    )
+            temp = adj_matrix.reshape(-1)
+            edge_attrs = temp[temp.nonzero()].reshape(-1)
 
-    node_fea = torch.tensor(node_fea, dtype=torch.float)
-    generated_data = Data(
-        x=node_fea,
-        edge_index=edge_index,
-        edge_attr=edge_attr,
-        y=torch.tensor(final_label, dtype=torch.int),
-    )
-    generated_data.article_id = torch.tensor(article_id) if not isinstance(article_id, torch.Tensor) else article_id
-    generated_data.orig_edge_index = torch.tensor([final_orig_source, final_orig_target], dtype=torch.long)
+    generated_data = Data(x=x_unique, edge_index=all_indexes, edge_attr=edge_attrs,
+                          y=torch.tensor(unique_labels).int())  # labels adjusted for unique nodes
 
-    if generated_data .has_isolated_nodes():
+    generated_data.orig_edge_index = torch.tensor([final_orig_source_list, final_orig_target_list]).long()
+
+    if generated_data.has_isolated_nodes():
         print("Error in graph -- isolated nodes detected")
         print(generated_data)
         print(generated_data.edge_index)
-    elif generated_data .contains_self_loops():
+    elif generated_data.contains_self_loops():
         print("Error in graph -- self loops detected")
         print(generated_data)
         print(generated_data.edge_index)
 
-    out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
-    torch.save(generated_data, os.path.join(processed_dir, out_name))
+    # out_name = f"data_{mode}_{article_id}.pt" if mode in ["test", "val"] else f"data_{article_id}.pt"
+    # torch.save(generated_data, os.path.join(processed_dir, out_name))
 
-    return article_id, generated_data
+    return generated_data
 
 ##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
@@ -230,79 +336,79 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         all_article_ids = self.data['article_id']
         all_batches = self.data_loader  # DO NOT pass this into multiprocessing workers
 
-        #print("Loading MHASummarizer model...")
-        #model = MHASummarizer.load_from_checkpoint(self.model_ckpt)
-        model_window = self.model.window
-        max_len = self.model.max_len
+        self.model.eval()
+        print('Model loaded, ready to eval.')
 
-        print("Model correctly loaded.")
+        shared_config = {
+            'model_ckpt': self.model_ckpt,
+            'filter_type': self.filter_type,
+            'K': self.K,
+            'binarized': self.binarized,
+            'normalized': self.normalized,
+            'sent_model': self.sent_model,
+            'mode': self.mode,
+            'model_window': model.window,
+            'max_len': model.max_len,
+            'processed_dir': self.processed_dir
+        }
 
-        # print("Encoding all unique sentence IDs to node features...")
-        # # Collect all sentence IDs across samples
-        # all_ids_set = set()
-        # for ids in all_doc_as_ids:
-        #     ids_clean = [int(i) for i in ids[1:-1].split(',')]
-        #     all_ids_set.update(ids_clean)
-        #
-        # all_ids_list = list(all_ids_set)
-        # all_ids_tensor = torch.tensor(all_ids_list)
-        #
-        # # Encode all sentence embeddings once (on CPU)
-        # with torch.no_grad():
-        #     all_embeddings = self.sent_model.encode(
-        #         retrieve_from_dict(self.model.invert_vocab_sent, all_ids_tensor)
-        #     )
-        # id_to_embedding = {
-        #     int(k): v for k, v in zip(all_ids_list, all_embeddings)
-        # }
-
-        print(f"[{self.mode.upper()}] Creating Graphs Objects with multiprocessing...")
-
-        predictions = []
-        for batch_sample in tqdm(all_batches, total=len(all_batches)):
-            pred_batch, matrix_batch = self.model.predict_single(batch_sample)
-            pred_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in pred_batch]
-            matrix_batch = [x.cpu().detach() if torch.is_tensor(x) else x for x in matrix_batch]
-            predictions.extend(zip(pred_batch, matrix_batch))
-
-        args_list = [
-            (
-                article_id,
-                matrix,
-                all_doc_as_ids[idx],
-                all_labels[idx],
-                self.filter_type,
-                self.K,
-                self.binarized,
-                self.normalized,
-                model_window,
-                max_len,
-                self.mode,
-                self.sent_model,
-                self.model.invert_vocab_sent,
-                self.processed_dir
-            )
-            for idx, (_, matrix) in enumerate(predictions)
-            for article_id in [all_article_ids[idx]] # cannot do in portions
-        ]
-
+        # starting multiprocessing
         mp.set_start_method("spawn", force=True)
-        print("Starting multiprocessing pool...")
         num_workers = min(4, len(os.sched_getaffinity(0)))
-        pool = mp.Pool(processes=num_workers)
-        try:
-            _ = list(tqdm(pool.imap_unordered(process_single, args_list), total=len(args_list)))
-        finally:
-            # TODO: look what really happening here?
-            print("Closing pool...")
-            pool.close()  # No more tasks
-            pool.join()  # Wait for workers to finish
-            print("Pool closed and joined.")
 
-        # # moved this into mp
-        # for article_id, data in results:
-        #     out_name = f"data_{self.mode}_{article_id}.pt" if self.mode in ["test", "val"] else f"data_{article_id}.pt"
-        #     torch.save(data, os.path.join(self.processed_dir, out_name))
+        # splitting data
+        num_splits = 32
+        total_samples = len(self.data_loader)
+        split_size = np.ceil(total_samples / num_splits)
+        print(f'Splitting data into {num_splits} chunks.')
+
+        for split_idx in range(num_splits):
+            start = split_idx * split_size
+            end = min(start + split_size, total_samples)
+
+            args_buffer = []
+            for idx, batch_sample in enumerate(tqdm(self.data_loader)):
+                if idx < start:
+                    continue
+                if idx >= end:
+                    break
+
+                # Convert doc_as_ids string to list of ints
+                doc_as_ids = all_doc_as_ids[idx]
+                doc_ids = [int(i) for i in doc_as_ids[1:-1].split(',') if i.strip().isdigit()]
+                doc_tensor = torch.tensor(doc_ids)
+
+                # Retrieve sentences using model's invert vocab and encode to embeddings
+                sentences = retrieve_from_dict(self.model.invert_vocab_sent, doc_tensor)
+                with torch.no_grad():
+                    embeddings = self.sent_model.encode(sentences, convert_to_tensor=True)
+
+                # Get attention weights
+                _, matrix = self.model.predict_single(batch_sample)
+
+                args = (
+                    matrix.squeeze(0).cpu().numpy(),
+                    embeddings,
+                    all_article_ids[idx],
+                    doc_tensor,
+                    all_labels[idx],
+                )
+                args_buffer.append(args)
+
+            # Process this chunk with multiprocessing as before
+
+            print("Starting multiprocessing pool...")
+            try:
+                pool = mp.Pool(processes=num_workers, initializer=_init_worker, initargs=(shared_config,))
+                pool.starmap(_process_one, args_buffer)
+            finally:
+                print("Closing pool...")
+                pool.close()  # No more tasks
+                pool.join()  # Wait for workers to finish
+                print("Pool closed and joined.")
+
+            args_buffer.clear()
+
 
     def len(self):
         return self.data.shape[0]  ##tamaño del dataset
@@ -414,12 +520,12 @@ def main_run():
     # #################################minirun
 
     # if config_file["load_data_paths"]["with_val"]:
-    # loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+    # loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
     #                                                                        task="summarization",
     #                                                                        tokenizer_from_scratch=False,
     #                                                                        path_ckpt=in_path)
     # else:
-    loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, 1, with_val=False,
+    loader_train, loader_test, _, invert_vocab_sent = create_loaders(df_train, df_test, max_len, 1, with_val=False,
                                                          task="summarization", tokenizer_from_scratch=False,
                                                          path_ckpt=in_path)
 
@@ -427,6 +533,7 @@ def main_run():
     print("\nLoading", model_name, "from:", path_checkpoint)
     model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
     model_window = model_lightning.window
+    model_lightning.invert_vocab_sent = invert_vocab_sent
     print("Model temperature", model_lightning.temperature)
     print("Done")
 
