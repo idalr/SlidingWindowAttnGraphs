@@ -1,0 +1,24 @@
+================================================
+Creating prediction files from pre-trained model: Extended_ReLu
+================================================
+[TRAIN] File creation time: 6696.379015445709
+[TRAIN] Avg. Acc (doc-level): 0.7316760420799255
+[TRAIN] Avg. F1-score (doc-level): [0.80805117 0.22370195]
+================================================
+[VAL] File creation time: 370.7040102481842
+[VAL] Avg. Acc: 0.699605405330658
+[VAL] Avg. F1-score: [0.783832   0.20561735]
+================================================
+[TEST] File creation time: 353.49095606803894
+[TEST] Avg. Acc: 0.6938248872756958
+[TEST] Avg. F1-score: [0.77873135 0.21821636]
+================================================
+
+
+-----------------------------------------------
+Creating graphs with filter: mean
+-----------------------------------------------
+Creation time for Train Graph dataset: 34687.40722990036
+Creation time for Val Graph dataset: 1953.1042680740356
+Creation time for Test Graph dataset: 1765.8204655647278
+================================================
