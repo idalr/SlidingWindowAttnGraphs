@@ -22,7 +22,7 @@ model_arch_args:
   embed_dim: 384 #sentence transformer
   num_heads: 4
   #dropout: 0.2
-  multi_layer: True
+  #multi_layer: True
   hidden_dim : 128
   intermediate: True
   activation_attention: "sigmoid"
