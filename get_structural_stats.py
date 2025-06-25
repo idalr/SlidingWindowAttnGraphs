@@ -57,4 +57,4 @@ print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 # Average node degree:        28.8773
 # Average nodes per graph:    281.63
 # Average edges per graph:    8132.69
-# Disk (du -h):
+# Disk (du -h): 14G
