@@ -27,7 +27,7 @@ Creation time for Test Graph dataset: 1765.8204655647278
 -----------------------------------------------
 Creating graphs with filter: max
 -----------------------------------------------
-Creation time for Train Graph dataset: 33811.7565407753
-Creation time for Val Graph dataset: 1894.5922803878784
-Creation time for Test Graph dataset: 1708.7910552024841
+Creation time for Train Graph dataset: 32842.56412911415
+Creation time for Val Graph dataset: 1849.9921157360077
+Creation time for Test Graph dataset: 1665.9870781898499
 ================================================
