@@ -45,7 +45,7 @@ print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 # Average edges per graph:    733.01
 # Disk (du -h): 8.5G
 
-# Full_NoTemp (train==5240)
+# Full_NoTemp (train==5270)
 # Total graphs: 7212
 # Average node degree:        388.8547
 # Average nodes per graph:    281.43
@@ -65,3 +65,31 @@ print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 # Average nodes per graph:    281.63
 # Average edges per graph:    880.52
 # Disk (du -h): 8.6G
+
+# Max_NoTemp (train==5240)
+# Total graphs: 7182
+# Average node degree:        2.5146
+# Average nodes per graph:    281.54
+# Average edges per graph:    707.97
+# Disk (du -h): no data
+
+# Max_NoTemp (train==999) - 404
+# Total graphs: 2942
+# Average node degree:        2.5422
+# Average nodes per graph:    280.26
+# Average edges per graph:    712.47
+# Disk (du -h): 1.3G
+
+# full_NoTemp (train==999) - 404
+# Total graphs: 2942
+# Average node degree:        383.0287
+# Average nodes per graph:    280.23
+# Average edges per graph:    107335.92
+# Disk (du -h): 12G
+
+# Mean_NoTemp (train==999) - 404
+# Total graphs: 2942
+# Average node degree:        20.2891
+# Average nodes per graph:    277.85
+# Average edges per graph:    5637.24
+# Disk (du -h): 1.8G

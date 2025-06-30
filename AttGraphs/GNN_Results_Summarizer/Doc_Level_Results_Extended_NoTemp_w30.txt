@@ -32,11 +32,50 @@ Creation time for Val Graph dataset: 1355.6447041034698
 Creation time for Test Graph dataset: 1196.8208076953888
 ================================================
 
++++++++++++++++++++++++++++++++++++++++++++++++++ small experiment (1000) +++++++++++++++++++++++++++++++++++++++++++++++++
+
+================================================
+Creating prediction files from pre-trained model: Extended_NoTemp
+================================================
+[TRAIN] File creation time: 90.13823246955872
+[TRAIN] Avg. Acc (doc-level): 0.7721945643424988
+[TRAIN] Avg. F1-score (doc-level): [0.84384996 0.20505506]
+================================================
+[VAL] File creation time: 88.60531544685364
+[VAL] Avg. Acc: 0.6827231645584106
+[VAL] Avg. F1-score: [0.76555926 0.20419689]
+================================================
+[TEST] File creation time: 85.69681644439697
+[TEST] Avg. Acc: 0.6700646877288818
+[TEST] Avg. F1-score: [0.7547305  0.21335281]
+================================================
+
+
 -----------------------------------------------
 Creating graphs with filter: full
 -----------------------------------------------
 Creation time for Train Graph dataset: *
 Creation time for Val Graph dataset: 46855.877086400986
 Creation time for Test Graph dataset: 8543.168995141983
+================================================
 
-*Note: No data (for partial construction: 5240 data points)
+
+-----------------------------------------------
+Creating graphs with filter: max
+-----------------------------------------------
+Creation time for Train Graph dataset: *
+Creation time for Val Graph dataset: 1784.2706227302551
+Creation time for Test Graph dataset: **
+================================================
+
+
+-----------------------------------------------
+Creating graphs with filter: mean
+-----------------------------------------------
+Creation time for Train Graph dataset: 1310.938993215561
+Creation time for Val Graph dataset: 1416.8706710338593
+Creation time for Test Graph dataset: 1252.9552924633026
+================================================
+
+* No data: this is the partial construction of 30% of data points, but only 1000 data points were considered for the experiment.
+** No data: missing entry.
