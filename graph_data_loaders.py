@@ -1170,7 +1170,7 @@ class MP_UnifiedAttentionGraphs_Sum(Dataset):
         return data
 
 
-class PartialPTDataset(Dataset):
+class PartialGraphDataset(Dataset):
     '''
     loading partial existing graph dataset
     '''
