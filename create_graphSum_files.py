@@ -32,6 +32,8 @@ def main_run(config_file, settings_file):
     unified_flag = config_file["unified_nodes"]
     flag_binary = config_file["binarized"]
     file_results = folder_results + "Doc_Level_Results"
+    MAX_TRAIN_INDEX = config_file.get('max_train_index', False)
+    MP = config_file.get('multiprocessing', False)
 
     # create folder if not exist
     if not os.path.exists(folder_results):
@@ -70,6 +72,8 @@ def main_run(config_file, settings_file):
     for id_remove in ids2remove_train:
         df_train = df_train.drop(id_remove)
     df_train.reset_index(drop=True, inplace=True)
+    if MAX_TRAIN_INDEX:
+        df_train = df_train[:MAX_TRAIN_INDEX]
     print("Train shape:", df_train.shape)
 
     ids2remove_test = check_dataframe(df_test)
@@ -115,7 +119,6 @@ def main_run(config_file, settings_file):
     path_checkpoint, model_score = retrieve_parameters(model_name, tempo)
     print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
     model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
-    model_window = model_lightning.window
     print("Model temperature", model_lightning.temperature)
     print("Done")
 
@@ -202,7 +205,12 @@ def main_run(config_file, settings_file):
         print("-----------------------------------------------", file=f)
         start_creation = time.time()
         filename_train = "predict_train_documents.csv"
-        dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
+        if MP:
+            dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
+                                                       degree=tolerance, model=model_lightning, mode="train",
+                                                       binarized=flag_binary)
+        else:
+            dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
                                                    degree=tolerance, model_ckpt=path_checkpoint, mode="train",
                                                    binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_train = time.time() - start_creation
@@ -212,7 +220,12 @@ def main_run(config_file, settings_file):
         # graphs val
         start_creation = time.time()
         filename_val = "predict_val_documents.csv"
-        dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
+        if MP:
+            dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val,
+                                                       degree=tolerance, model=model_lightning, mode="val",
+                                                       binarized=flag_binary)
+        else:
+            dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val, degree=tolerance,
                                                  model_ckpt=path_checkpoint, mode="val",
                                                  binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_val = time.time() - start_creation
@@ -221,7 +234,12 @@ def main_run(config_file, settings_file):
 
         start_creation = time.time()
         filename_test = "predict_test_documents.csv"
-        dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
+        if MP:
+            dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test,
+                                                       degree=tolerance, model=model_lightning, mode="test",
+                                                       binarized=flag_binary)
+        else:
+            dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test, degree=tolerance,
                                                   model_ckpt=path_checkpoint, mode="test",
                                                   binarized=flag_binary)  # , multi_layer_model=multi_flag)
         creation_test = time.time() - start_creation
