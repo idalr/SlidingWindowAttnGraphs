@@ -75,9 +75,9 @@ print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 
 # Max_NoTemp (train==999) - 404
 # Total graphs: 2942
-# Average node degree:        2.5422
-# Average nodes per graph:    280.26
-# Average edges per graph:    712.47
+# Average node degree:        2.5800
+# Average nodes per graph:    277.85
+# Average edges per graph:    716.84
 # Disk (du -h): 1.3G
 
 # full_NoTemp (train==999) - 404
