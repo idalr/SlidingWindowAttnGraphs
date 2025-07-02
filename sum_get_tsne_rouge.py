@@ -47,6 +47,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]='-1'
 
 # TODO: move to util after debugging
 ## cut out unnecessary parts
+from tqdm import tqdm
+
 def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
     model.eval()
     device = model.device
@@ -62,26 +64,16 @@ def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, ma
     max_id_article = 0
     min_f1 = minf1
     min_id_article = 0
-    updated_max = False
-    updated_min = False
     isolated_count = 0
-    stop = False
+
+    progress = tqdm(loader, desc="Predicting summaries", total=len(loader))
 
     with torch.no_grad():
-        for data in loader:
-
-            if stop:
-                break
+        for data in progress:
 
             if data.has_isolated_nodes():
-                print("=====================================================")
-                print("Article ID", data['article_id'].item(), "has isolated nodes.")
-                print("num nodes", data.num_nodes, data.x.shape)
-                print("num edges: ", data.num_edges)
-                print(f'Average node degree: {data.num_edges / data.num_nodes:.2f}')
-                print("=====================================================")
                 isolated_count += 1
-                continue  ###omit graph with isolated nodes
+                continue  # Skip graph with isolated nodes
 
             try:
                 out = model(data.x.float().to(device), data.edge_index.to(device), data.edge_attr.to(device),
@@ -99,45 +91,34 @@ def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, ma
 
             acc, f1_all = eval_results(torch.Tensor(preds), all_labels, 2,
                                        "Single Predict -- " + str(data['article_id'].item()), print_results=False)
-            # print ("Accuracy:", acc.item())
-            # print ("F1-score:", f1_all)
-            if f1_all.mean().item() > max_f1:
-                max_f1 = f1_all.mean().item()
+
+            f1_mean = f1_all.mean().item()
+            updated = False
+
+            if f1_mean > max_f1:
+                max_f1 = f1_mean
                 max_id_article = data['article_id'].item()
-                updated_max = True
-            if f1_all.mean().item() < min_f1:
-                min_f1 = f1_all.mean().item()
+                updated = True
+            if f1_mean < min_f1:
+                min_f1 = f1_mean
                 min_id_article = data['article_id'].item()
-                updated_min = True
+                updated = True
 
             nodes_classified_as_1 = test_nodes.nonzero(as_tuple=True)[0]
             source_graph_id = data.edge_index[0]
-            joint_sentences_as_1 = ""
             joint_wo_duplicates = ""
             seen_sentences = []
-            # print ("\n\nNode classified as 1:", nodes_classified_as_1)
-            # print ("Graph Article ID:", data['article_id'].item())
-            # print ("Source indexes in graph", source_graph_id)
-            # print ("Original source indexes in graph", data.orig_edge_index[0])
+
             for node in nodes_classified_as_1:
                 try:
                     pos_i = (source_graph_id == node).nonzero(as_tuple=True)[0]
                     key_int = data.orig_edge_index[0][pos_i[0]].item()
-                    # print ("Selected sentence id:", node,"with posición i en source", pos_i, "and vocab key:", key_int)
                 except:
-                    print("=====================================================")
-                    print("\nNode", node, "not found in source graph -- Isolated node")
-                    print("=====================================================")
                     continue
 
                 if key_int not in seen_sentences:
                     seen_sentences.append(key_int)
-                    key_matched2vocab = invert_vocab_sent[key_int]  # original source
-                    joint_wo_duplicates += key_matched2vocab + " "
-                # else: #if key_int in seen_sentences:
-                # print ("Repeated sentence in graph:", node,"with posición i en source", pos_i, "and vocab key:", key_int)
-
-                # stop=True
+                    joint_wo_duplicates += invert_vocab_sent[key_int] + " "
 
             summary_matched = df_.where(df_['Article_ID'] == data['article_id'].item()).dropna()['Summary'].values[0]
             rouge_results = R_scorer.score(summary_matched, joint_wo_duplicates)
@@ -146,57 +127,53 @@ def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, ma
             rouge2F1.append(rouge_results['rouge2'].fmeasure)
             rougeLF1.append(rouge_results['rougeL'].fmeasure)
 
-            if updated_max or updated_min:
-                if updated_max:
-                    print("\nNew max F1-score ---", max_f1, "Article ID:", data['article_id'].item())
-                if updated_min:
-                    print("\nNew min F1-score ---", min_f1, "Article ID", data['article_id'].item())
+            progress.set_postfix({
+                "ArticleID": data['article_id'].item(),
+                "F1": f"{f1_mean:.3f}",
+                "ROUGE-1": f"{rouge1F1[-1]:.3f}",
+                "ROUGE-2": f"{rouge2F1[-1]:.3f}",
+                "ROUGE-L": f"{rougeLF1[-1]:.3f}"
+            })
 
-                print("[WO DUPLICATES] ROUGE 1-F1:", rouge1F1[-1], "ROUGE 2-F1", rouge2F1[-1], "ROUGE L-F1",
-                      rougeLF1[-1])
-
-            updated_max = False
-            updated_min = False
-
-        print("\nArticle ID with best results:", max_id_article, "with F1-score:", max_f1)
-        print("Article ID with worst results:", min_id_article, "with F1-score:", min_f1)
-        print("#Graphs with isolated nodes:", isolated_count)
-        print("Mean ROUGE 1-F1:", np.mean(rouge1F1), "Mean ROUGE 2-F1:", np.mean(rouge2F1), "Mean ROUGE L-F1:",
-              np.mean(rougeLF1))
+        print("\nSummary of Results:")
+        print("Best Article ID:", max_id_article, "with F1-score:", max_f1)
+        print("Worst Article ID:", min_id_article, "with F1-score:", min_f1)
+        print("Graphs with isolated nodes:", isolated_count)
+        print("Mean ROUGE 1-F1:", np.mean(rouge1F1))
+        print("Mean ROUGE 2-F1:", np.mean(rouge2F1))
+        print("Mean ROUGE L-F1:", np.mean(rougeLF1))
 
         if not cpu_store:
             preds = torch.Tensor(preds)
 
     return preds, all_labels, max_id_article, min_id_article, max_f1, min_f1, rouge1F1, rouge2F1, rougeLF1
 
-in_path = "/scratch/datasets/GovReport-Sum/"
+# loading data
+in_path = "/scratch2/rldallitsako/datasets/GovReport-Sum/"
 data_train = None
 labels_train = None
 data_test = None
 labels_test = None
 
-batch_size = 32
-num_classes = 2
-std = 0.5
-num_print = 5
-granularity= "local"
-model_name= "Extended_ReLu"
-
-df_train, df_val, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=True)
-
-ids2remove_train = check_dataframe(df_train)
-for id_remove in ids2remove_train:
-    df_train = df_train.drop(id_remove)
-df_train.reset_index(drop=True, inplace=True)
-print("Train shape:", df_train.shape)
-
-path_root = "/scratch/datasets/AttnGraphs_GovReports/Extended_Anneal/Attention/max_unified"#2L-Attention/max_unified"
+path_root = "/scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_ReLu/max_unified"
 filename_train="predict_train_documents.csv"
 filename_val= "predict_val_documents.csv"
 filename_test= "predict_test_documents.csv"
+
+# define graphs
+type_model = "GAT"
 type_graph = "max"
 flag_binary= False
 multi_flag = True
+
+df_train, df_val, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=True)
+
+# ids2remove_train = check_dataframe(df_train)
+# for id_remove in ids2remove_train:
+#     df_train = df_train.drop(id_remove)
+# df_train.reset_index(drop=True, inplace=True)
+# print("Train shape:", df_train.shape)
+
 dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph, data_loader=None, mode="train", binarized=flag_binary, multi_layer_model=multi_flag)
 dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph, data_loader=None, mode="val", binarized=flag_binary, multi_layer_model=multi_flag)
 dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph, data_loader=None, mode="test", binarized=flag_binary, multi_layer_model=multi_flag)
@@ -204,19 +181,26 @@ dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test
 #create loader from existing sentence vocabulary
 loader_train, loader_val, loader_test, _ , _ , _, _ = create_loaders(df_train, df_test, 1000, 32, df_val=df_val,
                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
-
-
-
 my_class_weights, labels_counter = get_class_weights(df_train, task="summarization")
 calculated_cw = my_class_weights
 print("\nClass weights - from training partition:", calculated_cw)
 
-path_checkpoint = "/scratch/mbugueno/HomoGraphs_GovReports/"+model_name+"/GAT/"+type_graph+"/"
-GAT_ckpt= "GAT_2L_256U_max_run2-OUT-epoch=22-Val_f1-ma=0.49.ckpt"  ###chequear best en results file (1 by 1)
+# define model and train args
+batch_size = 32
+num_hidden = 256
+num_classes = 2
+num_layers = 2
+lr = 1e-3
+std = 0.5
+num_print = 5
+granularity= "local"
+model_name= "Extended_ReLu"
+
+path_checkpoint = "/scratch2/rldallitsako/datasets/HomoGraphs_GovReports/Extended_ReLuGAT/max_unified/"
+GAT_ckpt= "GAT_3L_256U_max_unified_run2-OUT-epoch=49-Val_f1-ma=0.52.ckpt"  ###chequear best en results file (1 by 1)
 ### No guardé todos los params en checkpoint asi que inicializar modelo y cargar pesos
 
-model = GAT_NC_model(dataset_train.num_node_features, 256, num_classes,  2, 0.001, dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
-#checkpoint = torch.load(path_checkpoint+GAT_ckpt)
+model = GAT_NC_model(dataset_train.num_node_features, num_hidden, num_classes, num_layers, lr, dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
 checkpoint = torch.load(path_checkpoint+GAT_ckpt)
 print ("Loading model from:", path_checkpoint+GAT_ckpt)
 model.load_state_dict(checkpoint['state_dict'])
@@ -227,64 +211,57 @@ batch= next(iter(train_loader))
 device= torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
 
-
 R_scorer= rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
-path_vocab= "/scratch/datasets/GovReport-Sum/"
+path_vocab= in_path
 preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = predict_sentences_4Rouge(model, test_loader, path_vocab, df_test, R_scorer, maxf1=0.55, minf1=0.49)
 
 
-# implement visualize h in test set
-# TODO: move functions to util after debugging
-def visualize(h, color):
-    z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
-
-    plt.figure(figsize=(6, 6))
-    plt.xticks([])
-    plt.yticks([])
-
-    plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
-    plt.show()
-
-
-def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
-    x_np = x.detach().cpu().numpy()
-    out_np = out_sample.detach().cpu().numpy()
-
-    # Run t-SNE on both
-    z1 = TSNE(n_components=2, perplexity=min(30, len(x_np) - 1)).fit_transform(x_np)
-    z2 = TSNE(n_components=2, perplexity=min(30, len(out_np) - 1)).fit_transform(out_np)
-
-    # Plot
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-    for ax, z, title in zip(axes, [z1, z2], [title1, title2]):
-        ax.set_xticks([])
-        ax.set_yticks([])
-        scatter = ax.scatter(z[:, 0], z[:, 1], s=60, c=color, cmap="Set2")
-        ax.set_title(title)
-
-    plt.tight_layout()
-    plt.show()
-
-
-# set variables
-type_model = "GAT"
-type_graph = "max"
-path_root = os.path.join("datasets", "AttnGraphs_GovReports", model_name, type_graph + '_unified')
-filename_train = "predict_train_documents.csv"
-
-# build filename_test and construct graphs for dataset_test
-_, _ = model_lightning.predict_to_file(loader_train, saving_file=True, filename=filename_train, path_root=path_root)
-dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, type_graph, loader_train, degree=0.5, model_ckpt=path_checkpoint, mode="train", binarized=False)
-
-print("Printing samples...")
-for i in range(3):
-    nl = 2
-    dim = 256
-    model = GAT_NC_model(384, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
-    model.eval()
-    data = dataset_train[i]
-    out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
-    # visualize(data.x, color=data.y)
-    # visualize(out_sample, color=data.y)
-    visualize_side_by_side(data.x, out_sample, color=data.y)
+# # implement visualize h in test set
+# # TODO: move functions to util after debugging
+# def visualize(h, color):
+#     z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
+#
+#     plt.figure(figsize=(6, 6))
+#     plt.xticks([])
+#     plt.yticks([])
+#
+#     plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
+#     plt.show()
+#
+#
+# def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
+#     x_np = x.detach().cpu().numpy()
+#     out_np = out_sample.detach().cpu().numpy()
+#
+#     # Run t-SNE on both
+#     z1 = TSNE(n_components=2, perplexity=min(30, len(x_np) - 1)).fit_transform(x_np)
+#     z2 = TSNE(n_components=2, perplexity=min(30, len(out_np) - 1)).fit_transform(out_np)
+#
+#     # Plot
+#     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+#
+#     for ax, z, title in zip(axes, [z1, z2], [title1, title2]):
+#         ax.set_xticks([])
+#         ax.set_yticks([])
+#         scatter = ax.scatter(z[:, 0], z[:, 1], s=60, c=color, cmap="Set2")
+#         ax.set_title(title)
+#
+#     plt.tight_layout()
+#     plt.show()
+#
+#
+# # build filename_test and construct graphs for dataset_test
+# _, _ = model_lightning.predict_to_file(loader_train, saving_file=True, filename=filename_train, path_root=path_root)
+# dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, type_graph, loader_train, degree=0.5, model_ckpt=path_checkpoint, mode="train", binarized=False)
+#
+# print("Printing samples...")
+# for i in range(3):
+#     nl = 2
+#     dim = 256
+#     model = GAT_NC_model(384, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
+#     model.eval()
+#     data = dataset_train[i]
+#     out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
+#     # visualize(data.x, color=data.y)
+#     # visualize(out_sample, color=data.y)
+#     visualize_side_by_side(data.x, out_sample, color=data.y)
