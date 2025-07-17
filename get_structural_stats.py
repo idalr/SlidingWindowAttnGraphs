@@ -37,6 +37,7 @@ print(f"Average node degree:        {avg_degree:.4f}")
 print(f"Average nodes per graph:    {avg_nodes_per_graph:.2f}")
 print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 
+################################################################################# GR
 
 # Max_ReLu
 # Total graphs: 19424
@@ -93,3 +94,44 @@ print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
 # Average nodes per graph:    277.85
 # Average edges per graph:    5637.24
 # Disk (du -h): 1.8G
+
+################################################################################# HND
+# Full_ReLu
+# Average node degree:        39.0267
+# Average nodes per graph:    19.68
+# Average edges per graph:    768.15
+# Disk (du -h): 72M
+
+# Mean_ReLu
+# Average node degree:        9.3197
+# Average nodes per graph:    19.68
+# Average edges per graph:    183.44
+# Disk (du -h): 47M
+
+# Max_ReLu
+# Average node degree:        2.8676
+# Average nodes per graph:    19.68
+# Average edges per graph:    56.44
+# Disk (du -h): 42M
+
+################################################################################# BBC
+# Full_NoTemp
+# Total graphs: 2167
+# Average node degree:        27.8451
+# Average nodes per graph:    19.30
+# Average edges per graph:    537.42
+# Disk (du -h): 113M
+
+# Mean_NoTemp
+# Total graphs: 2167
+# Average node degree:        7.8778
+# Average nodes per graph:    19.30
+# Average edges per graph:    152.04
+# Disk (du -h): 84M
+
+# Max_NoTemp
+# Total graphs: 2167
+# Average node degree:        3.4711
+# Average nodes per graph:    19.30
+# Average edges per graph:    66.99
+# Disk (du -h): 77M
