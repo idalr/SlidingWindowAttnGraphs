@@ -3,7 +3,7 @@ import argparse
 
 from base_model import MHASummarizer
 from gnn_model import GAT_NC_model, partitions
-from graph_data_loaders import UnifiedAttentionGraphs_Sum #, AttentionGraphs_Sum
+from graph_data_loaders import UnifiedAttentionGraphs_Sum, PartialGraphDataset  # , AttentionGraphs_Sum
 import torch
 import os
 import time
@@ -35,6 +35,7 @@ def main_run(config_file, settings_file):
     flag_binary = config_file["binarized"]  # True or False
     multi_flag = config_file["multi_layer"]  # True for MHASummarizer_extended or False for MHASummarizer
     unified_flag = config_file["unified_nodes"]  # True for graphs with unified nodes or False for standard graphs
+    MAX_TRAIN_INDEX = config_file.get('max_train_index', False) # If using partial dataset for training
 
     root_graph = config_file["data_paths"]["root_graph_dataset"]  # "/scratch/datasets/AttnGraphs_GovReports/"
     path_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/"
@@ -98,13 +99,18 @@ def main_run(config_file, settings_file):
     print("Running", type_model, "on Attention-based document graphs.")
     print("Loading graphs from:", path_root)
     if unified_flag == True:
-        dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,
+        if MAX_TRAIN_INDEX is not None:
+            dataset_train = PartialGraphDataset(root=path_root, mode='train')
+            dataset_val = PartialGraphDataset(root=path_root, mode='val')
+            dataset_test = PartialGraphDataset(root=path_root, mode='test')
+        else:
+            dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph,
                                                    data_loader=None, mode="train",
                                                    binarized=flag_binary, multi_layer_model=multi_flag)
-        dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
+            dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph,
                                                  data_loader=None, mode="val",
                                                  binarized=flag_binary, multi_layer_model=multi_flag)
-        dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph,
+            dataset_test = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_test, filter_type=type_graph,
                                                   data_loader=None, mode="test",
                                                   binarized=flag_binary, multi_layer_model=multi_flag)
         print("Graphs with unified sentence nodes correctly loaded.")
@@ -141,6 +147,8 @@ def main_run(config_file, settings_file):
     for id_remove in ids2remove_train:
         df_train = df_train.drop(id_remove)
     df_train.reset_index(drop=True, inplace=True)
+    if MAX_TRAIN_INDEX:
+        df_train = df_train[:MAX_TRAIN_INDEX]
     print("Train shape:", df_train.shape)
 
     ids2remove_val = check_dataframe(df_val)
@@ -244,6 +252,7 @@ def main_run(config_file, settings_file):
                                                    project=project_name)
 
                     trainer = pl.Trainer(accelerator='gpu', devices=1,
+                                         accumulate_grad_batches=config_file.get('accum_grad', 1), # 1, or specify
                                          callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                                          **config_file["trainer_args"])
 

@@ -29,6 +29,7 @@ from eval_models import retrieve_parameters
 from preprocess_data import load_data
 from data_loaders import create_loaders, check_dataframe
 from Colab.base_model import MHASummarizer
+import multiprocessing as mp
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -100,9 +101,9 @@ def main_run(config_file, settings_file):
     #################################minirun
 
     if config_file["load_data_paths"]["with_val"]:
-        loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
+        loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test, max_len, 1, df_val=df_val,
                                                                            task="summarization",
-                                                                           tokenizer_from_scratch=False,
+                                                                           tokenizer_from_scratch=False, # True
                                                                            path_ckpt=config_file["load_data_paths"][
                                                                                "in_path"])
     else:
@@ -114,8 +115,8 @@ def main_run(config_file, settings_file):
     path_checkpoint = '/content/drive/MyDrive/ADG/HomoGraphs_GovReports/Extended_NoTemp/Extended_NoTemp-epoch=11-Val_f1-ma=0.52.ckpt'
     model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
     # need to load invert_vocab_sent manually for model_lightning
-    sent_dict_disk = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/datasets/GovReport-Sum/vocab_sentences.csv')
-    invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+    ###sent_dict_disk = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/datasets/GovReport-Sum/vocab_sentences.csv')
+    ###invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
     model_lightning.invert_vocab_sent = invert_vocab_sent
     print("invert_vocab_sent Loaded.")
     ####################
@@ -255,5 +256,6 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
+
 
     main_run(config_file, args.settings_file)

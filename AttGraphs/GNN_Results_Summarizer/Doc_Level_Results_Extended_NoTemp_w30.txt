@@ -1,14 +1,3 @@
-
-
------------------------------------------------
-Creating graphs with filter: mean
------------------------------------------------
-Creation time for Train Graph dataset: 1.6771948337554932
-Creation time for Val Graph dataset: 1.6125366687774658
-Creation time for Test Graph dataset: 2.0988476276397705
-================================================
-
-
 ================================================
 Creating prediction files from pre-trained model: Extended_NoTemp_w30
 ================================================
@@ -35,23 +24,6 @@ Creation time for Test Graph dataset: 1303.016880273819
 ================================================
 
 
-================================================
-Creating prediction files from pre-trained model: Extended_NoTemp_w30
-================================================
-[TRAIN] File creation time: 1592.483186006546
-[TRAIN] Avg. Acc (doc-level): 0.718346118927002
-[TRAIN] Avg. F1-score (doc-level): [0.7933894  0.21327293]
-================================================
-[VAL] File creation time: 92.47515869140625
-[VAL] Avg. Acc: 0.6827231645584106
-[VAL] Avg. F1-score: [0.76555926 0.20419689]
-================================================
-[TEST] File creation time: 88.66508483886719
-[TEST] Avg. Acc: 0.6700646877288818
-[TEST] Avg. F1-score: [0.7547305  0.21335281]
-================================================
-
-
 -----------------------------------------------
 Creating graphs with filter: max
 -----------------------------------------------
@@ -60,43 +32,20 @@ Creation time for Val Graph dataset: 1355.6447041034698
 Creation time for Test Graph dataset: 1196.8208076953888
 ================================================
 
++++++++++++++++++++++++++++++++++++++++++++++++++ small experiment (1000) +++++++++++++++++++++++++++++++++++++++++++++++++
 
 ================================================
-Creating prediction files from pre-trained model: Extended_NoTemp_w30
+Creating prediction files from pre-trained model: Extended_NoTemp
 ================================================
-[TRAIN] File creation time: 2.0344624519348145
-[TRAIN] Avg. Acc (doc-level): 0.707271158695221
-[TRAIN] Avg. F1-score (doc-level): [0.7876375  0.21800026]
+[TRAIN] File creation time: 90.13823246955872
+[TRAIN] Avg. Acc (doc-level): 0.7721945643424988
+[TRAIN] Avg. F1-score (doc-level): [0.84384996 0.20505506]
 ================================================
-[VAL] File creation time: 1.7277579307556152
-[VAL] Avg. Acc: 0.6766113042831421
-[VAL] Avg. F1-score: [0.7643331  0.22918801]
-================================================
-[TEST] File creation time: 1.8111183643341064
-[TEST] Avg. Acc: 0.6876376271247864
-[TEST] Avg. F1-score: [0.7678213  0.22319937]
-================================================
-
-
------------------------------------------------
-Creating graphs with filter: full
------------------------------------------------
-Creation time for Train Graph dataset: 297.8631498813629
-Creation time for Val Graph dataset: 719.1070280075073
-
-
-================================================
-Creating prediction files from pre-trained model: Extended_NoTemp_w30
-================================================
-[TRAIN] File creation time: 1581.1238701343536
-[TRAIN] Avg. Acc (doc-level): 0.718346118927002
-[TRAIN] Avg. F1-score (doc-level): [0.7933894  0.21327293]
-================================================
-[VAL] File creation time: 91.20181059837341
+[VAL] File creation time: 88.60531544685364
 [VAL] Avg. Acc: 0.6827231645584106
 [VAL] Avg. F1-score: [0.76555926 0.20419689]
 ================================================
-[TEST] File creation time: 87.87742781639099
+[TEST] File creation time: 85.69681644439697
 [TEST] Avg. Acc: 0.6700646877288818
 [TEST] Avg. F1-score: [0.7547305  0.21335281]
 ================================================
@@ -105,4 +54,27 @@ Creating prediction files from pre-trained model: Extended_NoTemp_w30
 -----------------------------------------------
 Creating graphs with filter: full
 -----------------------------------------------
+Creation time for Train Graph dataset: *
 Creation time for Val Graph dataset: 46855.877086400986
+Creation time for Test Graph dataset: 8543.168995141983
+================================================
+
+
+-----------------------------------------------
+Creating graphs with filter: max
+-----------------------------------------------
+Creation time for Train Graph dataset: 1234.2366721630096
+Creation time for Val Graph dataset: 1314.284057855606
+Creation time for Test Graph dataset: 1171.9715037345886
+================================================
+
+
+-----------------------------------------------
+Creating graphs with filter: mean
+-----------------------------------------------
+Creation time for Train Graph dataset: 1310.938993215561
+Creation time for Val Graph dataset: 1416.8706710338593
+Creation time for Test Graph dataset: 1252.9552924633026
+================================================
+
+* No data: this is the partial construction of 30% of data points, but only 1000 data points were considered for the experiment.

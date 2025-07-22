@@ -9,10 +9,12 @@ logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30
 type_model: GAT 
 baseline: False #Always False for attention graphs
-type_graph: full
+type_graph: max
 binarized: False #if True then unified must be False
 multi_layer: False
 unified_nodes: True #False
+max_train_index: 1000
+multiprocessing: False
 
 
 data_paths:
@@ -36,7 +38,8 @@ model_arch_args:
   n_layers: [1, 2, 3]
   num_runs: 5
 
-batch_size: 32
+batch_size: 2
+accum_grad: 16
 with_cw: True
 max_len: 1000
 
@@ -45,5 +48,5 @@ trainer_args:
   enable_progress_bar: False
 
 early_args:
-  patience: 5
+  patience: 10
   min_delta: 0.001  

@@ -28,8 +28,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 batch_size = 16
 num_classes = 2
 
-model_name = "Extended_NoTemp" #_w30
-path_models = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_NoTemp_w30/"
 in_path = "/scratch2/rldallitsako/datasets/GovReport-Sum/"
 with_val = True
 max_len = 1000
@@ -44,7 +42,7 @@ print ("df_val", df_val.shape)
 print ("df_test", df_test.shape)
 
 #################### minirun
-df_train, df_val, df_test = df_train[:10], df_val[:10], df_test[:10]
+df_train, df_val, df_test = df_train[:5], df_val[:5], df_test[:5]
 ####################
 
 print("\nChecking train")
@@ -115,45 +113,14 @@ max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a docume
 print("max number of sentences in test document:", max_len_test)
 
 #create loader from existing sentence vocabulary
-loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test, max_len, batch_size, df_val=df_val,
+loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len, batch_size, df_val=df_val,
                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
-# del df_val, df_test
-del invert_vocab_sent
-
-# ############################################################### load 4 debug
-# df_test, _, _ = load_data(in_path, data_test, labels_train, data_test, labels_test, with_val=True)
-# df_test = df_test[:30]
-#
-# print("\nChecking test")
-# ids2remove_test = check_dataframe(df_test)
-# for id_remove in ids2remove_test:
-#     df_test = df_test.drop(id_remove)
-# df_test.reset_index(drop=True, inplace=True)
-# print("Test shape:", df_test.shape)
-#
-# _, _, loader_test, _, _, _, _ = create_loaders(df_test, df_test, max_len, batch_size, df_val=df_test,
-#                                                                      task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
-#
-# ### OBTAIN MAX SEQUENCE
-# sent_lengths_test = []
-# for i, doc in enumerate(df_test['Cleaned_Article']):
-#     sent_in_doc = clean_tokenization_sent(doc, 'text')
-#
-#     if len(sent_in_doc) == 0:
-#         print("Empty doc in row-id:", i)
-#     sent_lengths_test.append(len(sent_in_doc))
-#     if len(sent_in_doc) >= 3000:
-#         print("Extremely long doc in row-id:", i, "with", len(sent_in_doc), "sentences.")
-#
-# max_len_test = max(sent_lengths_test)  # Maximum number of sentences in a document
-# print("max number of sentences in test document:", max_len_test)
-# ############################################################### load 4 debug
 
 # load model and eval data
 path_models_logger = os.path.join("/scratch2/rldallitsako/HomoGraphs_GovReports/", "df_logger_cw.csv")
 df_logger = pd.read_csv(path_models_logger)
 
-model_name= "Extended_NoTemp_w30" #"Extended_NoTemp"
+model_name= "Extended_ReLu" #"Extended_NoTemp"
 path_checkpoint, model_score= retrieve_parameters(model_name, df_logger)
 
 print ("\nLoading", model_name, "({0:.3f}".format(model_score),") from:", path_checkpoint)
@@ -168,54 +135,11 @@ print("Start Predicting...")
 _, full_attn_weights_t, _, _, all_article_identifiers_t = model_lightning.predict(loader_train, cpu_store=False)
 _, full_attn_weights_v, _, _, all_article_identifiers_v = model_lightning.predict(loader_val, cpu_store=False)
 _, full_attn_weights_test, _, _, all_article_identifiers_test = model_lightning.predict(loader_test, cpu_store=False)
-print("Evaluating predictions...")
+
+# print("Evaluating predictions...")
 # acc_t, f1_all_t = eval_results(preds_t, all_labels_t, num_classes, "Train")
 # acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
 # acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-
-
-def plot_attention_batch(attention_matrices, valid_lengths, titles=None):
-    """
-    Plots a batch of attention matrices with padding cropped.
-
-    Parameters:
-        attention_matrices (list of torch.Tensor): Each [seq_len, seq_len], possibly on GPU.
-        valid_lengths (list of int): Each indicates valid (unpadded) length for a matrix.
-        titles (list of str): Optional titles for subplots.
-    """
-    num_matrices = len(attention_matrices)
-    cols = min(4, num_matrices)
-    rows = (num_matrices + cols - 1) // cols
-
-    fig, axs = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows))
-
-    if num_matrices == 1:
-        axs = [[axs]]
-    elif rows == 1:
-        axs = [axs]
-
-    for idx, (attn, length) in enumerate(zip(attention_matrices, valid_lengths)):
-        row, col = divmod(idx, cols)
-        ax = axs[row][col] if rows > 1 else axs[0][col]
-
-        # Move to CPU and crop
-        attn = attn.detach().cpu().numpy()
-        attn = attn[:length, :length]  # crop padded part
-
-        im = ax.imshow(attn, cmap='magma')
-        ax.set_title(titles[idx] if titles else f"Matrix {idx}")
-        ax.set_xlabel("Key positions")
-        ax.set_ylabel("Query positions")
-
-    # Remove unused subplots
-    for i in range(num_matrices, rows * cols):
-        row, col = divmod(i, cols)
-        fig.delaxes(axs[row][col] if rows > 1 else axs[0][col])
-
-    plt.tight_layout()
-    plt.show()
-
-plot_attention_batch(full_attn_weights_t, sent_lengths)
 
 
 # visualize
@@ -249,57 +173,9 @@ _, _, _, x_deletions_v = filtering_matrices(full_attn_weights_v, all_article_ide
 _, _, _, x_deletions_test = filtering_matrices(full_attn_weights_test, all_article_identifiers_test, sent_lengths_test, model_window, df_test, print_samples=num_print,
                                                                                     degree_std=tolerance, with_filtering=filtering, filtering_type=filter_type, granularity=granularity)
 
-# implement visualize h in test set
-def visualize(h, color):
-    z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
-
-    plt.figure(figsize=(6, 6))
-    plt.xticks([])
-    plt.yticks([])
-
-    plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
-    plt.show()
-
-
-def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
-    x_np = x.detach().cpu().numpy()
-    out_np = out_sample.detach().cpu().numpy()
-
-    # Run t-SNE on both
-    z1 = TSNE(n_components=2, perplexity=min(30, len(x_np) - 1)).fit_transform(x_np)
-    z2 = TSNE(n_components=2, perplexity=min(30, len(out_np) - 1)).fit_transform(out_np)
-
-    # Plot
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-    for ax, z, title in zip(axes, [z1, z2], [title1, title2]):
-        ax.set_xticks([])
-        ax.set_yticks([])
-        scatter = ax.scatter(z[:, 0], z[:, 1], s=60, c=color, cmap="Set2")
-        ax.set_title(title)
-
-    plt.tight_layout()
-    plt.show()
-
-
-# set variables
-type_model = "GAT"
-type_graph = "max"
-path_root = os.path.join("datasets", "AttnGraphs_GovReports", model_name, type_graph + '_unified')
-filename_test = "predict_test_documents.csv"
-
-# build filename_test and construct graphs for dataset_test
-_, _ = model_lightning.predict_to_file(loader_test, saving_file=True, filename=filename_test, path_root=path_root)
-dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, type_graph, loader_test, degree=0.5, model_ckpt=path_checkpoint, mode="test", binarized=False)
-
-print("Printing samples...")
-for i in range(1):
-    nl = 2
-    dim = 64
-    model = GAT_NC_model(384, dim, 2, nl, 0.001, dropout=0.1, class_weights=my_class_weights)
-    model.eval()
-    data = dataset_test[i]
-    out_sample = model(data.x, data.edge_index, data.edge_attr, data.batch)
-    # visualize(data.x, color=data.y)
-    # visualize(out_sample, color=data.y)
-    visualize_side_by_side(data.x, out_sample, color=data.y)
+# Plotting deletions
+# plt.hist(x=[deletions_t, deletions_v, deletions_test, x_deletions_t, x_deletions_v, x_deletions_test], bins=5000, color=['blue', 'lightblue', 'green', 'red', 'orange', 'yellow'])
+# plt.xlim(0, 10000)
+# plt.legend(["Mean - Train", "Mean - Val", "Mean - Test", "Max - Train", "Max - Val", "Max - Test"])
+# plt.title("Deletions for different local-filtering strategies - Model: "+model_name)
+# plt.show()
