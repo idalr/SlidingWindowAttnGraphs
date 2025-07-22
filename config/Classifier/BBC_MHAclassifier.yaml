@@ -1,0 +1,45 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: "BBC"
+path_models: /path/to/models/folder/
+file_to_save: project_name_for_wandblogger
+logger_name: model_name_to_be_logged
+logger_file: logger_filename.csv
+num_executions: 5
+multi_layer: False                # True for multi-layer attention, False for single-layer attention
+
+load_data_paths:
+  in_path: "/path/to/data/folder/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True                  # True if validation set is available, False otherwise
+
+model_arch_args:
+  num_classes: 5
+  lr: 0.001
+  embed_dim: 384
+  num_heads: 4
+  dropout: 0.2
+  hidden_dim : 128
+  intermediate: True
+  activation_attention: "relu"    # "relu" when using ReLU activation for attention, "sigmoid" for Sigmoid based-attention, and "anneal_decrease" for traditional Softmax attention adopting temperature annealing strategy.
+  attn_dropout: 0.1               # only used when activation_attention is "relu" or "sigmoid"
+  ### if activation_attention is "anneal_decrease", the following parameters are used:
+  # temperature_scheduler : "anneal_decrease"
+  # temperature_step: 0.0001
+  # activation_attention: "softmax"
+
+
+batch_size: 32
+with_cw: True
+
+trainer_args:
+  max_epochs: 20
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001
