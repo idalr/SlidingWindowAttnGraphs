@@ -25,8 +25,10 @@ model_arch_args:
   dropout: 0.2
   hidden_dim : 128
   intermediate: True
+  window: 30                              # set to 100 to run full self-attention, otherwise 1-99 according to % of document length
   activation_attention: "relu"    # "relu" when using ReLU activation for attention, "sigmoid" for Sigmoid based-attention, and "anneal_decrease" for traditional Softmax attention adopting temperature annealing strategy.
-  attn_dropout: 0.1               # only used when activation_attention is "relu" or "sigmoid"
+  ### if the activation_attention is "relu" or "sigmoid", the following parameters are used:
+  # attn_dropout: 0.1
   ### if activation_attention is "anneal_decrease", the following parameters are used:
   # temperature_scheduler : "anneal_decrease"
   # temperature_step: 0.0001

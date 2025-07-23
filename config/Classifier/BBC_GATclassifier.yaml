@@ -7,7 +7,6 @@ model_name: logger_name_used_in_MHA_config  # Options: MHA_ReLu, MHA_Anneal, MHA
 setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
 type_model: GAT
 binarized: False
-multi_layer: False                          # True for multi-layer attention models, False for single-layer
 baseline: False                             # Always False for attention-based learned graphs
 type_graph: mean                            # "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
@@ -33,7 +32,6 @@ model_arch_args:
   dim_features : [64, 128, 256]
   n_layers: [1, 2, 3]
   num_runs: 5
-  window: 30                              # set to 100 to run full self-attention, otherwise 1-99 according to % of document length
 
 batch_size: 32
 with_cw: True
