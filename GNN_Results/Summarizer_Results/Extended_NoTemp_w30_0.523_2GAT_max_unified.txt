@@ -1,4 +1,16 @@
 ================================================
+Attention Graph Creation/Loading Time: max
+================================================
+
+-----------------------------------------------
+Creating graphs with filter: max
+-----------------------------------------------
+Creation time for Train Graph dataset: 24054.65807080269
+Creation time for Val Graph dataset: 1355.6447041034698
+Creation time for Test Graph dataset: 1196.8208076953888
+================================================
+
+================================================
 Evaluation of pre-trained model: Extended_NoTemp_w30
 ================================================
 [VAL] Acc: tensor(0.7475)
@@ -621,7 +633,17 @@ Total time: 563.17 -- std: 253.66
 
 
 +++++++++++++++++++++++++++++++++++++++++++++++++ small experiment (999) +++++++++++++++++++++++++++++++++++++++++++++++++
+================================================
+Attention Graph Creation/Loading Time: max
+================================================
 
+-----------------------------------------------
+Creating graphs with filter: max
+-----------------------------------------------
+Creation time for Train Graph dataset: 1234.2366721630096
+Creation time for Val Graph dataset: 1314.284057855606
+Creation time for Test Graph dataset: 1171.9715037345886
+================================================
 
 ================================================
 Evaluation of pre-trained model: Extended_NoTemp_w30

@@ -1,4 +1,16 @@
 ================================================
+Attention Graph Creation/Loading Time: mean
+================================================
+
+-----------------------------------------------
+Creating graphs with filter: mean
+-----------------------------------------------
+Creation time for Train Graph dataset: 36091.39944291115
+Creation time for Val Graph dataset: 2072.4260487556458
+Creation time for Test Graph dataset: 1832.9306375980377
+================================================
+
+================================================
 Evaluation of pre-trained model: Extended_Sigmoid
 ================================================
 [VAL] Acc: tensor(0.7201)

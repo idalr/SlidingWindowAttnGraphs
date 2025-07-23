@@ -1,4 +1,16 @@
 ================================================
+Attention Graph Creation/Loading Time: mean
+================================================
+
+-----------------------------------------------
+Creating graphs with filter: mean
+-----------------------------------------------
+Creation time for Train Graph dataset: 34687.40722990036
+Creation time for Val Graph dataset: 1953.1042680740356
+Creation time for Test Graph dataset: 1765.8204655647278
+================================================
+
+================================================
 Evaluation of pre-trained model: Extended_ReLu
 ================================================
 [VAL] Acc: tensor(0.7619)

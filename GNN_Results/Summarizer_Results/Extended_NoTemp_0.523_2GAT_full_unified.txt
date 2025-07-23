@@ -1,4 +1,17 @@
 +++++++++++++++++++++++++++++++++++++++++++++++++ small experiment (999) +++++++++++++++++++++++++++++++++++++++++++++++++
+================================================
+Attention Graph Creation/Loading Time: full
+================================================
+
+-----------------------------------------------
+Creating graphs with filter: full
+-----------------------------------------------
+Creation time for Train Graph dataset: *
+Creation time for Val Graph dataset: 46855.877086400986
+Creation time for Test Graph dataset: 8543.168995141983
+================================================
+* No data: this is the partial construction of 30% of data points, but only 1000 data points were considered for the experiment.
+
 
 ================================================
 Evaluation of pre-trained model: Extended_NoTemp
