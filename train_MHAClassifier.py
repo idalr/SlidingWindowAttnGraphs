@@ -103,13 +103,6 @@ def main_run(config_file, settings_file):
             print("\n-- No class weights specificied --\n")
             model_params["class_weights"] = None
 
-        ## TRAINING SETUP
-        model_params["max_len"]=max_len
-        model_params["path_invert_vocab_sent"]= config_file["load_data_paths"]["in_path"]
-        #if model_params["multi_layer"]:
-        #    model_lightning = MHAClassifier_extended(**model_params)
-        #else:
-        model_lightning= MHAClassifier(**model_params)
         model_params["max_len"] = max_len
         model_params["path_invert_vocab_sent"] = config_file["load_data_paths"]["in_path"]
         model_lightning = MHAClassifier(**model_params)
