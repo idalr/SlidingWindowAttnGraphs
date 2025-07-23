@@ -1,21 +1,21 @@
 cuda_visible_devices: "0"
 device: gpu
 
-dataset_name: BBC
+dataset_name: GR
 logger_name: BBC-logger_filename.csv
-model_name: logger_name_used_in_MHA_config  # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
+model_name: model_name_to_be_logged  # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
 setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
 type_model: GAT
 binarized: False
 baseline: False                             # Always False for attention-based learned graphs
-type_graph: mean                            # "full", "max" or "mean", depending on the type of statistical filtering to use
+type_graph: mean                            # "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
-
+saving_file: True                           # save graph dataset
 
 data_paths:
-  path_logger: /path/to/BBC-logger/file/
+  path_logger: /path/to/GR-logger/file/
   results_folder: /path/to/GNN/results/folder/
-  root_graph_dataset: /path/to/graph-based/BBC-dataset/folder/
+  root_graph_dataset: /path/to/graph-based/GR-dataset/folder/
 
 load_data_paths:
   in_path: "/path/to/data/folder/"
@@ -26,7 +26,7 @@ load_data_paths:
   with_val: True                            # True if validation set is available, False otherwise
 
 model_arch_args:
-  num_classes: 5
+  num_classes: 2
   lr: 0.001
   dropout: 0.2
   dim_features : [64, 128, 256]

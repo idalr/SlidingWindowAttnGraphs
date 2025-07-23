@@ -9,7 +9,7 @@ type_model: GAT
 binarized: False
 multi_layer: False                              # True for multi-layer attention models, False for single-layer
 baseline: False                                 # Always False for attention-based learned graphs
-type_graph: mean                                # "max" or "mean", depending on the type of statistical filtering to use
+type_graph: mean                                # "full", "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
 
 
