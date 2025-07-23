@@ -321,9 +321,9 @@ def main_run(config_file , settings_file):
             print("[TEST] Dataset creation time: ", creation_test)
             f.close()
 
-        ### Run GNN models on graph datasets
-        start = time.time()
-        np.set_printoptions(precision=3)
+    ### Run GNN models on graph datasets
+    start = time.time()
+    np.set_printoptions(precision=3)
 
     if unified_flag == True:
         graph_construction = type_graph + "_unified"
@@ -379,14 +379,10 @@ def main_run(config_file , settings_file):
                                                             filename=type_model + "_" + str(nl) + "L_" + str(
                                                             dim) + "U_" + graph_construction + "_run" + str(
                                                             i) + "-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
-                    if config_file["baseline"] == True:
-                        wandb_logger = WandbLogger(name=type_model + "_" + heuristic + "_" + str(nl) + "L_" + str(
-                            dim) + "U_" + graph_construction + "_run" + str(i), save_dir=path_for_savings,
-                                                    project=project_name)
-                    else:
-                        wandb_logger = WandbLogger(name=model_name + '2' + type_model + "_" + str(nl) + "L_" + str(
-                            dim) + "U_" + graph_construction + "_run" + str(i), save_dir=path_for_savings,
-                                                    project=project_name)
+
+                    wandb_logger = WandbLogger(name=model_name + '2' + type_model + "_" + str(nl) + "L_" + str(
+                        dim) + "U_" + graph_construction + "_run" + str(i), save_dir=path_for_savings,
+                                               project=project_name)
 
                     trainer = pl.Trainer(accelerator='gpu', devices=1,
                                             callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
