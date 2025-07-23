@@ -38,7 +38,7 @@ def main_run(config_file, settings_file):
     MAX_TRAIN_INDEX = config_file.get('max_train_index', False) # If using partial dataset for training
 
     root_graph = config_file["data_paths"]["root_graph_dataset"]  # "/scratch/datasets/AttnGraphs_GovReports/"
-    path_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/"
+    path_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/GNN_Results/Summarizer_Results/Attention/"
     path_logger = config_file["data_paths"]["path_logger"]  # path_logger = "/scratch/mbugueno/HomoGraphs_GovReports/"
 
     num_classes = config_file["model_arch_args"]["num_classes"]

@@ -10,7 +10,7 @@ binarized: True
 
 data_paths:
   path_logger: /scratch/mbugueno/HomoGraphs_GovReports/
-  results_folder: /home/mbugueno/AttGraphs/GNN_Results_Summarizer/Attention/
+  results_folder: /home/mbugueno/GNN_Results/Summarizer_Results/Attention/
   root_graph_dataset: /scratch/datasets/AttnGraphs_GovReports/
 
 load_data_paths:

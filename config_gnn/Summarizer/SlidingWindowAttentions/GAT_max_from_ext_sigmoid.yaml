@@ -17,7 +17,7 @@ unified_nodes: True #False
 
 data_paths:
   path_logger: /scratch2/rldallitsako/HomoGraphs_GovReports/
-  results_folder: /home/rldallitsako/AttGraphs/GNN_Results_Summarizer/
+  results_folder: /home/rldallitsako/GNN_Results/Summarizer_Results/
   root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/
 
 load_data_paths:

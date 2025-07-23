@@ -26,7 +26,7 @@ def main_run(config_file, settings_file):
     path_logger = config_file["data_paths"][
         "path_logger"]  # path_logger = "/scratch/mbugueno/HomoGraphs_GovReports/"
     root_graph = config_file["data_paths"]["root_graph_dataset"]  # "/scratch/datasets/AttnGraphs_GovReports/"
-    folder_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/AttGraphs/GNN_Results_Summarizer/"
+    folder_results = config_file["data_paths"]["results_folder"]  # "/home/mbugueno/GNN_Results/Summarizer_Results/"
     filter_type = config_file["type_graph"]  # full # mean # max
     save_flag = config_file["saving_file"]
     unified_flag = config_file["unified_nodes"]

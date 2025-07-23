@@ -10,7 +10,7 @@ normalized: False
 
 data_paths:
   path_logger: /scratch/mbugueno/HomoGraphs_HND/
-  results_folder: /home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  results_folder: /home/mbugueno/GNN_Results/Classifier_Results/Attention/
   root_graph_dataset: /scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:

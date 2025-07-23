@@ -20,7 +20,7 @@ unified_nodes: True #False
 
 data_paths:
   path_logger: /content/drive/MyDrive/ADG/HomoGraphs_GovReports/
-  results_folder: /content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Summarizer/Colab/
+  results_folder: /content/drive/MyDrive/ADG/GNN_Results/Summarizer_Results/Colab/
   root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_GovReports/
 
 load_data_paths:

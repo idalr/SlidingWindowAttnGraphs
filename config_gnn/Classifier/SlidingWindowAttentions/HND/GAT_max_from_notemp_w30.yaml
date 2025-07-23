@@ -13,7 +13,7 @@ multi_layer: False
 
 data_paths:
   path_logger: HomoGraphs_HND/ #/scratch/mbugueno/HomoGraphs_HND/
-  results_folder: AttGraphs/GNN_Results_Classifier/Attention/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  results_folder: GNN_Results/Classifier_Results/Attention/ #/home/mbugueno/GNN_Results/Classifier_Results/Attention/
   root_graph_dataset: AttnGraphs_HND/ #/scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:

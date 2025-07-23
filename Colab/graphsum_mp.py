@@ -458,7 +458,7 @@ def main_run():
 
     path_logger = "/content/drive/MyDrive/ADG/HomoGraphs_GovReports/"
     root_graph = "/content/drive/MyDrive/ADG/AttnGraphs_GovReports/"
-    folder_results = "/content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Summarizer/Colab/"
+    folder_results = "/content/drive/MyDrive/ADG/GNN_Results/Summarizer_Results/Colab/"
     filter_type = "full"
     save_flag = True #config_file["saving_file"]
     unified_flag = True #config_file["unified_nodes"]

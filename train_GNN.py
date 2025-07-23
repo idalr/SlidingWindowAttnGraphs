@@ -31,7 +31,7 @@ def main_run(config_file , settings_file):
     type_model = config_file["type_model"] #GAT or GCN 
 
     root_graph = config_file["data_paths"]["root_graph_dataset"] #"/scratch/datasets/AttnGraphs_HND/"
-    path_results = config_file["data_paths"]["results_folder"] #"/home/mbugueno/AttGraphs/GNN_Results/" #folder for GNN results (Heuristic_Results for baselines)
+    path_results = config_file["data_paths"]["results_folder"] #"/home/mbugueno/GNN_Results/GNN_Results/" #folder for GNN results (Heuristic_Results for baselines)
     path_logger = config_file["data_paths"]["path_logger"]  #path_logger = "/scratch/mbugueno/HomoGraphs_HND/"
 
     num_classes = config_file["model_arch_args"]["num_classes"]

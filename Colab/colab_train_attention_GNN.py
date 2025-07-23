@@ -57,7 +57,7 @@ def main_run(config_file, settings_file):
     num_runs = config_file["model_arch_args"]["num_runs"]  # 5
     # path to store results
     root_graph = config_file["data_paths"]["root_graph_dataset"]  # /content/drive/MyDrive/ADG/HomoGraphs_HND/
-    path_results = config_file["data_paths"]["results_folder"]  # AttGraphs/GNN_Results_Classifier/
+    path_results = config_file["data_paths"]["results_folder"]  # GNN_Results/Classifier_Results/
     path_logger = config_file["data_paths"]["path_logger"]  # /content/drive/MyDrive/ADG/AttnGraphs_HND/
 
     # create folders if not exist

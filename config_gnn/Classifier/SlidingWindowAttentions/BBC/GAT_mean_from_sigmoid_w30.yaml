@@ -14,7 +14,7 @@ multi_layer: False
 
 data_paths:
   path_logger: /scratch2/rldallitsako/HomoGraphs_BBC/ #/scratch/mbugueno/HomoGraphs_HND/
-  results_folder: /home/rldallitsako/AttGraphs/GNN_Results_Classifier/Attention/BBC/ #/home/mbugueno/AttGraphs/GNN_Results_Classifier/Attention/
+  results_folder: /home/rldallitsako/GNN_Results/Classifier_Results/Attention/BBC/ #/home/mbugueno/GNN_Results/Classifier_Results/Attention/
   root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_BBC/ #/scratch/datasets/AttnGraphs_HND/
 
 load_data_paths:
