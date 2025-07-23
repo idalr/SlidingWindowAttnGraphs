@@ -1,3 +1,4 @@
+# TODO: clean imports
 import re, os
 import pandas as pd
 import numpy as np
@@ -9,6 +10,17 @@ warnings.filterwarnings("ignore")
 import time
 from tqdm import tqdm
 import torch
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import ast
+import torch
+from scipy.ndimage import uniform_filter1d, gaussian_filter1d
+from torch_geometric.data import DataLoader
+
+from gnn_model import GAT_NC_model
+from graph_data_loaders import UnifiedAttentionGraphs_Sum
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -44,11 +56,15 @@ from rouge_score import rouge_scorer
 from graph_data_loaders import UnifiedAttentionGraphs_Sum, ActualUnifiedAttentionGraphs_Sum
 from gnn_model import partitions, GAT_NC_model
 
+# TODO: also make it take config_gnn file
+# TODO: merge summary_distribution into this file
+
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 os.environ["CUDA_VISIBLE_DEVICES"]='-1'
 
-# TODO: move to util after debugging
+# TODO: move all function to util in this folder (after debugging)
 ## cut out unnecessary parts
+# TODO: merge rouge and bertscore into one function
 def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
     model.eval()
     device = model.device
