@@ -211,7 +211,7 @@ num_layers = 3
 std = 0.5
 lr = 0.001
 type_graph = "max"
-path_root = 'datasets/GovReport-Sum/Predicted'
+path_root = '../datasets/GovReport-Sum/Predicted'
 filename_test = 'predict_test_document.csv'
 
 dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type=type_graph, data_loader=loader_test, degree=std,model_ckpt=mha_checkpoint, mode="test",binarized=flag_binary)
@@ -235,8 +235,8 @@ preds, all_labels = predict_sentences(model, test_loader)
 
 #(get_plot
 
-oracle_pos = extract_from_file("datasets/GovReport-Sum/Processed/df_test.csv", "Calculated_Labels", max_col=900)
-predicted_pos = extract_from_file("datasets/GovReport-Sum/Processed/df_validation.csv", "Calculated_Labels", max_col=900)
+oracle_pos = extract_from_file("../datasets/GovReport-Sum/Processed/df_test.csv", "Calculated_Labels", max_col=900)
+predicted_pos = extract_from_file("../datasets/GovReport-Sum/Processed/df_validation.csv", "Calculated_Labels", max_col=900)
 
 plot_two_distributions(oracle_pos, predicted_pos)
 #plot_two_distributions("datasets/GovReport-Sum/Processed/df_test.csv", "datasets/GovReport-Sum/predict_test_documents.csv", "Calculated_Labels", "label")
@@ -274,9 +274,9 @@ from bert_score import score
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
-df1 = pd.read_csv('datasets/GovReport-Sum/relux/relu_x_test_summary.csv')
-df2 = pd.read_csv('datasets/GovReport-Sum/Predicted/predict_test_documents.csv')
-df3 = pd.read_csv('datasets/GovReport-Sum/relux/test.csv')
+df1 = pd.read_csv('../datasets/GovReport-Sum/relux/relu_x_test_summary.csv')
+df2 = pd.read_csv('../datasets/GovReport-Sum/Predicted/predict_test_documents.csv')
+df3 = pd.read_csv('../datasets/GovReport-Sum/relux/test.csv')
 
 import seaborn as sns
 # Get distribution heatmap
