@@ -48,3 +48,7 @@ Train a GAT for node classification. This python file serves either for learned-
 python create_graphSum_files.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
 python train_gnn_node.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
 ```
+
+Analyses
+visualize_attns.py take one of the GAT config file, can also define num_print (per split) and random which randomly select the printed samples
+get_structural_graph_stats.py take arg --data-dir '/path/to/folder/model_name/type_graph/processed'
