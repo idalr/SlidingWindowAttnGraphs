@@ -175,7 +175,6 @@ def main_run(config_file , settings_file):
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
-        model_window = model_lightning.window
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
@@ -200,6 +199,13 @@ def main_run(config_file , settings_file):
         if not os.path.exists(path_root + "/raw/" + filename_train):
             path_dataset = path_root + "/raw/"
             print("\nCreating files for PyG dataset in:", path_dataset)
+            df_logger = pd.read_csv(path_logger + logger_name)
+
+            ### Forward pass to get predictions from loaded MHA model
+            print("Predicting Train")
+            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
+                                                                                               cpu_store=False,
+                                                                                               flag_file=True)
             post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
@@ -212,6 +218,10 @@ def main_run(config_file , settings_file):
             print("Finished and saved in:", path_dataset + filename_train)
 
             if config_file["load_data_paths"]["with_val"] == True:
+                print("\nPredicting Val")
+                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
+                                                                                                   cpu_store=False,
+                                                                                                   flag_file=True)
                 post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
@@ -223,9 +233,13 @@ def main_run(config_file , settings_file):
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 print("Finished and saved in:", path_dataset + filename_val)
 
+            print("\nPredicting Test")
+            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
+                loader_test, cpu_store=False, flag_file=True)
             post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
-            for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test,
+                                                 all_doc_ids_test):
                 post_predict_test_docs.loc[len(post_predict_test_docs)] = {
                     "article_id": article_id.item(),
                     "label": label.item(),
