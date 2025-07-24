@@ -127,37 +127,31 @@ def main_run(config_file , settings_file, num_print, random):
         filtering = True
         filter_type = type_graph
 
-    for i in range(num_print):
-        if random:
-            indices_t = list(range(sent_lengths))
-            sampled_indices_t = random.sample(indices_t, num_print)
-            indices_v = list(range(sent_lengths_val))
-            sampled_indices_v = random.sample(indices_v, num_print)
-            indices_test = list(range(sent_lengths_test))
-            sampled_indices_test = random.sample(indices_test, num_print)
-            for j,k,l in zip(sampled_indices_t, sampled_indices_v, sampled_indices_test):
-                _ = filtering_matrix(full_attn_weights_t[j], all_article_identifiers_t[j], sent_lengths[j],
-                                     window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                     plotting=True)
-                if config_file["load_data_paths"]["with_val"] == True:
-                    _ = filtering_matrix(full_attn_weights_v[k], all_article_identifiers_v[k], sent_lengths_val[k],
-                                         window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                         plotting=True)
-                _ = filtering_matrix(full_attn_weights_test[l], all_article_identifiers_test[l], sent_lengths_test[l],
-                                     window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                     plotting=True)
+    if random:
+        indices_t = list(range(sent_lengths))
+        sampled_indices_t = random.sample(indices_t, num_print)
+        indices_v = list(range(sent_lengths_val))
+        sampled_indices_v = random.sample(indices_v, num_print)
+        indices_test = list(range(sent_lengths_test))
+        sampled_indices_test = random.sample(indices_test, num_print)
 
-        else:
-            _ = filtering_matrix(full_attn_weights_t[i], all_article_identifiers_t[i], sent_lengths[i],
-                                 window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                 plotting=True)
-            if config_file["load_data_paths"]["with_val"] == True:
-                _ = filtering_matrix(full_attn_weights_v[i], all_article_identifiers_v[i], sent_lengths_val[i],
-                                     window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                     plotting=True)
-            _ = filtering_matrix(full_attn_weights_test[i], all_article_identifiers_test[i], sent_lengths_test[i],
-                                 window=model_window, with_filtering=filtering, filtering_type=filter_type,
-                                 plotting=True)
+    else:
+        sampled_indices_t = range(num_print)
+        sampled_indices_v = range(num_print)
+        sampled_indices_test = range(num_print)
+
+    for i,j,k in zip(sampled_indices_t, sampled_indices_v, sampled_indices_test):
+        _ = filtering_matrix(full_attn_weights_t[i], all_article_identifiers_t[i], sent_lengths[i],
+                                window=model_window, with_filtering=filtering, filtering_type=filter_type,
+                                plotting=True)
+        if config_file["load_data_paths"]["with_val"] == True:
+            _ = filtering_matrix(full_attn_weights_v[j], all_article_identifiers_v[j], sent_lengths_val[j],
+                                    window=model_window, with_filtering=filtering, filtering_type=filter_type,
+                                    plotting=True)
+        _ = filtering_matrix(full_attn_weights_test[k], all_article_identifiers_test[k], sent_lengths_test[k],
+                                window=model_window, with_filtering=filtering, filtering_type=filter_type,
+                                plotting=True)
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
@@ -179,7 +173,7 @@ if __name__ == "__main__":
     arg_parser.add_argument(
         "--random",
         action="store_true",
-        help="set this flag to enable random behavior",
+        help="set this flag to enable random samples for num_print",
     )
     args = arg_parser.parse_args()
     with open(args.settings_file) as fd:

@@ -63,11 +63,11 @@ def main_run(config_file, settings_file):
     path_models = path_logger+model_name+"/"
 
     if unified_flag == True:
-        path_root = os.path.join(root_graph, model_name,type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
+        path_root = os.path.join(root_graph, model_name,type_graph + "_unified")
         project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
         file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
     else:
-        path_root = os.path.join(root_graph, model_name, type_graph)  # root_graph+model_name+"/Attention/"+type_graph
+        path_root = os.path.join(root_graph, model_name, type_graph)
         project_name = model_name + "2" + type_model + "_" + type_graph
         file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph)
 
@@ -202,149 +202,148 @@ def main_run(config_file, settings_file):
         filename_train = "post_predict_train_documents.csv"
         filename_test = "post_predict_test_documents.csv"
 
-    path_filename_train = os.path.join(path_root, "raw", filename_train)
-    if os.path.exists(path_filename_train):
-        print("File Requirements already satified in ", path_root + "/raw/")
-    else:
-        path_dataset = path_root + "/raw/"
-        print("\nCreating files for PyG dataset in:", path_dataset)
-        df_logger = pd.read_csv(path_logger + logger_name)
+        path_filename_train = os.path.join(path_root, "raw", filename_train)
+        if os.path.exists(path_filename_train):
+            print("File Requirements already satified in ", path_root + "/raw/")
+        else:
+            path_dataset = path_root + "/raw/"
+            print("\nCreating files for PyG dataset in:", path_dataset)
+            df_logger = pd.read_csv(path_logger + logger_name)
 
-        ### Forward pass to get predictions from loaded MHA model
-        print("Predicting Train")
-        _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
-                                                                                               cpu_store=False,
-                                                                                               flag_file=True)
-        post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-        post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
-        for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
-            post_predict_train_docs.loc[len(post_predict_train_docs)] = {
-                "article_id": article_id.item(),
-                "label": label.item(),
-                "doc_as_ids": doc_as_ids.tolist()
-            }
-        post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
-        print("Finished and saved in:", path_dataset + filename_train)
-
-        if config_file["load_data_paths"]["with_val"] == True:
-            print("\nPredicting Val")
-            _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
-                                                                                                   cpu_store=False,
-                                                                                                   flag_file=True)
-            post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-            post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
-            for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
-                post_predict_val_docs.loc[len(post_predict_val_docs)] = {
+            ### Forward pass to get predictions from loaded MHA model
+            print("Predicting Train")
+            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
+                                                                                                cpu_store=False,
+                                                                                                flag_file=True)
+            post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+            post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
+                post_predict_train_docs.loc[len(post_predict_train_docs)] = {
                     "article_id": article_id.item(),
                     "label": label.item(),
                     "doc_as_ids": doc_as_ids.tolist()
                 }
-            post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
-            print("Finished and saved in:", path_dataset + filename_val)
+            post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
+            print("Finished and saved in:", path_dataset + filename_train)
 
-        print("\nPredicting Test")
-        _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False, flag_file=True)
-        post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
-        for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test,
-                                                 all_doc_ids_test):
-            post_predict_test_docs.loc[len(post_predict_test_docs)] = {
-                "article_id": article_id.item(),
-                "label": label.item(),
-                "doc_as_ids": doc_as_ids.tolist()
-            }
-        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
-        print("Finished and saved in:", path_dataset + filename_test)
+            if config_file["load_data_paths"]["with_val"] == True:
+                print("\nPredicting Val")
+                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
+                                                                                                    cpu_store=False,
+                                                                                                    flag_file=True)
+                post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+                post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
+                for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
+                    post_predict_val_docs.loc[len(post_predict_val_docs)] = {
+                        "article_id": article_id.item(),
+                        "label": label.item(),
+                        "doc_as_ids": doc_as_ids.tolist()
+                    }
+                post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
+                print("Finished and saved in:", path_dataset + filename_val)
 
-    if type_graph == "full":
-        filter_type = None
-    else:
-        filter_type = type_graph
+            print("\nPredicting Test")
+            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
+                loader_test, cpu_store=False, flag_file=True)
+            post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+            post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
+            for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+                post_predict_test_docs.loc[len(post_predict_test_docs)] = {
+                    "article_id": article_id.item(),
+                    "label": label.item(),
+                    "doc_as_ids": doc_as_ids.tolist()
+                }
+            post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
+            print("Finished and saved in:", path_dataset + filename_test)
 
-    with open(file_results + '.txt', 'a') as f:
-        try:
-            print("\nLoading pre-trained", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-            print("Loading 1L-MHASummarizer...")
-            model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
-            print("Done.")
-
-            print("Model temperature", model_lightning.temperature)
-            print("Evaluating VAL and TEST loaders...")
-            max_len = config_file["max_len"]
-            _, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
-                                                                    config_file["batch_size"], df_val=df_val,
-                                                                    task="summarization",
-                                                                    tokenizer_from_scratch=False,
-                                                                    path_ckpt=path_vocab)
-            preds_v, _, all_labels_v, _, _ = model_lightning.predict(loader_val, cpu_store=False)
-            preds_test, _, all_labels_test, _, _ = model_lightning.predict(loader_test, cpu_store=False)
-            acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
-            acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-
-            print("================================================", file=f)
-            print("Evaluation of pre-trained model:", model_name, file=f)
-            print("================================================", file=f)
-            print("[VAL] Acc:", acc_v, file=f)
-            print("[VAL] F1 scores:", f1_all_v.mean(), file=f)
-            print("[VAL] F1 scores:", f1_all_v, file=f)  # print train pre-trained model
-            print("[TEST] Acc:", acc_test, file=f)
-            print("[TEST] F1 scores:", f1_all_test.mean(), file=f)
-            print("[TEST] F1 scores:", f1_all_test, file=f)  # print test pre-trained model
-            print("Results saved on", file_results + '.txt')
-
-        except:
-            pass
-
-        print("================================================", file=f)
-        print("Attention Graph Creation/Loading Time:", filter_type, file=f)
-        print("================================================", file=f)
-        start_creation = time.time()
-        if unified_flag == True:
-            dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
-                                                       model_ckpt=path_checkpoint, mode="train",
-                                                       binarized=flag_binary, multi_layer_model=multi_flag)
+        if type_graph == "full":
+            filter_type = None
         else:
-            print(
-                "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
-            print("Aborting process.")
-            return
-        creation_train = time.time() - start_creation
-        print("Creation time for Train Graph dataset:", creation_train, file=f)
-        print("Creation time for Train Graph dataset:", creation_train)
+            filter_type = type_graph
 
-        # graphs val
-        start_creation = time.time()
-        if config_file["load_data_paths"]["with_val"] == True:
+        with open(file_results + '.txt', 'a') as f:
+            try:
+                print("\nLoading pre-trained", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
+                print("Loading 1L-MHASummarizer...")
+                model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+                print("Done.")
+
+                print("Model temperature", model_lightning.temperature)
+                print("Evaluating VAL and TEST loaders...")
+                max_len = config_file["max_len"]
+                _, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
+                                                                        config_file["batch_size"], df_val=df_val,
+                                                                        task="summarization",
+                                                                        tokenizer_from_scratch=False,
+                                                                        path_ckpt=path_vocab)
+                preds_v, _, all_labels_v, _, _ = model_lightning.predict(loader_val, cpu_store=False)
+                preds_test, _, all_labels_test, _, _ = model_lightning.predict(loader_test, cpu_store=False)
+                acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
+                acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
+
+                print("================================================", file=f)
+                print("Evaluation of pre-trained model:", model_name, file=f)
+                print("================================================", file=f)
+                print("[VAL] Acc:", acc_v, file=f)
+                print("[VAL] F1 scores:", f1_all_v.mean(), file=f)
+                print("[VAL] F1 scores:", f1_all_v, file=f)  # print train pre-trained model
+                print("[TEST] Acc:", acc_test, file=f)
+                print("[TEST] F1 scores:", f1_all_test.mean(), file=f)
+                print("[TEST] F1 scores:", f1_all_test, file=f)  # print test pre-trained model
+                print("Results saved on", file_results + '.txt')
+
+            except:
+                pass
+
+            print("================================================", file=f)
+            print("Attention Graph Creation/Loading Time:", filter_type, file=f)
+            print("================================================", file=f)
             start_creation = time.time()
             if unified_flag == True:
-                dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val,
-                                                         model_ckpt=path_checkpoint, mode="val",
-                                                         binarized=flag_binary, multi_layer_model=multi_flag)
-        else:
-            print(
-                "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
-            print("Aborting process.")
-            return
-        creation_val = time.time() - start_creation
-        print("Creation time for Val Graph dataset:", creation_val, file=f)
-        print("Creation time for Val Graph dataset:", creation_val)
+                dataset_train = UnifiedAttentionGraphs_Sum(path_root, filename_train, filter_type, loader_train,
+                                                           model_ckpt=path_checkpoint, mode="train",
+                                                           binarized=flag_binary, multi_layer_model=multi_flag)
+            else:
+                print(
+                    "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
+                print("Aborting process.")
+                return
+            creation_train = time.time() - start_creation
+            print("Creation time for Train Graph dataset:", creation_train, file=f)
+            print("Creation time for Train Graph dataset:", creation_train)
 
-        start_creation = time.time()
-        if unified_flag == True:
-            dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test,
-                                                       model_ckpt=path_checkpoint, mode="test",
-                                                       binarized=flag_binary, multi_layer_model=multi_flag)
-        else:
-            print(
-                "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
-            print("Aborting process.")
-            return
-        creation_test = time.time() - start_creation
-        print("Creation time for Test Graph dataset:", creation_test, file=f)
-        print("Creation time for Test Graph dataset:", creation_test)
-        print("================================================", file=f)
-        f.close()
+            # graphs val
+            start_creation = time.time()
+            if config_file["load_data_paths"]["with_val"] == True:
+                start_creation = time.time()
+                if unified_flag == True:
+                    dataset_val = UnifiedAttentionGraphs_Sum(path_root, filename_val, filter_type, loader_val,
+                                                            model_ckpt=path_checkpoint, mode="val",
+                                                            binarized=flag_binary, multi_layer_model=multi_flag)
+            else:
+                print(
+                    "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
+                print("Aborting process.")
+                return
+            creation_val = time.time() - start_creation
+            print("Creation time for Val Graph dataset:", creation_val, file=f)
+            print("Creation time for Val Graph dataset:", creation_val)
+
+            start_creation = time.time()
+            if unified_flag == True:
+                dataset_test = UnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type, loader_test,
+                                                        model_ckpt=path_checkpoint, mode="test",
+                                                        binarized=flag_binary, multi_layer_model=multi_flag)
+            else:
+                print(
+                    "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
+                print("Aborting process.")
+                return
+            creation_test = time.time() - start_creation
+            print("Creation time for Test Graph dataset:", creation_test, file=f)
+            print("Creation time for Test Graph dataset:", creation_test)
+            print("================================================", file=f)
+            f.close()
 
     ### Run GNN models on graph datasets
     start = time.time()
