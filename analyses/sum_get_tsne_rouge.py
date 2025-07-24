@@ -1,10 +1,17 @@
 # TODO: clean imports
+import argparse
 import re, os
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
+
+import yaml
+import random
+
+from analyses.util_ana import visualize_side_by_side, predict_sentences_4Rouge
+
 warnings.filterwarnings("ignore")
 
 import time
@@ -53,249 +60,203 @@ from base_model import MHASummarizer
 from data_loaders import create_loaders, clean_tokenization_sent, check_dataframe, get_class_weights
 from rouge_score import rouge_scorer
 
-from graph_data_loaders import UnifiedAttentionGraphs_Sum, ActualUnifiedAttentionGraphs_Sum
+from graph_data_loaders import UnifiedAttentionGraphs_Sum
 from gnn_model import partitions, GAT_NC_model
 
 # TODO: also make it take config_gnn file
 # TODO: merge summary_distribution into this file
-
-os.environ["TOKENIZERS_PARALLELISM"] = "False"
-os.environ["CUDA_VISIBLE_DEVICES"]='-1'
-
 # TODO: move all function to util in this folder (after debugging)
 ## cut out unnecessary parts
 # TODO: merge rouge and bertscore into one function
-def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
-    model.eval()
-    device = model.device
-    preds = []
-    all_labels = []
-    rougeLF1 = []
-    rouge2F1 = []
-    rouge1F1 = []
 
-    sent_dict_disk = pd.read_csv(path_invert_vocab + "vocab_sentences.csv")
-    invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-
-    max_f1 = maxf1
-    max_id_article = None
-    min_f1 = minf1
-    min_id_article = None
-    isolated_count = 0
-
-    with torch.no_grad():
-        for data in tqdm(loader, desc="Evaluating ROUGE"):
-            if data.has_isolated_nodes():
-                isolated_count += 1
-                continue
-
-            try:
-                out = model(data.x.float().to(device), data.edge_index.to(device), data.edge_attr.to(device),
-                            data.batch.to(device))
-            except:
-                out = model(data.x.float().to(device), data.edge_index.to(device), None, data.batch.to(device))
-
-            pred = out.argmax(dim=1)
-            test_nodes = (pred == 1)
-
-            if cpu_store:
-                pred = pred.detach().cpu().numpy()
-            preds += list(pred)
-            all_labels.extend(data.y)
-
-            # Construct summary from predicted nodes
-            nodes_classified_as_1 = test_nodes.nonzero(as_tuple=True)[0]
-            source_graph_id = data.edge_index[0]
-            joint_wo_duplicates = ""
-            seen_sentences = []
-
-            for node in nodes_classified_as_1:
-                try:
-                    pos_i = (source_graph_id == node).nonzero(as_tuple=True)[0]
-                    key_int = data.orig_edge_index[0][pos_i[0]].item()
-                except:
-                    continue
-                if key_int not in seen_sentences:
-                    seen_sentences.append(key_int)
-                    key_matched2vocab = invert_vocab_sent[key_int]
-                    joint_wo_duplicates += key_matched2vocab + " "
-
-            # Get reference summary
-            summary_matched = df_.where(df_['Article_ID'] == data['article_id'].item()).dropna()['Summary'].values[0]
-            rouge_results = R_scorer.score(summary_matched, joint_wo_duplicates)
-
-            rouge1F1.append(rouge_results['rouge1'].fmeasure)
-            rouge2F1.append(rouge_results['rouge2'].fmeasure)
-            rougeLF1.append(rouge_results['rougeL'].fmeasure)
-
-            mean_f1 = np.mean([rouge1F1[-1], rouge2F1[-1], rougeLF1[-1]])
-            if mean_f1 > max_f1:
-                max_f1 = mean_f1
-                max_id_article = data['article_id'].item()
-            if mean_f1 < min_f1:
-                min_f1 = mean_f1
-                min_id_article = data['article_id'].item()
-
-    print("\nArticle ID with best results:", max_id_article, "with F1-score:", max_f1)
-    print("Article ID with worst results:", min_id_article, "with F1-score:", min_f1)
-    print("#Graphs with isolated nodes:", isolated_count)
-    print("Mean ROUGE 1-F1:", np.mean(rouge1F1), "Mean ROUGE 2-F1:", np.mean(rouge2F1), "Mean ROUGE L-F1:", np.mean(rougeLF1))
-
-    return preds, all_labels, max_id_article, min_id_article, max_f1, min_f1, rouge1F1, rouge2F1, rougeLF1
+os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 
-# loading data
-in_path = "/scratch2/rldallitsako/datasets/GovReport-Sum/"
-data_train = None
-labels_train = None
-data_test = None
-labels_test = None
+def main_run(config_file, settings_file, num_print,
+             random=False, rouge_score=False, bert_score=False, tsne=False):
+    ### Load configuration file and set parameters
+    os.environ["CUDA_VISIBLE_DEVICES"] = config_file["cuda_visible_devices"]
+    logger_name = config_file["logger_name"]
+    type_model = config_file["type_model"]
+    dataset_name = config_file["dataset_name"]
+    path_vocab = config_file["load_data_paths"]["in_path"]
+    model_name = config_file["model_name"]
+    setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
-path_root = "/scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_ReLu/max_unified"
-filename_train="predict_train_documents.csv"
-filename_val= "predict_val_documents.csv"
-filename_test= "predict_test_documents.csv"
+    flag_binary = config_file["binarized"]
+    multi_flag = config_file["multi_layer"]
+    unified_flag = config_file["unified_nodes"]
+    save_flag = config_file["saving_file"]
 
-# define graphs
-type_model = "GAT"
-type_graph = "max"
-flag_binary= False
-multi_flag = True
+    root_graph = config_file["data_paths"]["root_graph_dataset"]
+    path_results = config_file["data_paths"]["results_folder"]
+    path_logger = config_file["data_paths"]["path_logger"]
 
-# define model and train args
-batch_size = 32
-num_hidden = 256
-num_classes = 2
-num_layers = 3
-lr = 1e-3
-std = 0.5
-num_print = 5
-max_len = 1000
-granularity= "local"
-model_name= "Extended_ReLu"
+    num_classes = config_file["model_arch_args"]["num_classes"]
+    lr = config_file["model_arch_args"]["lr"]
+    dropout = config_file["model_arch_args"]["dropout"]
+    dim_features = config_file["model_arch_args"]["dim_features"]
+    n_layers = config_file["model_arch_args"]["n_layers"]
+    num_runs = config_file["model_arch_args"]["num_runs"]
 
-#df_train, df_val, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=True)
-df_train, df_test = load_data(in_path, data_train, labels_train, data_test, labels_test, with_val=False) # skip loading val
+    model_name = config_file["model_name"]
+    df_logger = pd.read_csv(path_logger + logger_name)
+    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+    file_to_save = model_name+"_"+str(model_score)[:5]
+    type_graph = config_file["type_graph"]
+    max_len = config_file["max_len"]
+    path_models = path_logger+model_name+"/"
 
-ids2remove_train = check_dataframe(df_train)
-for id_remove in ids2remove_train:
-    df_train = df_train.drop(id_remove)
-df_train.reset_index(drop=True, inplace=True)
-print("Train shape:", df_train.shape)
+    if config_file["load_data_paths"]["with_val"] == True:
+        df_train, _, df_test = load_data(**config_file["load_data_paths"])
+    else:
+        df_train, df_test = load_data(**config_file["load_data_paths"])
 
-ids2remove_test = check_dataframe(df_test)
-for id_remove in ids2remove_test:
-    df_test = df_test.drop(id_remove)
-df_test.reset_index(drop=True, inplace=True)
-print("Test shape:", df_test.shape)
+    if config_file["with_cw"] == True:
+        my_class_weights, labels_counter = get_class_weights(df_train)
+        calculated_cw = my_class_weights
+        print("\nClass weights - from training partition:", my_class_weights)
+        print("Class counter:", labels_counter)
+    else:
+        print("\n-- No class weights specificied --\n")
+        calculated_cw = None
 
-#create loader from existing sentence vocabulary
-#loader_train, loader_val, loader_test, _ , _ , _, _ = create_loaders(df_train, df_test, max_len, batch_size, df_val=df_val,
-loader_train, loader_test, _ , _ = create_loaders(df_train, df_test, max_len, batch_size, with_val=False, df_val=None,
-                                                                     task="summarization", tokenizer_from_scratch=False, path_ckpt=in_path)
-my_class_weights, labels_counter = get_class_weights(df_train, task="summarization")
-calculated_cw = my_class_weights
-print("\nClass weights - from training partition:", calculated_cw)
+    filename_test = "post_predict_test_documents.csv"
+    path_dataset = os.path.join(root_graph, "raw")
+    path_filename_test = os.path.join(path_dataset, filename_test)
+    if os.path.exists(path_filename_test):
+        print("Test file Requirements already satified in ", root_graph + "/raw/")
+    else:
+        _, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
+                                                         with_val=False, tokenizer_from_scratch=False,
+                                                         path_ckpt=path_vocab,
+                                                         df_val=None, task="summarization")
 
-mha_checkpoint = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_ReLu/Extended_ReLu-epoch=15-Val_f1-ma=0.53.ckpt"
+        print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
+        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+        print("Done")
 
-path_filename_test = os.path.join(path_root, "raw", filename_test)
-if os.path.exists(path_filename_test):
-    print("Requirements satisfied in:", path_root)
-else:  # if not os.path.exists(path_filename_train):
-    print("\nLoading", model_name, "from:", mha_checkpoint)
-    model_lightning = MHASummarizer.load_from_checkpoint(mha_checkpoint)
+        print("\nPredicting Test")
+        _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
+            loader_test, cpu_store=False, flag_file=True)
+        post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
+        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
+        for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
+            post_predict_test_docs.loc[len(post_predict_test_docs)] = {
+                "article_id": article_id.item(),
+                "label": label.item(),
+                "doc_as_ids": doc_as_ids.tolist()
+            }
+        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
+        print("Finished and saved in:", path_dataset + filename_test)
 
-    print("\nObtaining predictions from pre-trained Single-layer MHASummarizer...")
-    start_creation = time.time()
-    partition = "TEST"
-    accs_t, f1s_t = model_lightning.predict_to_file(loader_test, saving_file=True, filename=filename_test,
-                                                            path_root=path_root)
-    creation_time = time.time() - start_creation
-    print("[" + partition + "] File creation time:", creation_time)
-    print("[" + partition + "] Avg. Acc:", torch.tensor(accs_t).mean().item())
-    print("[" + partition + "] Avg. F1-score:", torch.stack(f1s_t, dim=0).mean(dim=0).numpy())
-    print("================================================")
-
-
-#dataset_train = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_train, filter_type=type_graph, data_loader=None, mode="train", binarized=flag_binary, multi_layer_model=multi_flag)
-#dataset_val = UnifiedAttentionGraphs_Sum(root=path_root, filename=filename_val, filter_type=type_graph, data_loader=None, mode="val", binarized=flag_binary, multi_layer_model=multi_flag)
-dataset_test = ActualUnifiedAttentionGraphs_Sum(path_root, filename_test, filter_type=type_graph, data_loader=loader_test, degree=std,model_ckpt=mha_checkpoint, mode="test",binarized=flag_binary)
-
-gat_checkpoint = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_ReLuGAT/max_unified/"
-GAT_ckpt= "GAT_3L_256U_max_unified_run2-OUT-epoch=49-Val_f1-ma=0.52.ckpt"  ###chequear best en results file (1 by 1)
-### No guardé todos los params en checkpoint asi que inicializar modelo y cargar pesos
-
-model = GAT_NC_model(dataset_test.num_node_features, num_hidden, num_classes, num_layers, lr, dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
-print ("Loading model from:", gat_checkpoint+GAT_ckpt)
-checkpoint = torch.load(gat_checkpoint+GAT_ckpt, map_location=torch.device('cpu'))
-model.load_state_dict(checkpoint['state_dict'])
-
-# then run evaluation on test_loader
-test_loader = DataLoader(dataset_test, batch_size=1, shuffle=False)
-batch = next(iter(test_loader))
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = model.to(device)
-_ = model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
-
-R_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
-path_vocab = in_path
-preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = predict_sentences_4Rouge(
-    model, test_loader, path_vocab, df_test, R_scorer, maxf1=0.55, minf1=0.49)
-
-print ("Mean ROUGE 1-F1:", np.mean(rouge1), "Mean ROUGE 2-F1:", np.mean(rouge2), "Mean ROUGE L-F1:", np.mean(rougeL))
-relu_acc, relu_f1= eval_results(torch.Tensor(preds), all_labels, num_classes, "Test - 1L-ReLu Max Graphs")
-
-sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
-sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
-plt.title("[1L-"+model_name+"] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
-plt.xticks(ticks=[0, 1, 2], labels=['Rouge-1', 'Rouge-2', 'Rouge-L'])
-plt.ylabel("Score", fontsize=10)
-plt.xlabel("Rouge Scorer", fontsize=10)
-plt.show()
-
-# # implement visualize h in test set
-# # TODO: move functions to util after debugging
-def visualize(h, color):
-    z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
-
-    plt.figure(figsize=(6, 6))
-    plt.xticks([])
-    plt.yticks([])
-    plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
-    plt.show()
-
-def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
-    x_np = x.detach().cpu().numpy()
-    out_np = out_sample.detach().cpu().numpy()
-
-    # Run t-SNE on both
-    z1 = TSNE(n_components=2, perplexity=min(30, len(x_np) - 1)).fit_transform(x_np)
-    z2 = TSNE(n_components=2, perplexity=min(30, len(out_np) - 1)).fit_transform(out_np)
-
-    # Plot
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    for ax, z, title in zip(axes, [z1, z2], [title1, title2]):
-        ax.set_xticks([])
-        ax.set_yticks([])
-        scatter = ax.scatter(z[:, 0], z[:, 1], s=60, c=color, cmap="Set2")
-        ax.set_title(title)
-
-    plt.tight_layout()
-    plt.show()
+        dataset_test = UnifiedAttentionGraphs_Sum(root_graph, filename_test, filter_type=type_graph,
+                                                  data_loader=loader_test, model_ckpt=path_checkpoint,
+                                                  mode="test", binarized=flag_binary)
 
 
-print("Visualizing embeddings from trained model...")
 
-for i in range(num_print):
-    data = dataset_test[i].to(device)
-    with torch.no_grad():
-        out_sample = model(data.x.float(), data.edge_index, data.edge_attr, data.batch)
+    ###gat_checkpoint = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_ReLuGAT/max_unified/"
+    gat_checkpoint = os.path.join(root_graph, model_name, type_graph + "_unified")
+    gat_ckpt= "GAT_3L_256U_max_unified_run2-OUT-epoch=49-Val_f1-ma=0.52.ckpt"
 
-    # Choose either one
-    # visualize(data.x, color=data.y)
-    # visualize(out_sample, color=data.y)
-    visualize_side_by_side(data.x, out_sample, color=data.y)
+    match = re.search(r'_(\d+)L_(\d+)U_', gat_ckpt)
+    if match:
+        num_layers = int(match.group(1))
+        num_hidden = int(match.group(2))
+    else:
+        print("Pattern not found")
+
+    gat_model = GAT_NC_model(dataset_test.num_node_features, num_hidden, num_classes, num_layers, lr,
+                         dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
+    print ("Loading model from:", gat_checkpoint+gat_ckpt)
+    checkpoint = torch.load(gat_checkpoint+gat_ckpt, map_location=torch.device('cpu'))
+    gat_model.load_state_dict(checkpoint['state_dict'])
+
+    # then run evaluation on test_loader
+    test_loader = DataLoader(dataset_test, batch_size=1, shuffle=False)
+    batch = next(iter(test_loader))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    gat_model = gat_model.to(device)
+    _ = gat_model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
+
+    if rouge_score:
+        print("Analyzing Rouge scores...")
+        R_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
+        path_vocab = config_file["load_data_paths"]["in_path"]
+        preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = predict_sentences_4Rouge(
+            gat_model, test_loader, path_vocab, df_test, R_scorer, maxf1=0.55, minf1=0.49)
+        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes, "Test - 1L-ReLu Max Graphs")
+
+        sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
+        sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
+        plt.title("[1L-" + model_name + "] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
+        plt.xticks(ticks=[0, 1, 2], labels=['Rouge-1', 'Rouge-2', 'Rouge-L'])
+        plt.ylabel("Score", fontsize=10)
+        plt.xlabel("Rouge Scorer", fontsize=10)
+        plt.show()
+
+    if bert_score:
+        print("Analyzing BERTScore scores...")
+
+    if tsne:
+        print("Visualizing embeddings from trained model...")
+
+        if random:
+            indices_test = list(range(dataset_test))
+            sampled_indices_test = random.sample(indices_test, num_print)
+        else:
+            sampled_indices_test = range(num_print)
+
+        for i in sampled_indices_test:
+            data = dataset_test[i].to(device)
+            with torch.no_grad():
+                out_sample = gat_model(data.x.float(), data.edge_index, data.edge_attr, data.batch)
+            visualize_side_by_side(data.x, out_sample, color=data.y)
+
+if __name__ == "__main__":
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "--settings_file",
+        "-s",
+        action="store",
+        dest="settings_file",
+        required=True,
+        type=str,
+        help="path of the settings file",
+    )
+    arg_parser.add_argument(
+        "--num_print",
+        type=int,
+        default=5,
+        help="optional number to print",
+    )
+    arg_parser.add_argument(
+        "--random",
+        action="store_true",
+        help="set this flag to enable random samples for num_print",
+    )
+    arg_parser.add_argument(
+        "--rouge_score",
+        action="store_true",
+        help="analyze Rouge scores",
+    )
+    arg_parser.add_argument(
+        "--bert_score",
+        action="store_true",
+        help="analyze BERTScore",
+    )
+    arg_parser.add_argument(
+        "--tsne",
+        action="store_true",
+        help="plot t-SNE samples as num_print",
+    )
+    args = arg_parser.parse_args()
+    with open(args.settings_file) as fd:
+        config_file = yaml.load(fd, Loader=yaml.SafeLoader)
+
+    main_run(config_file, args.settings_file, **vars(args))
+
 
 # RESULTS
 # Article ID with best results: 921 with F1-score: 0.8187114363610274
