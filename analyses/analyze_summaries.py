@@ -10,7 +10,8 @@ import warnings
 import yaml
 import random
 
-from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences, plot_two_distributions
+from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences, plot_two_distributions, \
+    extract_val_f1
 
 warnings.filterwarnings("ignore")
 
@@ -74,39 +75,22 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 def main_run(config_file, settings_file, num_print,
              random=False, tsne=False, rouge_score=False, bert_score=False, sent_dist=False):
-    ### Load configuration file and set parameters
+    # Load configuration file and set parameters
     os.environ["CUDA_VISIBLE_DEVICES"] = config_file["cuda_visible_devices"]
     logger_name = config_file["logger_name"]
-    type_model = config_file["type_model"]
-    dataset_name = config_file["dataset_name"]
-    path_vocab = config_file["load_data_paths"]["in_path"]
-    model_name = config_file["model_name"]
-    setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
-
     flag_binary = config_file["binarized"]
-    multi_flag = config_file["multi_layer"]
-    unified_flag = config_file["unified_nodes"]
-    save_flag = config_file["saving_file"]
 
     root_graph = config_file["data_paths"]["root_graph_dataset"]
-    path_results = config_file["data_paths"]["results_folder"]
     path_logger = config_file["data_paths"]["path_logger"]
     path_vocab = config_file["load_data_paths"]["in_path"]
 
     num_classes = config_file["model_arch_args"]["num_classes"]
     lr = config_file["model_arch_args"]["lr"]
-    dropout = config_file["model_arch_args"]["dropout"]
-    dim_features = config_file["model_arch_args"]["dim_features"]
-    n_layers = config_file["model_arch_args"]["n_layers"]
-    num_runs = config_file["model_arch_args"]["num_runs"]
-
     model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
-    file_to_save = model_name+"_"+str(model_score)[:5]
     type_graph = config_file["type_graph"]
     max_len = config_file["max_len"]
-    path_models = path_logger+model_name+"/"
 
     if config_file["load_data_paths"]["with_val"] == True:
         df_train, _, df_test = load_data(**config_file["load_data_paths"])
@@ -155,10 +139,11 @@ def main_run(config_file, settings_file, num_print,
                                                   data_loader=loader_test, model_ckpt=path_checkpoint,
                                                   mode="test", binarized=flag_binary)
 
-    ###gat_checkpoint = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_ReLuGAT/max_unified/"
-    gat_checkpoint = os.path.join(root_graph, model_name, type_graph + "_unified")
-    gat_ckpt= "GAT_3L_256U_max_unified_run2-OUT-epoch=49-Val_f1-ma=0.52.ckpt"
-    match = re.search(r'_(\d+)L_(\d+)U_', gat_ckpt)
+    # Get GAT model with the best val_f1 score in the class folder
+    gat_folder = os.path.join(root_graph, model_name, type_graph + "_unified")
+    model_list = [f for f in os.listdir(gat_folder) if f.endswith(".ckpt") ]
+    gat_checkpoint = max(model_list, key=extract_val_f1)
+    match = re.search(r'_(\d+)L_(\d+)U_', gat_checkpoint)
     if match:
         num_layers = int(match.group(1))
         num_hidden = int(match.group(2))
@@ -171,8 +156,8 @@ def main_run(config_file, settings_file, num_print,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     gat_model = GAT_NC_model(dataset_test.num_node_features, num_hidden, num_classes, num_layers, lr,
                          dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
-    print ("Loading model from:", gat_checkpoint+gat_ckpt)
-    checkpoint = torch.load(gat_checkpoint+gat_ckpt, map_location=torch.device('cpu'))
+    print ("Loading model from:", gat_folder+gat_checkpoint)
+    checkpoint = torch.load(gat_folder+gat_checkpoint, map_location=torch.device('cpu'))
     gat_model.load_state_dict(checkpoint['state_dict'])
     gat_model = gat_model.to(device)
     _ = gat_model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
