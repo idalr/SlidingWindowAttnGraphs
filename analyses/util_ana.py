@@ -200,23 +200,23 @@ def smooth_counts(counts, window_size=5):
     kernel = np.ones(window_size) / window_size
     return np.convolve(counts, kernel, mode='same')
 
-def plot_two_distributions(position1, position2=None):
-    x1, raw1  = extract_relative_ones(position1)
-    smooth1 = smooth_counts(raw1, window_size=5)
+def plot_two_distributions(preds, oracles=None):
+    preds_x, preds_raw  = extract_relative_ones(preds)
+    preds_smooth = smooth_counts(preds_raw, window_size=5)
 
     plt.figure(figsize=(10, 4))
-    plt.plot(x1, raw1, alpha=0.3, label="Raw File 1", drawstyle='steps-mid', color="blue")
-    #plt.plot(x1, smooth1, label="Smoothed File 1", color="blue")
+    plt.plot(preds_x, preds_raw, alpha=0.3, label="Predicted summary sentences", drawstyle='steps-mid', color="blue")
+    #plt.plot(preds_x, preds_smooth, label="Smoothed prediction", color="blue")
 
 
-    if position2:
-        x2, raw2 = extract_relative_ones(position2)
-        smooth2 = smooth_counts(raw2, window_size=5)
-        plt.plot(x2, raw2, alpha=0.3, label="Raw File 2", drawstyle='steps-mid', color="green")
-        #plt.plot(x2, smooth2, label="Smoothed File 2", color="green")
+    if oracles:
+        oracles_x, oracles_raw = extract_relative_ones(oracles)
+        oracles_smooth = smooth_counts(oracles_raw, window_size=5)
+        plt.plot(oracles_x, oracles_raw, alpha=0.3, label="Oracle summary sentences", drawstyle='steps-mid', color="green")
+        #plt.plot(oracles_x, oracles_smooth, label="Smoothed oracle", color="green")
 
     plt.xlabel("Relative Position (%)")
-    plt.ylabel("Raw Count of 1s")
+    plt.ylabel("Counts of summary sentences")
     plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
     plt.tight_layout()
     plt.grid(False)
