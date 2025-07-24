@@ -15,8 +15,8 @@ This repository follows the structure of the original repository with additional
 ```bash
 ├── analyses/                               # Generate figures appeared in the paper
 ├── config/
-│   ├── Classifier/                         # Config files including parameters for training our attention-based classifier model.
-│   └── Summerizer/                         # Config files including parameters for training our attention-based summarizer model.
+│   ├── Classifier/                         # Config files including parameters for training our attention-based classifier model
+│   └── Summerizer/                         # Config files including parameters for training our attention-based summarizer model
 ├── GNN_Results/                            # Results obtained from our runs
 │   ├── Classifier/                         # Results from learned graphs on document classification task
 │   └── Summerizer/                         # Results from learned graphs on document extractive summarization task
