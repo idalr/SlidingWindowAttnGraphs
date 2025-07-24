@@ -52,36 +52,19 @@ from preprocess_data import load_data
 from base_model import MHASummarizer
 from data_loaders import create_loaders, clean_tokenization_sent, check_dataframe, get_class_weights
 from rouge_score import rouge_scorer
+from bert_score import score
 
 from graph_data_loaders import UnifiedAttentionGraphs_Sum
 from gnn_model import partitions, GAT_NC_model
 
-
-
-def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
+def predict_sentences(model, loader, cpu_store=True):
     model.eval()
     device = model.device
     preds = []
     all_labels = []
-    rougeLF1 = []
-    rouge2F1 = []
-    rouge1F1 = []
-
-    sent_dict_disk = pd.read_csv(path_invert_vocab + "vocab_sentences.csv")
-    invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-
-    max_f1 = maxf1
-    max_id_article = None
-    min_f1 = minf1
-    min_id_article = None
-    isolated_count = 0
 
     with torch.no_grad():
-        for data in tqdm(loader, desc="Evaluating ROUGE"):
-            if data.has_isolated_nodes():
-                isolated_count += 1
-                continue
-
+        for data in loader:
             try:
                 out = model(data.x.float().to(device), data.edge_index.to(device), data.edge_attr.to(device),
                             data.batch.to(device))
@@ -89,32 +72,71 @@ def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, ma
                 out = model(data.x.float().to(device), data.edge_index.to(device), None, data.batch.to(device))
 
             pred = out.argmax(dim=1)
-            test_nodes = (pred == 1)
 
             if cpu_store:
                 pred = pred.detach().cpu().numpy()
-            preds += list(pred)
-            all_labels.extend(data.y)
+            preds.append(pred.tolist())
+            all_labels.append(data.y.tolist())
 
-            # Construct summary from predicted nodes
-            nodes_classified_as_1 = test_nodes.nonzero(as_tuple=True)[0]
-            source_graph_id = data.edge_index[0]
-            joint_wo_duplicates = ""
-            seen_sentences = []
+    return preds, all_labels
 
-            for node in nodes_classified_as_1:
-                try:
-                    pos_i = (source_graph_id == node).nonzero(as_tuple=True)[0]
-                    key_int = data.orig_edge_index[0][pos_i[0]].item()
-                except:
-                    continue
-                if key_int not in seen_sentences:
-                    seen_sentences.append(key_int)
-                    key_matched2vocab = invert_vocab_sent[key_int]
-                    joint_wo_duplicates += key_matched2vocab + " "
+def compare_similariry(model, loader, path_invert_vocab, df_, scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
+    if scorer == 'rouge':
+        rougeLF1 = []
+        rouge2F1 = []
+        rouge1F1 = []
+    elif scorer == 'bertscore':
+        BP = []
+        BR = []
+        BF1 = []
+    else:
+        print("Scorer not found.")
+        return
+    max_f1 = maxf1
+    max_id_article = None
+    min_f1 = minf1
+    min_id_article = None
 
-            # Get reference summary
-            summary_matched = df_.where(df_['Article_ID'] == data['article_id'].item()).dropna()['Summary'].values[0]
+    # Prediction
+    model.eval()
+    device = model.device
+    preds, all_labels = predict_sentences(model, loader, cpu_store=cpu_store)
+
+    flat_preds = [p for batch in preds for p in batch]
+    flat_labels = [l for batch in all_labels for l in batch]
+
+    sent_dict_disk = pd.read_csv(path_invert_vocab + "vocab_sentences.csv")
+    invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+
+    for batch_idx, data in enumerate(tqdm(loader, desc="Evaluating ROUGE/BERTScore")):
+        pred_batch = preds[batch_idx]
+
+        # Make sure it's a tensor for comparison
+        pred_tensor = torch.tensor(pred_batch)
+        test_nodes = (pred_tensor == 1)
+
+        # Construct summary from predicted nodes
+        nodes_classified_as_1 = test_nodes.nonzero(as_tuple=True)[0]
+        source_graph_id = data.edge_index[0]
+        joint_wo_duplicates = ""
+        seen_sentences = []
+
+        for node in nodes_classified_as_1:
+            try:
+                pos_i = (source_graph_id == node).nonzero(as_tuple=True)[0]
+                key_int = data.orig_edge_index[0][pos_i[0]].item()
+            except:
+                continue
+            if key_int not in seen_sentences:
+                seen_sentences.append(key_int)
+                key_matched2vocab = invert_vocab_sent[key_int]
+                joint_wo_duplicates += key_matched2vocab + " "
+
+        # Get reference summary
+        summary_matched = df_.where(df_['Article_ID'] == data['article_id'].item()).dropna()['Summary'].values[0]
+
+        if scorer == 'rouge':
+            R_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
             rouge_results = R_scorer.score(summary_matched, joint_wo_duplicates)
 
             rouge1F1.append(rouge_results['rouge1'].fmeasure)
@@ -129,16 +151,34 @@ def predict_sentences_4Rouge(model, loader, path_invert_vocab, df_, R_scorer, ma
                 min_f1 = mean_f1
                 min_id_article = data['article_id'].item()
 
+        elif scorer == 'bertscore':
+            P, R, F1 = score([joint_wo_duplicates], [summary_matched], lang="en")  # , idf=True)
+
+            BP.append(P.item())
+            BR.append(R.item())
+            BF1.append(F1.item())
+
+            mean_f1 = np.mean([P[-1], R[-1], F1[-1]])
+            if mean_f1 > max_f1:
+                max_f1 = mean_f1
+                max_id_article = data['article_id'].item()
+            if mean_f1 < min_f1:
+                min_f1 = mean_f1
+                min_id_article = data['article_id'].item()
+
     print("\nArticle ID with best results:", max_id_article, "with F1-score:", max_f1)
     print("Article ID with worst results:", min_id_article, "with F1-score:", min_f1)
-    print("#Graphs with isolated nodes:", isolated_count)
-    print("Mean ROUGE 1-F1:", np.mean(rouge1F1), "Mean ROUGE 2-F1:", np.mean(rouge2F1), "Mean ROUGE L-F1:", np.mean(rougeLF1))
+    if scorer == 'rouge':
+        print("Mean ROUGE 1-F1:", np.mean(rouge1F1), "Mean ROUGE 2-F1:", np.mean(rouge2F1),
+              "Mean ROUGE L-F1:", np.mean(rougeLF1))
+    elif scorer == 'bertscore':
+        print("Mean BERTScore precision:", P.mean().item(), "Mean BERTScore recall", R.mean().item(),
+              "Mean BERTScore L-F1:", F1.mean().item())
 
     return preds, all_labels, max_id_article, min_id_article, max_f1, min_f1, rouge1F1, rouge2F1, rougeLF1
 
 
-# # implement visualize h in test set
-# # TODO: move functions to util after debugging
+# Implement visualize h in test set
 def visualize(h, color):
     z = TSNE(n_components=2).fit_transform(h.detach().cpu().numpy())
 
@@ -148,7 +188,7 @@ def visualize(h, color):
     plt.scatter(z[:, 0], z[:, 1], s=70, c=color, cmap="Set2")
     plt.show()
 
-def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
+def visualize_tsne(x, out_sample, color, title1="Input Features", title2="Output Embeddings"):
     x_np = x.detach().cpu().numpy()
     out_np = out_sample.detach().cpu().numpy()
 
@@ -167,16 +207,7 @@ def visualize_side_by_side(x, out_sample, color, title1="Input Features", title2
     plt.tight_layout()
     plt.show()
 
-def extract_from_file(file, column="cols", bins=100, max_col=2):
-    df = pd.read_csv(file).head(max_col)
-    seqs = []
-
-    for row in df[column]:
-        seq = ast.literal_eval(row)
-        seqs.append(seq)
-
-    return seqs
-
+# Plot sentence distribution
 def extract_relative_ones(input_data, column=None, bins=300):
     positions = []
 
@@ -230,26 +261,3 @@ def plot_two_distributions(position1, position2=None):
     plt.tight_layout()
     plt.grid(False)
     plt.show()
-
-def predict_sentences(model, loader, cpu_store=True):
-    model.eval()
-    device = model.device
-    preds = []
-    all_labels = []
-
-    with torch.no_grad():
-        for data in loader:
-            try:
-                out = model(data.x.float().to(device), data.edge_index.to(device), data.edge_attr.to(device),
-                            data.batch.to(device))
-            except:
-                out = model(data.x.float().to(device), data.edge_index.to(device), None, data.batch.to(device))
-
-            pred = out.argmax(dim=1)
-
-            if cpu_store:
-                pred = pred.detach().cpu().numpy()
-            preds.append(pred.tolist())
-            all_labels.append(data.y.tolist())
-
-    return preds, all_labels

@@ -6,6 +6,8 @@ import torch
 from scipy.ndimage import uniform_filter1d, gaussian_filter1d
 from torch_geometric.data import DataLoader
 
+from analyses.util_ana import extract_relative_ones, smooth_counts, predict_sentences, extract_from_file, \
+    plot_two_distributions
 from gnn_model import GAT_NC_model
 from graph_data_loaders import UnifiedAttentionGraphs_Sum
 
@@ -100,47 +102,7 @@ from graph_data_loaders import UnifiedAttentionGraphs_Sum
 #     plt.tight_layout()
 #     plt.show()
 
-def extract_from_file(file, column="cols", bins=100, max_col=2):
-    df = pd.read_csv(file).head(max_col)
-    seqs = []
 
-    for row in df[column]:
-        seq = ast.literal_eval(row)
-        seqs.append(seq)
-
-    return seqs
-
-def extract_relative_ones(input_data, column=None, bins=300):
-    positions = []
-
-    if isinstance(input_data, str):  # it's a file path
-        df = pd.read_csv(input_data)
-        assert column is not None, "If input is a file, 'column' name must be specified"
-        rows = df[column]
-    else:  # assume it's already a list of lists
-        rows = input_data
-
-    for row in rows:
-        try:
-            if isinstance(row, str):
-                seq = ast.literal_eval(row)
-            else:
-                seq = row
-            seq_len = len(seq)
-            for i, val in enumerate(seq):
-                if val == 1:
-                    rel_pos = i / seq_len
-                    positions.append(rel_pos)
-        except:
-            continue
-
-    hist, bin_edges = np.histogram(positions, bins=bins, range=(0, 1))
-    centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    return centers * 100, hist
-
-def smooth_counts(counts, window_size=5):
-    kernel = np.ones(window_size) / window_size
-    return np.convolve(counts, kernel, mode='same')
 
 # def plot_distribution(file, column="cols"):
 #     x, raw = extract_relative_ones(file, column)
@@ -158,51 +120,6 @@ def smooth_counts(counts, window_size=5):
 #     plt.tight_layout()
 #     plt.show()
 
-
-def plot_two_distributions(position1, position2=None):
-    x1, raw1  = extract_relative_ones(position1)
-    smooth1 = smooth_counts(raw1, window_size=5)
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(x1, raw1, alpha=0.3, label="Raw File 1", drawstyle='steps-mid', color="blue")
-    #plt.plot(x1, smooth1, label="Smoothed File 1", color="blue")
-
-
-    if position2:
-        x2, raw2 = extract_relative_ones(position2)
-        smooth2 = smooth_counts(raw2, window_size=5)
-        plt.plot(x2, raw2, alpha=0.3, label="Raw File 2", drawstyle='steps-mid', color="green")
-        #plt.plot(x2, smooth2, label="Smoothed File 2", color="green")
-
-    plt.xlabel("Relative Position (%)")
-    plt.ylabel("Raw Count of 1s")
-    plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
-    plt.tight_layout()
-    plt.grid(False)
-    plt.show()
-
-def predict_sentences(model, loader, cpu_store=True):
-    model.eval()
-    device = model.device
-    preds = []
-    all_labels = []
-
-    with torch.no_grad():
-        for data in loader:
-            try:
-                out = model(data.x.float().to(device), data.edge_index.to(device), data.edge_attr.to(device),
-                            data.batch.to(device))
-            except:
-                out = model(data.x.float().to(device), data.edge_index.to(device), None, data.batch.to(device))
-
-            pred = out.argmax(dim=1)
-
-            if cpu_store:
-                pred = pred.detach().cpu().numpy()
-            preds.append(pred.tolist())
-            all_labels.append(data.y.tolist())
-
-    return preds, all_labels
 
 # Load data to predict
 num_hidden = 256
@@ -298,91 +215,67 @@ ax[1].set_xlabel("Sentence Position")
 plt.suptitle("Sentence Selection Heatmap (per document)")
 plt.show()
 
-# # Get CM
-# preds = df3['preds']
-# labels = df3['labels']
-#
-# seq1 = [ast.literal_eval(i) for i in preds]
-# seq2 = [ast.literal_eval(i) for i in labels]
-#
-# flat_true = [label for doc in seq2 for label in doc]
-# flat_preds = [label for doc in seq1 for label in doc]
-#
-#
-# # Get raw confusion matrix
-# cm = confusion_matrix(flat_true, flat_preds)
-#
-# # Normalize to percentages by row (i.e., per true label)
-# cm_percent = cm.astype('float') / cm.sum(axis=1, keepdims=True) * 100
-#
-# # Optional: round for cleaner display
-# cm_percent = np.round(cm_percent, 1)
-#
-# disp = ConfusionMatrixDisplay(confusion_matrix=cm_percent, display_labels=[0, 1])
-# disp.plot(cmap='Blues', values_format=".1f")
-# plt.title("Confusion Matrix (Sentence Selection)")
-# plt.show()
 
-# #
-# # Get sentence counts per doc length
-# preds = df1['predicted_nodes']
-# labels = df2['label']
 #
-# seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
-# seq2 = [ast.literal_eval(i) for i in labels]
-# ps = [len(i) for i in seq1]
-# ls = [len(i) for i in seq2]
-#
-# plt.figure(figsize=(8, 6))
-# plt.scatter(ls, ps, alpha=0.6, color='purple')
-# plt.xlabel("Length of Document")
-# plt.ylabel("Sentence counts of predicted summaries")
-# plt.title("Comparing Predicted Summary Length to Document Length")
-# #plt.grid(True)
-# plt.tight_layout()
-# plt.show()
+# Get sentence counts per doc length
+preds = df1['predicted_nodes']
+labels = df2['label']
 
-# # Get sentence counts
-# preds = df1['predicted_nodes']
-# labels = df2['label']
-#
-# seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
-# seq2 = [ast.literal_eval(i) for i in labels]
-# ps = [len(i) for i in seq1]
-# ls = [i.count(1) for i in seq2]
-#
-# plt.figure(figsize=(8, 6))
-# plt.scatter(ls, ps, alpha=0.6, color='purple')
-# plt.xlabel("Sentence counts of oracle summaries")
-# plt.ylabel("Sentence counts of predicted summaries")
-# plt.title("Comparing Sentence Counts in Summaries")
-# #plt.grid(True)
-# plt.tight_layout()
-# plt.show()
+seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
+seq2 = [ast.literal_eval(i) for i in labels]
+ps = [len(i) for i in seq1]
+ls = [len(i) for i in seq2]
 
-# # Get token counts
-# df1['len_string1'] = df1['predicted_summary'].apply(lambda x: len(str(x).split()))
-# df1['len_string2'] = df1['oracle_summary'].apply(lambda x: len(str(x).split()))
-#
-# plt.figure(figsize=(8, 6))
-# plt.scatter(df1['len_string2'], df1['len_string1'], alpha=0.6, color='purple')
-# plt.xlabel("Token Length of oracle summaries")
-# plt.ylabel("Token Length of predicted summaries")
-# plt.title("Comparing Token Lengths in Summaries")
-# #plt.grid(True)
-# plt.tight_layout()
-# plt.show()
+plt.figure(figsize=(8, 6))
+plt.scatter(ls, ps, alpha=0.6, color='purple')
+plt.xlabel("Length of Document")
+plt.ylabel("Sentence counts of predicted summaries")
+plt.title("Comparing Predicted Summary Length to Document Length")
+#plt.grid(True)
+plt.tight_layout()
+plt.show()
 
-# p_list = []
-# r_list = []
-# f_list = []
-# for i,row in df.iterrows():
-#     pred = row['predicted_summary']
-#     gold = row['oracle_summary']
-#
-#     p, r, f1 = score([pred],[gold], lang="en", idf=True)
-#     p_list.append(p)
-#     r_list.append(r)
-#     f_list.append(f1)
-#
-# print(np.mean(p_list))
+# Get sentence counts
+preds = df1['predicted_nodes']
+labels = df2['label']
+
+seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
+seq2 = [ast.literal_eval(i) for i in labels]
+ps = [len(i) for i in seq1]
+ls = [i.count(1) for i in seq2]
+
+plt.figure(figsize=(8, 6))
+plt.scatter(ls, ps, alpha=0.6, color='purple')
+plt.xlabel("Sentence counts of oracle summaries")
+plt.ylabel("Sentence counts of predicted summaries")
+plt.title("Comparing Sentence Counts in Summaries")
+#plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Get token counts
+df1['len_string1'] = df1['predicted_summary'].apply(lambda x: len(str(x).split()))
+df1['len_string2'] = df1['oracle_summary'].apply(lambda x: len(str(x).split()))
+
+plt.figure(figsize=(8, 6))
+plt.scatter(df1['len_string2'], df1['len_string1'], alpha=0.6, color='purple')
+plt.xlabel("Token Length of oracle summaries")
+plt.ylabel("Token Length of predicted summaries")
+plt.title("Comparing Token Lengths in Summaries")
+#plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+p_list = []
+r_list = []
+f_list = []
+for i,row in df.iterrows():
+    pred = row['predicted_summary']
+    gold = row['oracle_summary']
+
+    p, r, f1 = score([pred],[gold], lang="en", idf=True)
+    p_list.append(p)
+    r_list.append(r)
+    f_list.append(f1)
+
+print(np.mean(p_list))

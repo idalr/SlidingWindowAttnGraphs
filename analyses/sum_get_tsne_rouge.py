@@ -10,7 +10,7 @@ import warnings
 import yaml
 import random
 
-from analyses.util_ana import visualize_side_by_side, predict_sentences_4Rouge
+from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences
 
 warnings.filterwarnings("ignore")
 
@@ -73,7 +73,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 
 def main_run(config_file, settings_file, num_print,
-             random=False, rouge_score=False, bert_score=False, tsne=False):
+             random=False, tsne=False, rouge_score=False, bert_score=False, sent_dist=False):
     ### Load configuration file and set parameters
     os.environ["CUDA_VISIBLE_DEVICES"] = config_file["cuda_visible_devices"]
     logger_name = config_file["logger_name"]
@@ -91,6 +91,7 @@ def main_run(config_file, settings_file, num_print,
     root_graph = config_file["data_paths"]["root_graph_dataset"]
     path_results = config_file["data_paths"]["results_folder"]
     path_logger = config_file["data_paths"]["path_logger"]
+    path_vocab = config_file["load_data_paths"]["in_path"]
 
     num_classes = config_file["model_arch_args"]["num_classes"]
     lr = config_file["model_arch_args"]["lr"]
@@ -154,12 +155,9 @@ def main_run(config_file, settings_file, num_print,
                                                   data_loader=loader_test, model_ckpt=path_checkpoint,
                                                   mode="test", binarized=flag_binary)
 
-
-
     ###gat_checkpoint = "/scratch2/rldallitsako/HomoGraphs_GovReports/Extended_ReLuGAT/max_unified/"
     gat_checkpoint = os.path.join(root_graph, model_name, type_graph + "_unified")
     gat_ckpt= "GAT_3L_256U_max_unified_run2-OUT-epoch=49-Val_f1-ma=0.52.ckpt"
-
     match = re.search(r'_(\d+)L_(\d+)U_', gat_ckpt)
     if match:
         num_layers = int(match.group(1))
@@ -167,37 +165,17 @@ def main_run(config_file, settings_file, num_print,
     else:
         print("Pattern not found")
 
+    # then run evaluation on test_loader
+    test_loader = DataLoader(dataset_test, batch_size=1, shuffle=False)
+    batch = next(iter(test_loader))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     gat_model = GAT_NC_model(dataset_test.num_node_features, num_hidden, num_classes, num_layers, lr,
                          dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
     print ("Loading model from:", gat_checkpoint+gat_ckpt)
     checkpoint = torch.load(gat_checkpoint+gat_ckpt, map_location=torch.device('cpu'))
     gat_model.load_state_dict(checkpoint['state_dict'])
-
-    # then run evaluation on test_loader
-    test_loader = DataLoader(dataset_test, batch_size=1, shuffle=False)
-    batch = next(iter(test_loader))
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     gat_model = gat_model.to(device)
     _ = gat_model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
-
-    if rouge_score:
-        print("Analyzing Rouge scores...")
-        R_scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'])
-        path_vocab = config_file["load_data_paths"]["in_path"]
-        preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = predict_sentences_4Rouge(
-            gat_model, test_loader, path_vocab, df_test, R_scorer, maxf1=0.55, minf1=0.49)
-        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes, "Test - 1L-ReLu Max Graphs")
-
-        sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
-        sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
-        plt.title("[1L-" + model_name + "] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
-        plt.xticks(ticks=[0, 1, 2], labels=['Rouge-1', 'Rouge-2', 'Rouge-L'])
-        plt.ylabel("Score", fontsize=10)
-        plt.xlabel("Rouge Scorer", fontsize=10)
-        plt.show()
-
-    if bert_score:
-        print("Analyzing BERTScore scores...")
 
     if tsne:
         print("Visualizing embeddings from trained model...")
@@ -212,7 +190,79 @@ def main_run(config_file, settings_file, num_print,
             data = dataset_test[i].to(device)
             with torch.no_grad():
                 out_sample = gat_model(data.x.float(), data.edge_index, data.edge_attr, data.batch)
-            visualize_side_by_side(data.x, out_sample, color=data.y)
+            visualize_tsne(data.x, out_sample, color=data.y)
+
+    if rouge_score:
+        print("Analyzing Rouge scores...")
+        preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = compare_similariry(
+            gat_model, test_loader, path_vocab, df_test, scorer='rouge', maxf1=0.55, minf1=0.49)
+        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes,
+                           f"Test - {num_layers}L-{model_name} {type_graph} Graphs")
+
+        sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
+        sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
+        plt.title(f"[{num_layers}L-{model_name}] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
+        plt.xticks(ticks=[0, 1, 2], labels=['Rouge-1', 'Rouge-2', 'Rouge-L'])
+        plt.ylabel("Score", fontsize=10)
+        plt.xlabel("Rouge Scorer", fontsize=10)
+        plt.show()
+
+    if bert_score:
+        print("Analyzing BERTScore score...")
+        preds, all_labels, max_id, min_id, max_f1, min_f1, P, R, F1 = compare_similariry(
+            gat_model, test_loader, path_vocab, df_test, scorer='bertscore', maxf1=0.55, minf1=0.49)
+        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes,
+                           f"Test - {num_layers}L-{model_name} {type_graph} Graphs")
+
+        sns.boxplot(data=(P, R, F1), orient='v')
+        sns.stripplot(data=(P, R, F1), marker="o", alpha=0.15, color="black", orient='v')
+        plt.title(f"[{num_layers}L-{model_name}] Distribution of BERTScore Presicion/Recall/F1 scores", fontsize=12)
+        plt.xticks(ticks=[0, 1, 2], labels=['Presicion', 'Recall', 'F1'])
+        plt.ylabel("Score", fontsize=10)
+        plt.xlabel("BERTScorer Scorer", fontsize=10)
+        plt.show()
+
+    if sent_dist:
+        if rouge_score == False and bert_score == False:
+            preds, all_labels = predict_sentences(gat_model, test_loader)
+
+        # Plot sentence Heatmap
+        oracle_matrix = np.array([doc + [0] * (max_len - len(doc)) for doc in all_labels])
+        pred_matrix = np.array([doc + [0] * (max_len - len(doc)) for doc in preds])
+
+        fig, ax = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+        sns.heatmap(oracle_matrix, cmap="Blues", cbar=False, ax=ax[0])
+        ax[0].set_ylabel("Oracle")
+        sns.heatmap(pred_matrix, cmap="Oranges", cbar=False, ax=ax[1])
+        ax[1].set_ylabel("Predicted")
+        ax[1].set_xlabel("Sentence Position")
+        plt.suptitle("Sentence Selection Heatmap (per document)")
+        plt.show()
+
+        # Plot predicted summary sentence counts vs document length
+        num_preds_1 = [i.count(1) for i in preds]
+        doc_len = [len(i) for i in preds]
+
+        plt.figure(figsize=(8, 6))
+        plt.scatter(num_preds_1, doc_len, alpha=0.6, color='purple')
+        plt.xlabel("Length of Document")
+        plt.ylabel("Sentence counts of predicted summaries")
+        plt.title("Comparing Predicted Summary Length to Document Length")
+        plt.tight_layout()
+        plt.show()
+
+        # Plot predicted summary sentence counts vs oracle summary sentence count
+        num_preds_1 = [i.count(1) for i in preds]
+        num_true_1 = [i.count(1) for i in all_labels]
+
+        plt.figure(figsize=(8, 6))
+        plt.scatter(num_true_1, num_preds_1, alpha=0.6, color='purple')
+        plt.xlabel("Sentence counts of oracle summaries")
+        plt.ylabel("Sentence counts of predicted summaries")
+        plt.title("Comparing Sentence Counts in Summaries")
+        #plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
@@ -237,6 +287,11 @@ if __name__ == "__main__":
         help="set this flag to enable random samples for num_print",
     )
     arg_parser.add_argument(
+        "--tsne",
+        action="store_true",
+        help="plot t-SNE samples as num_print",
+    )
+    arg_parser.add_argument(
         "--rouge_score",
         action="store_true",
         help="analyze Rouge scores",
@@ -247,9 +302,9 @@ if __name__ == "__main__":
         help="analyze BERTScore",
     )
     arg_parser.add_argument(
-        "--tsne",
+        "--sent_dist",
         action="store_true",
-        help="plot t-SNE samples as num_print",
+        help="analyze sentence distribution",
     )
     args = arg_parser.parse_args()
     with open(args.settings_file) as fd:
