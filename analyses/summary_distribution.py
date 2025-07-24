@@ -195,87 +195,111 @@ df1 = pd.read_csv('../datasets/GovReport-Sum/relux/relu_x_test_summary.csv')
 df2 = pd.read_csv('../datasets/GovReport-Sum/Predicted/predict_test_documents.csv')
 df3 = pd.read_csv('../datasets/GovReport-Sum/relux/test.csv')
 
-import seaborn as sns
-# Get distribution heatmap
-preds = df3['preds']
-labels = df3['labels']
-
-seq1 = [ast.literal_eval(i) for i in preds]
-seq2 = [ast.literal_eval(i) for i in labels]
-max_len = 1000
-oracle_matrix = np.array([doc + [0]*(max_len - len(doc)) for doc in seq2])
-pred_matrix = np.array([doc + [0]*(max_len - len(doc)) for doc in seq1])
-
-fig, ax = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-sns.heatmap(oracle_matrix, cmap="Blues", cbar=False, ax=ax[0])
-ax[0].set_ylabel("Oracle")
-sns.heatmap(pred_matrix, cmap="Oranges", cbar=False, ax=ax[1])
-ax[1].set_ylabel("Predicted")
-ax[1].set_xlabel("Sentence Position")
-plt.suptitle("Sentence Selection Heatmap (per document)")
-plt.show()
-
-
+# import seaborn as sns
+# # Get distribution heatmap
+# preds = df3['preds']
+# labels = df3['labels']
 #
-# Get sentence counts per doc length
-preds = df1['predicted_nodes']
-labels = df2['label']
-
-seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
-seq2 = [ast.literal_eval(i) for i in labels]
-ps = [len(i) for i in seq1]
-ls = [len(i) for i in seq2]
-
-plt.figure(figsize=(8, 6))
-plt.scatter(ls, ps, alpha=0.6, color='purple')
-plt.xlabel("Length of Document")
-plt.ylabel("Sentence counts of predicted summaries")
-plt.title("Comparing Predicted Summary Length to Document Length")
-#plt.grid(True)
-plt.tight_layout()
-plt.show()
-
-# Get sentence counts
-preds = df1['predicted_nodes']
-labels = df2['label']
-
-seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
-seq2 = [ast.literal_eval(i) for i in labels]
-ps = [len(i) for i in seq1]
-ls = [i.count(1) for i in seq2]
-
-plt.figure(figsize=(8, 6))
-plt.scatter(ls, ps, alpha=0.6, color='purple')
-plt.xlabel("Sentence counts of oracle summaries")
-plt.ylabel("Sentence counts of predicted summaries")
-plt.title("Comparing Sentence Counts in Summaries")
-#plt.grid(True)
-plt.tight_layout()
-plt.show()
-
-# Get token counts
-df1['len_string1'] = df1['predicted_summary'].apply(lambda x: len(str(x).split()))
-df1['len_string2'] = df1['oracle_summary'].apply(lambda x: len(str(x).split()))
-
-plt.figure(figsize=(8, 6))
-plt.scatter(df1['len_string2'], df1['len_string1'], alpha=0.6, color='purple')
-plt.xlabel("Token Length of oracle summaries")
-plt.ylabel("Token Length of predicted summaries")
-plt.title("Comparing Token Lengths in Summaries")
-#plt.grid(True)
-plt.tight_layout()
-plt.show()
-
-p_list = []
-r_list = []
-f_list = []
-for i,row in df.iterrows():
-    pred = row['predicted_summary']
-    gold = row['oracle_summary']
-
-    p, r, f1 = score([pred],[gold], lang="en", idf=True)
-    p_list.append(p)
-    r_list.append(r)
-    f_list.append(f1)
-
-print(np.mean(p_list))
+# seq1 = [ast.literal_eval(i) for i in preds]
+# seq2 = [ast.literal_eval(i) for i in labels]
+# max_len = 1000
+# oracle_matrix = np.array([doc + [0]*(max_len - len(doc)) for doc in seq2])
+# pred_matrix = np.array([doc + [0]*(max_len - len(doc)) for doc in seq1])
+#
+# fig, ax = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+# sns.heatmap(oracle_matrix, cmap="Blues", cbar=False, ax=ax[0])
+# ax[0].set_ylabel("Oracle")
+# sns.heatmap(pred_matrix, cmap="Oranges", cbar=False, ax=ax[1])
+# ax[1].set_ylabel("Predicted")
+# ax[1].set_xlabel("Sentence Position")
+# plt.suptitle("Sentence Selection Heatmap (per document)")
+# plt.show()
+#
+#
+# #
+# # Get sentence counts per doc length
+# preds = df1['predicted_nodes']
+# labels = df2['label']
+#
+# seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
+# seq2 = [ast.literal_eval(i) for i in labels]
+# ps = [len(i) for i in seq1]
+# ls = [len(i) for i in seq2]
+#
+# plt.figure(figsize=(8, 6))
+# plt.scatter(ls, ps, alpha=0.6, color='purple')
+# plt.xlabel("Length of Document")
+# plt.ylabel("Sentence counts of predicted summaries")
+# plt.title("Comparing Predicted Summary Length to Document Length")
+# #plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+#
+# # Get sentence counts
+# preds = df1['predicted_nodes']
+# labels = df2['label']
+#
+# seq1 = [list(map(int, i.strip('[]').split())) for i in preds]
+# seq2 = [ast.literal_eval(i) for i in labels]
+# ps = [len(i) for i in seq1]
+# ls = [i.count(1) for i in seq2]
+#
+# plt.figure(figsize=(8, 6))
+# plt.scatter(ls, ps, alpha=0.6, color='purple')
+# plt.xlabel("Sentence counts of oracle summaries")
+# plt.ylabel("Sentence counts of predicted summaries")
+# plt.title("Comparing Sentence Counts in Summaries")
+# #plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+#
+# # Get token counts
+# df1['len_string1'] = df1['predicted_summary'].apply(lambda x: len(str(x).split()))
+# df1['len_string2'] = df1['oracle_summary'].apply(lambda x: len(str(x).split()))
+#
+# plt.figure(figsize=(8, 6))
+# plt.scatter(df1['len_string2'], df1['len_string1'], alpha=0.6, color='purple')
+# plt.xlabel("Token Length of oracle summaries")
+# plt.ylabel("Token Length of predicted summaries")
+# plt.title("Comparing Token Lengths in Summaries")
+# #plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+#
+# p_list = []
+# r_list = []
+# f_list = []
+# for i,row in df.iterrows():
+#     pred = row['predicted_summary']
+#     gold = row['oracle_summary']
+#
+#     p, r, f1 = score([pred],[gold], lang="en", idf=True)
+#     p_list.append(p)
+#     r_list.append(r)
+#     f_list.append(f1)
+#
+# print(np.mean(p_list))
+#
+# plt.figure(figsize=(6, 4))
+# sns.scatterplot(x=range(len(preds)), y=BF1, color='purple')
+# plt.title("F1 Score to Document Length")
+# plt.xlabel("Document Length")
+# plt.ylabel("F1 Score")
+# plt.tight_layout()
+# plt.show()
+#
+# sns.boxplot(data=(BP, BR, BF1), orient='v')
+# sns.stripplot(data=(BP, BR, BF1), marker="o", alpha=0.15, color="black", orient='v')
+# plt.title("[1L-"+model_name+"] Distribution of P/R/F1 BERTScores", fontsize=12)
+# plt.xticks(ticks=[0, 1, 2], labels=['Precision', 'Recall', 'F1'])
+# plt.ylabel("Score", fontsize=10)
+# plt.xlabel("BERTScore Scorer", fontsize=10)
+# plt.show()
+#
+# plt.figure(figsize=(6, 4))
+# sns.scatterplot(x=[i.count(1) for i in preds], y=BF1, color='purple')
+# plt.title("F1 Score to Predicted Summary Length")
+# plt.xlabel("Length of predicted sentences")
+# plt.ylabel("F1 Score")
+# plt.tight_layout()
+# plt.show()

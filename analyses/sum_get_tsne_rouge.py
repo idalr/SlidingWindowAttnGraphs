@@ -10,7 +10,7 @@ import warnings
 import yaml
 import random
 
-from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences
+from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences, plot_two_distributions
 
 warnings.filterwarnings("ignore")
 
@@ -226,6 +226,9 @@ def main_run(config_file, settings_file, num_print,
         if rouge_score == False and bert_score == False:
             preds, all_labels = predict_sentences(gat_model, test_loader)
 
+        # Plot sentence relative position distribution
+        plot_two_distributions(preds, all_labels)
+
         # Plot sentence Heatmap
         oracle_matrix = np.array([doc + [0] * (max_len - len(doc)) for doc in all_labels])
         pred_matrix = np.array([doc + [0] * (max_len - len(doc)) for doc in preds])
@@ -239,18 +242,6 @@ def main_run(config_file, settings_file, num_print,
         plt.suptitle("Sentence Selection Heatmap (per document)")
         plt.show()
 
-        # Plot predicted summary sentence counts vs document length
-        num_preds_1 = [i.count(1) for i in preds]
-        doc_len = [len(i) for i in preds]
-
-        plt.figure(figsize=(8, 6))
-        plt.scatter(num_preds_1, doc_len, alpha=0.6, color='purple')
-        plt.xlabel("Length of Document")
-        plt.ylabel("Sentence counts of predicted summaries")
-        plt.title("Comparing Predicted Summary Length to Document Length")
-        plt.tight_layout()
-        plt.show()
-
         # Plot predicted summary sentence counts vs oracle summary sentence count
         num_preds_1 = [i.count(1) for i in preds]
         num_true_1 = [i.count(1) for i in all_labels]
@@ -260,7 +251,17 @@ def main_run(config_file, settings_file, num_print,
         plt.xlabel("Sentence counts of oracle summaries")
         plt.ylabel("Sentence counts of predicted summaries")
         plt.title("Comparing Sentence Counts in Summaries")
-        #plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+        # Plot predicted summary sentence counts vs document length
+        doc_len = [len(i) for i in preds]
+
+        plt.figure(figsize=(8, 6))
+        plt.scatter(num_preds_1, doc_len, alpha=0.6, color='purple')
+        plt.xlabel("Length of Document")
+        plt.ylabel("Sentence counts of predicted summaries")
+        plt.title("Comparing Predicted Summary Length to Document Length")
         plt.tight_layout()
         plt.show()
 
@@ -311,16 +312,3 @@ if __name__ == "__main__":
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
     main_run(config_file, args.settings_file, **vars(args))
-
-
-# RESULTS
-# Article ID with best results: 921 with F1-score: 0.8187114363610274
-# Article ID with worst results: 924 with F1-score: 0.06425045963277771
-# #Graphs with isolated nodes: 0
-# Mean ROUGE 1-F1: 0.3333074718531309 Mean ROUGE 2-F1: 0.2083046662032964 Mean ROUGE L-F1: 0.18669774228742808
-# Mean ROUGE 1-F1: 0.3333074718531309 Mean ROUGE 2-F1: 0.2083046662032964 Mean ROUGE L-F1: 0.18669774228742808
-#
-# Trained Model Results on partition: Test - 1L-ReLu Max Graphs
-# Test - 1L-ReLu Max Graphs Acc: tensor(0.7310)
-# Test - 1L-ReLu Max Graphs F1-score macro: tensor(0.5784)
-# Test - 1L-ReLu Max Graphs F1-score for each class: tensor([0.8321, 0.3248])
