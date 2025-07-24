@@ -25,7 +25,6 @@ class UnifiedAttentionGraphs_Class(Dataset):
         transform = default None. Do not change.
         normalized = if True, the edges are normalized (divided by the maximum value of each row) instead of using the original attention weights as edge attributes.
         binarized = if True, the edges are binarized (1.0) instead of using the attention weights as edge attributes.
-        multi_layer_model = if True, the model is a 2-layer MHA model. Otherwise, it is a single-layer MHA model.
         pre_transform = default None. Do not change.
         """
 
@@ -285,26 +284,24 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
 
 
-##llamar con loader usando batch size 1
 class UnifiedAttentionGraphs_Sum(Dataset):
     def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False,
-                 pre_transform=None):  # input_matrices, invert_vocab_sent
+                 pre_transform=None):
         """
-                root = Where the graph dataset should be stored. This folder is split into raw_dir (featured dataset) and processed_dir (processed graph data).
-                filename = CSV file with the dataset to be processed. It should contain the following columns: article_id, label, doc_as_ids.
-                            A row example would be: 0, 1, "[32603, 32604, 32611, 32612, 32613, 0, 0, 0, 0, 0]" for a document with article_id=0, label=1 and 5 sentences.
-                filter_type = type of filtering to be applied to the attention matrices. If None, no filtering is applied.
-                data_loader = data loader for MHA model forward. It should be a list of batches.
-                degree = tolerance degree of filtering to be applied to the attention matrices. Preliminary experiments suggest a value of 0.5.
-                model_ckpt = path to the trained MHA-based model checkpoint to be loaded --- The models is required to forward the data and obtain the corresponding attention matrices.
-                mode = "train", "val" or "test" - to specify the mode of the graph dataset.
-                transform = default None. Do not change.
-                normalized = if True, the edges are normalized (divided by the maximum value of each row) instead of using the original attention weights as edge attributes.
-                binarized = if True, the edges are binarized (1.0) instead of using the attention weights as edge attributes.
-                multi_layer_model = if True, the model is a 2-layer MHA model. Otherwise, it is a single-layer MHA model.
-                pre_transform = default None. Do not change.
-                """
+        root = Where the graph dataset should be stored. This folder is split into raw_dir (featured dataset) and processed_dir (processed graph data).
+        filename = CSV file with the dataset to be processed. It should contain the following columns: article_id, label, doc_as_ids.
+                    A row example would be: 0, 1, "[32603, 32604, 32611, 32612, 32613, 0, 0, 0, 0, 0]" for a document with article_id=0, label=1 and 5 sentences.
+        filter_type = type of filtering to be applied to the attention matrices. If None, no filtering is applied.
+        data_loader = data loader for MHA model forward. It should be a list of batches.
+        degree = tolerance degree of filtering to be applied to the attention matrices. Preliminary experiments suggest a value of 0.5.
+        model_ckpt = path to the trained MHA-based model checkpoint to be loaded --- The models is required to forward the data and obtain the corresponding attention matrices.
+        mode = "train", "val" or "test" - to specify the mode of the graph dataset.
+        transform = default None. Do not change.
+        normalized = if True, the edges are normalized (divided by the maximum value of each row) instead of using the original attention weights as edge attributes.
+        binarized = if True, the edges are binarized (1.0) instead of using the attention weights as edge attributes.
+        pre_transform = default None. Do not change.
+        """
 
         self.filename = filename
         self.filter_type = filter_type
