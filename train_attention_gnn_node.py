@@ -14,7 +14,8 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from src.pipeline.eval_models import retrieve_parameters, eval_results
 from src.data.preprocess_data import load_data
-from src.data.text_loaders import create_loaders, check_dataframe, get_class_weights
+from src.data.text_loaders import create_loaders
+from src.data.utils import check_dataframe, get_class_weights
 from src.models.base_model import MHASummarizer
 
 import pytorch_lightning as pl
