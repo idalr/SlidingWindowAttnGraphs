@@ -8,7 +8,7 @@ from torch import optim
 import pytorch_lightning as pl
 from tqdm import tqdm
 
-from src.pipeline.eval_models import eval_results
+from src.pipeline.eval import eval_results
 
 
 class Classifier_Lighting(pl.LightningModule):

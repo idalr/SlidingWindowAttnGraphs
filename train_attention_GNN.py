@@ -11,7 +11,7 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from src.graphs.gnn_model import GAT_model, GCN_model, partitions
 from src.models.base_model import MHAClassifier
-from src.pipeline.eval_models import retrieve_parameters, eval_results
+from src.pipeline.eval import retrieve_parameters, eval_results
 from src.data.preprocess_data import load_data
 from src.data.text_loaders import create_loaders, get_class_weights, check_dataframe
 

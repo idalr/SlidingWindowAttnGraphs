@@ -25,7 +25,7 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from src.graphs.gnn_model import GAT_model, partitions
 from Colab.base_model import MHAClassifier
-from src.pipeline.eval_models import retrieve_parameters, eval_results
+from src.pipeline.eval import retrieve_parameters, eval_results
 from src.data.text_loaders import create_loaders, get_class_weights, check_dataframe
 
 import pytorch_lightning as pl

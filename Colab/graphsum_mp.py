@@ -27,7 +27,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
-from src.pipeline.eval_models import clean_tokenization_sent, filtering_matrix
+from src.pipeline.eval import clean_tokenization_sent, filtering_matrix
 from base_model import MHASummarizer, retrieve_from_dict  #, MHASummarizer_extended
 from src.data.utils import solve_by_creating_edge
 

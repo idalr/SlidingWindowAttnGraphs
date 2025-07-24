@@ -6,9 +6,11 @@ import warnings
 warnings.filterwarnings("ignore")
 from nltk.tokenize import sent_tokenize
 from src.models.base_model import MHAClassifier, MHASummarizer
-from src.pipeline.eval_models import retrieve_parameters, filtering_matrix
+from src.pipeline.connector import retrieve_parameters
+from src.data.graph_utils import filtering_matrix
 from src.data.preprocess_data import load_data
-from src.data.text_loaders import create_loaders, check_dataframe
+from src.data.text_loaders import create_loaders
+from src.data.utils import check_dataframe
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 

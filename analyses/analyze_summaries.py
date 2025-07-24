@@ -1,41 +1,26 @@
-# TODO: clean imports
 import argparse
 import re, os
 import seaborn as sns
 import warnings
-
 import yaml
-
 from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences, plot_two_distributions, \
     extract_val_f1
-
 warnings.filterwarnings("ignore")
-
 import numpy as np
 import torch
-
 import pandas as pd
-
-#from base_model import MultiHeadSelfAttention
 import matplotlib.pyplot as plt
-
-#from data_loaders import DocumentDataset
 from torch_geometric.data import DataLoader
-from src.pipeline.eval_models import retrieve_parameters, eval_results
 
+from src.pipeline.connector import retrieve_parameters
+from src.pipeline.eval import eval_results
 from src.data.preprocess_data import load_data
-#from summarization_utils import create_dataframe, clean_tokenization_sent
 from src.models.base_model import MHASummarizer
-from src.data.text_loaders import create_loaders, get_class_weights
-
+from src.data.text_loaders import create_loaders
+from src.data.utils import get_class_weights
 from src.data.graph_data_loaders import UnifiedAttentionGraphs_Sum
 from src.graphs.gnn_model import GAT_NC_model
 
-# TODO: also make it take config_gnn file
-# TODO: merge summary_distribution into this file
-# TODO: move all function to util in this folder (after debugging)
-## cut out unnecessary parts
-# TODO: merge rouge and bertscore into one function
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
