@@ -17,7 +17,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from src.data.preprocess_data import load_data
 from src.models.base_model import MHAClassifier
-from src.data.text_loaders import create_loaders, get_class_weights
+from src.data.text_loaders import create_loaders
+from src.data.utils import get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
