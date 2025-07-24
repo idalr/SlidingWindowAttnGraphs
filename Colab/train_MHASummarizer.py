@@ -28,9 +28,9 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from preprocess_data import load_data
+from src.data.preprocess_data import load_data
 from Colab.base_model import MHASummarizer
-from data_loaders import create_loaders, check_dataframe, get_class_weights
+from src.data.text_loaders import create_loaders, check_dataframe, get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 

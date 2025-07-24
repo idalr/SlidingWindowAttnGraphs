@@ -23,13 +23,9 @@ import pandas as pd
 import warnings
 
 warnings.filterwarnings("ignore")
-import numpy as np
-from nltk.tokenize import sent_tokenize
-from eval_models import retrieve_parameters
-from preprocess_data import load_data
-from data_loaders import create_loaders, check_dataframe
+from src.data.preprocess_data import load_data
+from src.data.text_loaders import create_loaders
 from Colab.base_model import MHASummarizer
-import multiprocessing as mp
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 

@@ -1,11 +1,8 @@
 import yaml
 import argparse
 
-from pytorch_lightning.loggers import WandbLogger
-from torchmetrics import F1Score
-
-from gnn_model import GAT_NC_model, GCN_model, partitions
-from graph_data_loaders import UnifiedAttentionGraphs_Sum  # , AttentionGraphs_Sum
+from src.graphs.gnn_model import GAT_NC_model, GCN_model, partitions
+from src.data.graph_data_loaders import UnifiedAttentionGraphs_Sum  # , AttentionGraphs_Sum
 import torch
 import os
 import time
@@ -15,10 +12,10 @@ import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
 from nltk.tokenize import sent_tokenize
-from eval_models import retrieve_parameters, eval_results
-from preprocess_data import load_data
-from data_loaders import create_loaders, check_dataframe, get_class_weights
-from base_model import MHASummarizer
+from src.pipeline.eval_models import retrieve_parameters, eval_results
+from src.data.preprocess_data import load_data
+from src.data.text_loaders import create_loaders, check_dataframe, get_class_weights
+from src.models.base_model import MHASummarizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger

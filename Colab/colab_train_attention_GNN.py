@@ -23,11 +23,10 @@ import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
 from nltk.tokenize import sent_tokenize
-from gnn_model import GAT_model, GCN_model, partitions
+from src.graphs.gnn_model import GAT_model, partitions
 from Colab.base_model import MHAClassifier
-from eval_models import retrieve_parameters, eval_results
-from preprocess_data import load_data
-from data_loaders import create_loaders, get_class_weights, check_dataframe
+from src.pipeline.eval_models import retrieve_parameters, eval_results
+from src.data.text_loaders import create_loaders, get_class_weights, check_dataframe
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger

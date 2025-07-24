@@ -9,15 +9,14 @@ warnings.filterwarnings("ignore")
 
 from torchmetrics import F1Score
 import torch
-from nltk.tokenize import sent_tokenize
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from preprocess_data import load_data
-from base_model import MHASummarizer
-from data_loaders import create_loaders, get_class_weights
+from src.data.preprocess_data import load_data
+from src.models.base_model import MHASummarizer
+from src.data.text_loaders import create_loaders, get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 

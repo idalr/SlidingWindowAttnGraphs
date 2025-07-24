@@ -10,16 +10,6 @@ from nltk.tokenize import sent_tokenize
 
 # from data_loaders import clean_tokenization_sent
 
-def clean_tokenization_sent(list_as_document, object):
-    if object == "text":
-        tok_document = list_as_document.split(' [St]')
-        return tok_document
-    else:
-        tok_document = list_as_document.split(", ")
-        tok_document[0] = tok_document[0][1:]
-        tok_document[-1] = tok_document[-1][:-1]
-        return [int(element) for element in tok_document]
-
 
 def retrieve_parameters(model_name, df_logger, with_temperature=False, require_best=True, retrieve_index=None):
     subset_df = df_logger[df_logger['Model'].str.contains(model_name)]
@@ -62,7 +52,6 @@ def get_threshold(input_tensor, degree_std=1, unbiased=True, type="mean", mode="
     elif type == "max":
         min_value = max - std * degree_std
     else:
-        # print ("No threshold was calculated.")
         return max, mean, std, None
 
     return max, mean, std, min_value
@@ -71,7 +60,7 @@ def get_threshold(input_tensor, degree_std=1, unbiased=True, type="mean", mode="
 def get_window_mask(input_tensor, no_valid_sent, window):
     # for one 2-dim tensor
     # if no. valid sentences less than 5, (for at least window_size =2), then full MHA
-    if no_valid_sent > 5:  # cannot use pad value
+    if no_valid_sent > 5:
         window_size = torch.ceil(torch.tensor(no_valid_sent * window / 100))
         idx = torch.arange(int(no_valid_sent))
         window_mask = (idx.view(1, -1) - idx.view(-1, 1)).abs() > window_size.view(-1, 1)
@@ -165,14 +154,12 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
                 other_filtered_matrix = torch.where(cropped_matrix < other_threshold_min, 0., cropped_matrix.double())
                 num_dropped = torch.count_nonzero(torch.reshape((cropped_matrix < threshold_min), (-1,)).int()).item()
 
-            # append
             deletions.append(num_dropped)
             total_edges.append(torch.count_nonzero(filtered_matrix).item())
             total_nodes.append(list_valid_sents[index])
             filtered_matrices.append(filtered_matrix)
 
         else:  # no filtering
-            # append
             total_edges.append(list_valid_sents[index] ** 2)
             total_nodes.append(list_valid_sents[index])
 
@@ -220,7 +207,7 @@ def print_filtering_matrix(df, article_identifier, no_valid_sents):
     except:  # for Summarization
         source_text = clean_tokenization_sent(
             df[df['Article_ID'] == article_identifier.item()]['Cleaned_Article'].values[0], "text")
-        ###print("Source text:\n", source_text)
+        print("Source text:\n", source_text)
         if len(source_text) != no_valid_sents:
             print(
                 "WARNING: Number of sentences in source text and attention weights do not match")  # this is ok in the minirun version because we use model.max_len
@@ -240,8 +227,6 @@ def plot_filtering_matrix(cropped_matrix,
         -0.5 * (1 / std.mean().cpu().numpy() * (bins - mean.mean().cpu().numpy())) ** 2))
     axarr[0].plot(bins, y, '--')
     axarr[0].set_title('Attention Weights Distribution')
-    # TODO: ask Margarita about this
-    ## this does not match calucation in get_threshold
     axarr[0].axvline(mean.mean().cpu().numpy(), color='g', linestyle='-', label='Mean', lw=3)
     axarr[0].axvline(mean.mean().cpu().numpy() - degree_std * std.mean().cpu().numpy(), color='r',
                      linestyle='--', label='Mean filter', lw=3)
@@ -266,53 +251,3 @@ def plot_filtering_matrix(cropped_matrix,
         axarr[0].set_title('Mean Filtering')
         axarr[1].set_title('Max Filtering')
         plt.show()
-
-
-def filtering_matrix(doc_att, valid_sents, window, degree_std=0.5, with_filtering=True, filtering_type="mean",
-                     granularity="local", plotting=False):
-
-    cropped_matrix = doc_att[:valid_sents, :valid_sents]
-
-    if filtering_type == "full":
-        return cropped_matrix
-
-    else:
-        if window == 100:
-            max_v, mean, std, threshold_min = get_threshold(cropped_matrix, degree_std, type=filtering_type,
-                                                            mode=granularity)
-        else:  # if SWA and if filter applied
-            window_mask = get_window_mask(cropped_matrix, valid_sents, window)
-            max_v, mean, std, threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
-                                                                           type=filtering_type, mode=granularity)
-
-        if granularity == "local":
-            filtered_matrix = torch.Tensor(cropped_matrix.size())
-            for i in range(cropped_matrix.size(0)):
-                filtered_matrix[i] = torch.where(cropped_matrix[i] < threshold_min[i], 0., cropped_matrix[i])
-        else:
-            filtered_matrix = torch.where(cropped_matrix < threshold_min, 0., cropped_matrix.double())  # mean
-
-        if plotting:
-            # get alternative filtering
-            if filtering_type == "mean":
-                alternative = "max"
-            elif filtering_type == 'max':
-                alternative = "mean"
-
-            _, _, _, other_threshold_min = get_sliding_window_threshold(cropped_matrix, window_mask, degree_std,
-                                                                        type=alternative, mode=granularity)
-
-            other_filtered_matrix = torch.Tensor(cropped_matrix.size())
-            if granularity == "local":
-                for i in range(other_filtered_matrix.size(0)):
-                    other_filtered_matrix[i] = torch.where(cropped_matrix[i] < other_threshold_min[i], 0.,
-                                                           cropped_matrix[i])
-            else:
-                other_filtered_matrix = torch.where(cropped_matrix < other_threshold_min, 0., cropped_matrix.double())
-
-            # display
-            plot_filtering_matrix(cropped_matrix, mean, max_v, std, degree_std, color=None,
-                                  filtering_type=filtering_type,
-                                  filtered_matrix=filtered_matrix, other_filtered_matrix=other_filtered_matrix)
-
-        return filtered_matrix

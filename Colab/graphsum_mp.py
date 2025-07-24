@@ -1,16 +1,11 @@
 #############################################
 # Colab version
 import sys
-import yaml
-import argparse
 #from graph_data_loaders import UnifiedAttentionGraphs_Sum  # , AttentionGraphs_Sum
-import torch
 import os
 import time
-import pandas as pd
 import warnings
-import gc
-import multiprocessing
+
 # Get the absolute path of the repository root
 repo_root = os.path.abspath(os.path.join('/content', 'Attention-DocumentGraphs-Rin'))
 
@@ -21,11 +16,8 @@ if repo_root not in sys.path:
 
 warnings.filterwarnings("ignore")
 import numpy as np
-from nltk.tokenize import sent_tokenize
-from eval_models import retrieve_parameters
-from preprocess_data import load_data
-from data_loaders import create_loaders, check_dataframe
-from base_model import MHASummarizer  # , MHASummarizer_extended
+from src.data.preprocess_data import load_data
+from src.data.text_loaders import create_loaders, check_dataframe
 import multiprocessing as mp
 
 import gc
@@ -35,9 +27,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
-from eval_models import filtering_matrices, get_threshold, clean_tokenization_sent, filtering_matrix
-from base_model import MHASummarizer, retrieve_from_dict, MHAClassifier #, MHASummarizer_extended
-from utils import solve_by_creating_edge
+from src.pipeline.eval_models import clean_tokenization_sent, filtering_matrix
+from base_model import MHASummarizer, retrieve_from_dict  #, MHASummarizer_extended
+from src.data.utils import solve_by_creating_edge
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 

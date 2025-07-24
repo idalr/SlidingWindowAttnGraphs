@@ -9,7 +9,7 @@ from torch import optim
 import pytorch_lightning as pl
 import numpy  as np
 from sentence_transformers import SentenceTransformer
-from eval_models import eval_results
+from src.pipeline.eval_models import eval_results
 
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):
 

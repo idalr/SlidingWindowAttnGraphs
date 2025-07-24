@@ -1,21 +1,14 @@
 import re, os
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 import warnings
-
 warnings.filterwarnings("ignore")
-
-import time
 from tqdm import tqdm
-import torch
-
 from nltk.tokenize import word_tokenize, sent_tokenize
 from functools import partial
 import multiprocessing as mp
 from rouge_score import rouge_scorer
-from data_loaders import clean_tokenization_sent
+from text_loaders import clean_tokenization_sent
 
 
 def check_conditions_paper(source, summary):
@@ -54,9 +47,7 @@ def clean_dataframe(in_dataframe, top_k_sum=False, column_source="report", colum
     return in_dataframe
 
 
-### cleaning documents
 def clean_source_document(document):
-    # print (text,"\n")
     text = sent_tokenize(document)
     cleaned_text = []
     for sentence in text:
@@ -68,19 +59,6 @@ def clean_source_document(document):
         sentence = re.sub(r"\'ll", " will", sentence)
         cleaned_text.append(sentence)
     return cleaned_text  # cleaned sentence list
-
-
-"""
-def clean_tokenization_sent(list_as_document, object):    
-    if object=="text":
-        tok_document = list_as_document.split(' [St]')
-        return tok_document
-    else:
-        tok_document = list_as_document.split(", ")
-        tok_document[0] = tok_document[0][1:]
-        tok_document[-1] = tok_document[-1][:-1]
-        return [int(element) for element in tok_document]
-"""
 
 
 def merge_short(document_as_sentences):
@@ -103,9 +81,6 @@ def merge_short(document_as_sentences):
                         holded = sentence
                         continue
                     else:
-                        # print ("Merging sentence <", sentence, "> with previous sentence...")
-                        # print ("Previous sentence:", merged_sentences[-1])
-                        # print ("document_as_sentences:", document_as_sentences)
                         if len(merged_sentences) > 0:
                             merged_sentences[-1] += " " + sentence
                         if len(merged_sentences) == 0:
@@ -161,7 +136,7 @@ def clean_and_save_data(in_args, R_scorer):  ## clean specific document
             else:
                 cumulative = " ".join(pd.Series(merged_source)[selected]) + " " + text
                 current_score = average_rouge(summary, cumulative,
-                                              R_scorer)  # R_scorer.score(summary, cumulative)['rouge1'].fmeasure
+                                              R_scorer)
                 if current_score > max_score:
                     if num_WordsInSelected + len(word_tokenize(text)) <= num_WordsInSummary:
                         selected.append(sentence_id)
@@ -213,9 +188,6 @@ def clean_and_save_data_best_increment(in_args, R_scorer, flag_cleaning=True, ma
 
     cleaned_source = clean_source_document(source) if flag_cleaning == True else clean_tokenization_sent(source, "text")
     merged_source = merge_short(cleaned_source) if flag_cleaning == True else cleaned_source[:max_len]
-    # print ("Processing input data for labeling...")
-    # print ("#Documents:", len(merged_source))
-    # print ("#Summaries:", len(summary))
 
     cumulative_sentences = ""
     num_WordsInSelected = 0
@@ -238,7 +210,6 @@ def clean_and_save_data_best_increment(in_args, R_scorer, flag_cleaning=True, ma
         else:
             break
 
-            # print ("Selected sentences:", len(selected))
     sentences_as_text = ' [St]'.join(merged_source)
     calculated_labels = [1 if i in selected else 0 for i in range(len(merged_source))]
 
@@ -325,22 +296,16 @@ def calculate_rouge_per_row(df_, partition, path_save_cleaned_data, type_rouge="
 
     return df_rouge
 
-
-import ast
-import json
-
-
 def clean_content_from_file(source_text, abstract_text):
     sentences_in_doc = []
     final_sentences = []
     abstract_as_text = ""
-    # print ("[Based on /n] #Sentences in article:", len(source_text))
     temp_to_join = ""
     for pre_sentence in source_text:
-        if pre_sentence[-1] != ".":  ### cumulate till find puntuation mark
+        if pre_sentence[-1] != ".":
             temp_to_join += " " + pre_sentence
 
-        else:  ### sentence ends in punctuation mark
+        else:
             if temp_to_join != "":
                 temp_to_join += " " + pre_sentence  ### merging
                 sentences_in_doc.append(temp_to_join.strip())
@@ -350,7 +315,6 @@ def clean_content_from_file(source_text, abstract_text):
 
     if temp_to_join != "":
         sentences_in_doc.append(temp_to_join.strip())
-        temp_to_join = ""
 
     ### Cleaning sentences in list sentences_in_doc
     for pre_sentence in sentences_in_doc:
@@ -376,7 +340,5 @@ def clean_content_from_file(source_text, abstract_text):
         pre_sentence = pre_sentence.replace(" </S>", "")
         pre_sentence = pre_sentence.strip()
         abstract_as_text += " " + pre_sentence
-
-    # print ("[After cleaning sentences] #Sentences in article:", len(final_sentences))
 
     return final_sentences, abstract_as_text

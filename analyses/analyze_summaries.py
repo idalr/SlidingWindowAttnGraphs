@@ -1,68 +1,35 @@
 # TODO: clean imports
 import argparse
 import re, os
-import pandas as pd
-import numpy as np
 import seaborn as sns
-import matplotlib.pyplot as plt
 import warnings
 
 import yaml
-import random
 
 from analyses.util_ana import visualize_tsne, compare_similariry, predict_sentences, plot_two_distributions, \
     extract_val_f1
 
 warnings.filterwarnings("ignore")
 
-import time
-from tqdm import tqdm
-import torch
-
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-import ast
 import torch
-from scipy.ndimage import uniform_filter1d, gaussian_filter1d
-from torch_geometric.data import DataLoader
 
-from gnn_model import GAT_NC_model
-from graph_data_loaders import UnifiedAttentionGraphs_Sum
-
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import wordnet
-from datasets import load_dataset
-from functools import partial
-
-from rouge_score import rouge_scorer
 import pandas as pd
-from operator import itemgetter
 
 #from base_model import MultiHeadSelfAttention
-from torch import nn
-import torch.nn.functional as F
-from sentence_transformers import SentenceTransformer
-import pytorch_lightning as pl
-from torchmetrics import F1Score
-from torch import optim
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 #from data_loaders import DocumentDataset
-from torch_geometric.data import DataLoader, Dataset
-from eval_models import retrieve_parameters, eval_results, filtering_matrices
+from torch_geometric.data import DataLoader
+from src.pipeline.eval_models import retrieve_parameters, eval_results
 
-from preprocess_data import load_data
+from src.data.preprocess_data import load_data
 #from summarization_utils import create_dataframe, clean_tokenization_sent
-from base_model import MHASummarizer
-from data_loaders import create_loaders, clean_tokenization_sent, check_dataframe, get_class_weights
-from rouge_score import rouge_scorer
+from src.models.base_model import MHASummarizer
+from src.data.text_loaders import create_loaders, get_class_weights
 
-from graph_data_loaders import UnifiedAttentionGraphs_Sum
-from gnn_model import partitions, GAT_NC_model
+from src.data.graph_data_loaders import UnifiedAttentionGraphs_Sum
+from src.graphs.gnn_model import GAT_NC_model
 
 # TODO: also make it take config_gnn file
 # TODO: merge summary_distribution into this file

@@ -1,33 +1,18 @@
-import re, os
+import os
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 import warnings
-
 from datasets import load_dataset
-
 warnings.filterwarnings("ignore")
-
 import time
 from tqdm import tqdm
-import torch
 import json
 
-from nltk.tokenize import word_tokenize, sent_tokenize
-from functools import partial
-import multiprocessing as mp
-from rouge_score import rouge_scorer
-
-from utils_extractive import clean_dataframe, create_cleaned_objects_best_increment, calculate_rouge_per_row, \
+from src.data.utils_extractive import clean_dataframe, create_cleaned_objects_best_increment, calculate_rouge_per_row, \
     clean_content_from_file
-from data_loaders import check_dataframe
+from src.data.utils import check_dataframe
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-
-
-# arxiv: path_dataset="/scratch/datasets/arXiv-Sum/arxiv-dataset/", partition="train", path_save_cleaned_data="/scratch/datasets/arXiv-Sum/Processed/", with_RL= False, from_hf=True):
 
 def load_and_create_extractive(path_dataset="ccdv/govreport-summarization", partition="train",
                                path_save_cleaned_data="/scratch/datasets/GovReport-Sum/Processed/", with_RL=False,
@@ -36,7 +21,7 @@ def load_and_create_extractive(path_dataset="ccdv/govreport-summarization", part
         if from_hf == True:
             print("Loading dataset from Hugging Face...")
             flag_for_text_cleaning = True
-            data_summ = load_dataset(path_dataset)  ## otros: ccdv/pubmed-summarization, ccdv/arxiv-summarization
+            data_summ = load_dataset(path_dataset)
             print("There are", len(data_summ['train']), "samples in the training set.")
             print("There are", len(data_summ['validation']), "samples in the validation set.")
             print("There are", len(data_summ['test']), "samples in the test set.")
@@ -120,9 +105,6 @@ def load_and_create_extractive(path_dataset="ccdv/govreport-summarization", part
 
     results_ = calculate_rouge_per_row(df_full, partition, path_save_cleaned_data + "Oracle_Processed/",
                                        type_rouge="R1R2")
-    # results_ = pd.read_csv(path_save_cleaned_data+"Oracle_Processed/df_test_rouge_R1R2_best_increment.csv")
-    # print (results_.shape)
-
     print("[" + partition + "] ORACLE:\n", "Rouge1_F1:", results_["Rouge-1F1"].mean(), "\tRouge2_F1:",
           results_["Rouge-2F1"].mean(), "\tRougeL_F1:", results_["Rouge-LF1"].mean())
 
