@@ -1,50 +1,98 @@
-# Attention-DocumentGraphs
-Attention-based document graphs for long document downstream tasks: classification and extractive summarization.
+# Context-Aware Attention-Based Graph Representations for Document Classification and Summarization
 
-### Data 
+It is the extension of the previous work on [Attention Document-Graph](https://github.com/buguemar/AttnGraphs/), 
+supervised by the original authors, as an individual master's project at Hasso Plattner Institute (HPI) and University of Potsdam.
 
-| Dataset                      | Task                    | Source      | Description | #samples                        |
-|------------------------------|-------------------------|-------------|:-----------:|---------------------------------|
-| Hyperpartisan News Detection | Document Classification | [Zenodo](https://zenodo.org/records/5776081)  (Although it comprises two parts, this study only uses *byarticle*)     | A collection of 645 news articles labeled according to whether it shows blind or unreasoned allegiance to one party or entity. The dataset exhibits a minor class imbalance.   | 645/625 (train/test)            |
-| GovReport                   | Document Summarization  | [HuggingFace](https://huggingface.co/datasets/ccdv/govreport-summarization) (adapted from https://gov-report-data.github.io/)|  Reports written by government research agencies including Congressional Research Service and U.S. Government Accountability Office. Compared with other long document summarization datasets, GovReport dataset has longer summaries and documents and requires reading in more context to cover salient words to be summarized.    | 17,517/973/973 (train/val/test) |
+### 📝 Abstract
+This work extends the recent efforts by [Bugueño and de Melo (2025)](https://arxiv.org/abs/XXXX.XXXXX) in graph-based document modeling by introducing a simple, data-driven approach to capture local and mid-range sentence relations. Using dynamic sliding-window attention, we build graphs that retain key semantic and structural dependencies. Then, we train GAT models on these graphs for two NLP tasks, i.e., document classification and extractive summarization, showing that automatic graph construction methods can yield strong performance with minimal custom-tailoring and economical resources.
 
+---
 
-The corresponding datasets have already been preprocessed. Sentence vocabulary and cleaned documents are available [here](https://drive.google.com/drive/folders/1HnI_9cjS9O1b-OaU_2wIRLWvDvglYlbb?usp=sharing).
+### 📁 Repository Structure
 
+This repository follows the structure of the original repository with additional files and folders related to the extractive summarization task.
 
-### Learning Graphs
-
-#### Preliminaries
-```config/``` folder with all the instructions and parameters for MHA models and predict-files in the case of summarization tasks. 
-
-```config_gnn/``` folder with all the instructions and parameters for training the GAT models exclusively for attention-based graphs
-
-```config_heuristics_gnn/``` folder with all the instructions and parameters for training the GAT models exclusively for heuristic-based graphs  
-
-#### Document Classification
-
-Training MHAClassifier as a multiclass classification (hyperpartisan or not). The model learns the dependencies between every par of sentences in a document and reduce the learned embeddings to a final linear layer.
-```python
-python train_MHAClassifier.py -s config/Classifier/your_file.yaml
+```bash
+├── config/
+│   ├── Classifier/                         # Config files including parameters for training our attention-based classifier model
+│   └── Summerizer/                         # Config files including parameters for training our attention-based summarizer model
+├── GNN_Results/                            # Results obtained from our runs
+│   ├── Classifier/                         # Results from learned graphs on document classification task
+│   └── Summerizer/                         # Results from learned graphs on document extractive summarization task
+├── imgs/                                   # Figures shown in the paper and samples of adjacency matrices from each dataset
+│   └── analyze_summaries/                  # Figures generated from the summarization analysis
+├── src/                                    # Source code for training and evaluation
+│   ├── data/                               # Data loaders and utils
+│   ├── graphs/                             # Graph-based architectures
+│   ├── models/                             # Core training models
+│   └── pipeline/                           # Connector for text-graph models  
+├── analyze_summaries.py                    # Analysis: analyze GAT prediction on the test split, i.e., t-SNE, Rouge scores, BERTScore and sentence distribution
+├── get_structural_graph_stats.py           # Analysis: get information on graph dataset, i.e., number of nodes, edges, node degree and disk size
+├── paper.pdf                               # Project report
+├── README.md                            
+├── requirements.txt                        # Python dependencies
+├── train_MHAClassifier.py                  # Training: sliding-window MHA-based classifier training script
+├── train_MHASummarizer.py                  # Training: sliding-window MHA-based summarizer training script
+├── train_attention_GNN.py                  # Training: GNN training script for document classification
+├── train_attention_gnn_node.py             # Training: GNN training script  for document summarization
+└── visualize_attns.py                      # Analysis: visualize attention weight matrices from MHA models
 ```
 
-Create graph objects and store them in the speficied folder. Afterwards, a GAT for graph classification is trained. Please note that this python file serves either for learned-graphs (```config_gnn```).
+### 📊 Datasets
+The preprocessed versions of Hyperpartisan News Detection (HND) and BBC News datasets are available 
+in [the `data/` folder in the original repository](https://github.com/Buguemar/AttnGraphs/tree/main/data).
 
-```python
-python train_GNN.py -s config_gnn/Classifier/type_of_model/your_file.yaml
+Alternatively, all three preprocessed datasets can be downloaded from:
+[here](https://drive.google.com/drive/folders/1HnI_9cjS9O1b-OaU_2wIRLWvDvglYlbb?usp=sharing).
+
+---
+
+### 🚀 Running the Code
+
+#### Document Classification
+To train MHA classifier:
+```
+python train_MHAClassifier.py --config config/Classifier/your_MHAclassifier_config_file.yaml
+```
+To train GAT classifier:
+```
+python train_attention_GNN.py -s config/Classifier/your_GATclassifier_config_file.yaml
 ```
 
 #### Document Summarization
-
-Training MHASummarizer as a multilabel task. The model learns the dependencies between every par of sentences in a document and every sentence has a label associated.  
-
-```python
-python train_MHASummarizer.py  -s config/Summarizer/your_file.yaml
+To train MHA summarizer:
+```
+python train_MHASummarizer.py -s config/Summarizer/your_MHAsummarizer_config_file.yaml
+```
+To train GAT summarizer:
+```
+python train_attention_gnn_node.py -s config/Summarizer/your_GATsummarizer_config_file.yaml
 ```
 
-Create files in /raw graph-version of the summarization dataset with a filename that is need for the Pytorch-Geometric graphs creation. The corresponding graphs are stored in the specified folder.
-Train a GAT for node classification. This python file serves either for learned-graphs (```config_gnn```).  
-```python
-python create_graphSum_files.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
-python train_gnn_node.py -s config_gnn/Summarizer/type_of_model/your_file.yaml
+#### Analysis
+
+To visualize attentions adjacency matrix,
+*required: a trained MHA model, either a classifier or a summarizer*.
+
+`num_print` defines number of samples prints from each split.
+`random_sampling` enables random samples instead of the first `<num_print>` instances. 
+```
+python visualize_attns.py -s config/<folder>/<your_MHA_config_file>.yaml [optional --num_print <int>] [optional --random_sampling]
+```
+
+To print structural statistics from a graph dataset,
+*required: a graph dataset*.
+```
+python get_structural_graph_stats.py --data-dir '/path/to/folder/<model_name>/<type_graph>/processed
+```
+
+To conduct analyses of your choice on the test split from the best model (with highest Val-f1 score) defined in the GAT config file,
+*required: a graph dataset and a trained GNN summarizer*.
+
+`num_print` defines number of samples prints from each split.
+`random_sampling` enables random samples instead of the first `<num_print>` instances for t-SNE analysis.
+
+The following analyses is available: `tsne`, `rouge_score`, `bert_score` and `sent_dist`.
+```
+python analyze_summaries.py -s config/<folder>/<your_GAT_config_file>.yaml [optional --num_print <int>] [optional --random_sampling] [optional --tsne] [optional --rouge_score] [optional --bert_score] [optional --sent_dist]
 ```

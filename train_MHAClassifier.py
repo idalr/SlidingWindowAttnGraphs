@@ -9,17 +9,16 @@ warnings.filterwarnings("ignore")
 
 from torchmetrics import F1Score
 import torch
-import torch.nn as nn
-import numpy as np
+from nltk.tokenize import sent_tokenize
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from nltk.tokenize import sent_tokenize
 
-from preprocess_data import load_data
-from base_model import MHAClassifier #, MHAClassifier_extended
-from data_loaders import create_loaders, get_class_weights
+from src.data.preprocess_data import load_data
+from src.models.base_model import MHAClassifier
+from src.data.text_loaders import create_loaders
+from src.data.utils import get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -30,29 +29,33 @@ def main_run(config_file, settings_file):
     file_to_save = config_file["file_to_save"]
     model_params = config_file["model_arch_args"]
     logger_name = config_file["logger_name"]
-    logger_file= config_file["logger_file"]
+    logger_file = config_file["logger_file"]
+    dataset_name = config_file["dataset_name"]
 
     if config_file["load_data_paths"]["with_val"] == True:
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
 
-    print("df_train", df_train.shape)
+    print("Train shape:", df_train.shape)
     if config_file["load_data_paths"]["with_val"] == True:
-        print("df_val", df_val.shape)
-    print("df_test", df_test.shape)
+        print("Validation shape:", df_val.shape)
+    print("Test shape:", df_test.shape)
 
+    if dataset_name == "HND" or dataset_name == "BBC":  # Maximum number of sentences per document
+        sent_lengths = []
+        for i, doc in enumerate(df_train['article_text']):
+            sent_in_doc = sent_tokenize(doc)
+            if len(sent_in_doc) == 0:
+                print("Empty doc en:", i)
+            sent_lengths.append(len(sent_in_doc))
+        max_len = max(sent_lengths)
+        print("Max number of sentences in documents:", max_len)
+    else:
+        max_len = config_file["max_len"]
+    print("Max number of sentences allowed per document:", max_len)
 
-    ### OBTAIN MAX SEQUENCE
-    sent_lengths = []
-    for i, doc in enumerate(df_train['article_text']):
-        sent_in_doc = sent_tokenize(doc)
-        if len(sent_in_doc) == 0:
-            print("Empty doc en:", i)
-        sent_lengths.append(len(sent_in_doc))
-    max_len = max(sent_lengths)  # Maximum number of sentences in a document
-    print("max number of sentences in document:", max_len)
-
+    ### Train MHA-based model.
     for exec_i in range(config_file["num_executions"]):
         print("\n=============================")
         print("Execution number:", exec_i)
@@ -74,8 +77,8 @@ def main_run(config_file, settings_file):
                                                                                    path_ckpt=
                                                                                    config_file["load_data_paths"][
                                                                                        "in_path"])
+        ### Create sentence vocabulary as a dictionary
         except:
-            #### Create sentence dictionary-vocabulary
             print("Error: Vocabulary not found.\nCreating sentence vocabulary...")
             if config_file["load_data_paths"]["with_val"] == True:
                 loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test,
@@ -88,7 +91,6 @@ def main_run(config_file, settings_file):
                                                                                                    max_len, config_file[
                                                                                                        "batch_size"],
                                                                                                    task="classification")
-            # save sentence dictionary-vocabulary on disk
             sent_dict = pd.DataFrame(
                 data={'Sentence_id': list(invert_vocab_sent.keys()), 'Sentence': list(invert_vocab_sent.values())})
             sent_dict.to_csv(config_file["load_data_paths"]["in_path"] + "vocab_sentences.csv", index=False)
@@ -102,13 +104,9 @@ def main_run(config_file, settings_file):
             print("\n-- No class weights specificied --\n")
             model_params["class_weights"] = None
 
-        ## TRAINING SETUP
-        model_params["max_len"]=max_len
-        model_params["path_invert_vocab_sent"]= config_file["load_data_paths"]["in_path"]
-        #if model_params["multi_layer"]:
-        #    model_lightning = MHAClassifier_extended(**model_params)
-        #else:
-        model_lightning= MHAClassifier(**model_params)
+        model_params["max_len"] = max_len
+        model_params["path_invert_vocab_sent"] = config_file["load_data_paths"]["in_path"]
+        model_lightning = MHAClassifier(**model_params)
 
         early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
         checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1,
@@ -119,7 +117,7 @@ def main_run(config_file, settings_file):
                              callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
                              **config_file["trainer_args"])
 
-        ###### TRAINING ######
+        ### Model Training
         start_time = time.time()
         trainer.fit(model_lightning, loader_train, loader_val)
         stopped_on = trainer.callbacks[0].stopped_epoch
@@ -127,18 +125,13 @@ def main_run(config_file, settings_file):
         train_time = time.time() - start_time
         print(f"Training time: {train_time:.2f} secs")
 
-        # load best checkpoint
-        #if model_params["multi_layer"]:
-        #    model_lightning = MHAClassifier_extended.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        #else:
+        ### Load best checkpoint
         model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-            
-        print ("Model loaded from:", trainer.checkpoint_callback.best_model_path)
-        print ("Temperature of loaded model:", model_lightning.temperature)
 
-        ###### TESTING ######
+        print("Model loaded from:", trainer.checkpoint_callback.best_model_path)
+        print("Temperature of loaded model:", model_lightning.temperature)
+
         preds, _, all_labels, _, _ = model_lightning.predict(loader_test, cpu_store=False)
-
         acc = (torch.Tensor(all_labels) == preds).float().mean()
         f1_score = F1Score(task='multiclass', num_classes=model_params["num_classes"], average=None)
         f1_all = f1_score(preds.int(), torch.Tensor(all_labels).int())
@@ -149,13 +142,15 @@ def main_run(config_file, settings_file):
         print(f"Training + Testing time: {total_time:.2f} secs")
         print(f"Total running time: {time.time() - start_time:.2f} secs")
 
-        path_models_logger_file = os.path.join(path_models, logger_file)
+        ### Register results in a logger file
+        if not os.path.exists(path_models + logger_file):
+            df_logger = pd.DataFrame(
+                columns=["Model", "Path", "Score", "Test score", "Setting", "Stop epoch", "Temperature",
+                         "Window percent", "Training_time", "Total_time"])
+            df_logger.to_csv(path_models + logger_file, index=False)
+        else:
+            df_logger = pd.read_csv(path_models + logger_file)
 
-        if not os.path.exists(path_models_logger_file):
-            df_logger = pd.DataFrame(columns=["Model", "Path", "Score", "Test score" , "Setting", "Stop epoch", "Temperature", "Window percent", "Training_time", "Total_time"])
-            df_logger.to_csv(path_models_logger_file, index=False)
-        else: #if exist
-            df_logger = pd.read_csv(path_models_logger_file)
         df_logger.loc[len(df_logger)] = {
             "Model": logger_name,
             "Path": trainer.checkpoint_callback.best_model_path,
@@ -166,10 +161,10 @@ def main_run(config_file, settings_file):
             "Temperature": model_lightning.temperature,
             "Window percent": model_lightning.window,
             "Training_time": train_time,
-            "Total_time": total_time        
-            }
-        df_logger.to_csv(path_models_logger_file, index=False)
-        print ("Finished and saved in:", path_models_logger_file, "\n")
+            "Total_time": total_time
+        }
+        df_logger.to_csv(path_models + logger_file, index=False)
+        print("Finished and saved in:", path_models + logger_file, "\n")
 
 
 if __name__ == "__main__":
