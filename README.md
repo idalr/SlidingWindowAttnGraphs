@@ -4,7 +4,7 @@ It is the extension of the previous work on [Attention Document-Graph](https://g
 supervised by the original authors, as an individual master's project at Hasso Plattner Institute (HPI) and University of Potsdam.
 
 ### 📝 Abstract
-*To be added*
+This work extends the recent efforts by [Bugueño and de Melo (2025)](https://arxiv.org/abs/XXXX.XXXXX) in graph-based document modeling by introducing a simple, data-driven approach to capture local and mid-range sentence relations. Using dynamic sliding-window attention, we build graphs that retain key semantic and structural dependencies. Then, we train GAT models on these graphs for two NLP tasks, i.e., document classification and extractive summarization, showing that automatic graph construction methods can yield strong performance with minimal custom-tailoring and economical resources.
 
 ---
 
