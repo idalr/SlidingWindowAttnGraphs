@@ -26,16 +26,16 @@ This repository follows the structure of the original repository with additional
 │   ├── graphs/                             # Graph-based architectures
 │   ├── models/                             # Core training models
 │   └── pipeline/                           # Connector for text-graph models  
-├── analyze_summaries.py                    # analysis: analyze GAT prediction on the test split, i.e., t-SNE, Rouge scores, BERTScore and sentence distribution
-├── get_structural_graph_stats.py           # analysis: get information on graph dataset, i.e., number of nodes, edges, node degree and disk size
+├── analyze_summaries.py                    # Analysis: analyze GAT prediction on the test split, i.e., t-SNE, Rouge scores, BERTScore and sentence distribution
+├── get_structural_graph_stats.py           # Analysis: get information on graph dataset, i.e., number of nodes, edges, node degree and disk size
 ├── paper.pdf                               # Project report
 ├── README.md                            
 ├── requirements.txt                        # Python dependencies
-├── train_MHAClassifier.py                  # training: sliding-window MHA-based classifier training script
-├── train_MHASummarizer.py                  # training: sliding-window MHA-based summarizer training script
-├── train_attention_GNN.py                  # training: GNN training script for document classification
-├── train_attention_gnn_node.py             # training: GNN training script  for document summarization
-└── visualize_attns.py                      # analysis: visualize attention weight matrices from MHA models
+├── train_MHAClassifier.py                  # Training: sliding-window MHA-based classifier training script
+├── train_MHASummarizer.py                  # Training: sliding-window MHA-based summarizer training script
+├── train_attention_GNN.py                  # Training: GNN training script for document classification
+├── train_attention_gnn_node.py             # Training: GNN training script  for document summarization
+└── visualize_attns.py                      # Analysis: visualize attention weight matrices from MHA models
 ```
 
 ### 📊 Datasets
