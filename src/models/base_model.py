@@ -54,10 +54,6 @@ class MHAClassifier(Classifier_Lighting):
                                                                  embed_dim, num_heads, max_len=self.max_len, window_size=self.window, temperature=1,
                                                                  dropout=attn_dropout, activation_attention=activation_attention)
 
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
-        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-        self.save_hyperparameters(ignore=["invert_vocab_sent"])
-
         sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
         self.invert_vocab_sent = {k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
         self.save_hyperparameters(ignore=["invert_vocab_sent"]) ### for loading later
@@ -128,19 +124,6 @@ class MHASummarizer(Summarizer_Lighting):
         for name, param in self.sent_model.named_parameters():
             param.requires_grad = False
 
-        # full MHA
-        if window == 100:
-            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
-                                                    num_heads, temperature=1, dropout=attn_dropout,
-                                                    activation_attention=activation_attention)
-
-        # sliding window MHA
-        else:
-            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
-                                                                 embed_dim, num_heads, max_len=self.max_len,
-                                                                 window_size=self.window, temperature=1,
-                                                                 dropout=attn_dropout,
-                                                                 activation_attention=activation_attention)
         self.num_classes = num_classes
         self.embed_dim = embed_dim
         if not intermediate:
@@ -164,13 +147,23 @@ class MHASummarizer(Summarizer_Lighting):
         self.temperature_step = temperature_step
         self.global_iter = 0
 
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
-        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-        self.save_hyperparameters(ignore=["invert_vocab_sent"])
+        # full MHA
+        if window == 100:
+            self.attention = MultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(), embed_dim,
+                                                    num_heads, temperature=1, dropout=attn_dropout,
+                                                    activation_attention=activation_attention)
 
-        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
-        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-        self.save_hyperparameters(ignore=["invert_vocab_sent"])  ### for loading later
+        # sliding window MHA
+        else:
+            self.attention = SlidingWindowMultiHeadSelfAttention(self.sent_model.get_sentence_embedding_dimension(),
+                                                                 embed_dim, num_heads, max_len=self.max_len,
+                                                                 window_size=self.window, temperature=1,
+                                                                 dropout=attn_dropout,
+                                                                 activation_attention=activation_attention)
+
+        # sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
+        # self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        # self.save_hyperparameters(ignore=["invert_vocab_sent"])  ### for loading later
 
     def training_step(self, batch, batch_idx):
         return_val = super(MHASummarizer, self).training_step(batch, batch_idx)

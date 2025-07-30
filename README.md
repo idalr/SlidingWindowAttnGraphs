@@ -54,17 +54,17 @@ python train_MHAClassifier.py --config config/Classifier/your_MHAclassifier_conf
 ```
 To train GAT classifier:
 ```
-python train_attention_GNN.py --config config/Classifier/your_GATclassifier_config_file.yaml
+python train_attention_GNN.py -s config/Classifier/your_GATclassifier_config_file.yaml
 ```
 
 #### Document Summarization
 To train MHA summarizer:
 ```
-python train_MHASummarizer.py --config config/Summarizer/your_MHAsummarizer_config_file.yaml
+python train_MHASummarizer.py -s config/Summarizer/your_MHAsummarizer_config_file.yaml
 ```
 To train GAT summarizer:
 ```
-python train_attention_gnn_node.py --config config/Summarizer/your_GATsummarizer_config_file.yaml
+python train_attention_gnn_node.py -s config/Summarizer/your_GATsummarizer_config_file.yaml
 ```
 
 #### Analysis
@@ -73,7 +73,7 @@ To visualize attentions adjacency matrix.
 `num_print` defines number of samples prints from each split.
 `random` enables random samples instead of the first `<num_print>` instances. 
 ```
-python visualize_attns.py --config config/<folder>/<your_MHA_config_file>.yaml [optional --num_print <int>] [optional --random]
+python visualize_attns.py -s config/<folder>/<your_MHA_config_file>.yaml [optional --num_print <int>] [optional --random_sampling]
 ```
 
 To print structural statistics from a graph dataset.
@@ -87,5 +87,5 @@ To conduct analyses of your choice on the test split from the best model (with h
 
 The following analyses is available: `tsne`, `rouge_score`, `bert_score` and `sent_dist`.
 ```
-python analyze_summaries.py --config config/<folder>/<your_GAT_config_file>.yaml [optional --num_print <int>] [optional --random] [optional --tsne] [optional --rouge_score] [optional --bert_score] [optional --sent_dist]
+python analyze_summaries.py -s config/<folder>/<your_GAT_config_file>.yaml [optional --num_print <int>] [optional --random_sampling] [optional --tsne] [optional --rouge_score] [optional --bert_score] [optional --sent_dist]
 ```

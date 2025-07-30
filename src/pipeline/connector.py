@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -20,8 +21,17 @@ def retrieve_parameters(model_name, df_logger, with_temperature=False, require_b
     else:
         return best_model_ckpt, subset_df.loc[retrieve_index]['Score']
 
-def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, window, df=None, print_samples=0,
-                       degree_std=0.5, with_filtering=True, filtering_type="mean", granularity="local", color=None):
+
+def get_sample_indices(length, num_print, random_sampling=True):
+    if random_sampling:
+        return random.sample(range(length), num_print)
+    else:
+        return list(range(num_print))
+
+
+def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_sents, window, df=None,
+                       print_samples=0, degree_std=0.5, with_filtering=True, filtering_type="mean",
+                       granularity="local", color=None, selected_indices=None):
     # filtering multiple matrices for plotting visualization
     # set up
     cropped_matrices = []
@@ -46,7 +56,9 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
         print("\nGenerating Graphs Objects based on Full Attention Weights")
 
     # get valid cropped matrices
-    for doc_att in full_attn_weights:
+    indices = selected_indices if selected_indices is not None else range(len(full_attn_weights))
+    for index in indices:
+        doc_att = full_attn_weights[index]
         cropped_matrix = doc_att[:list_valid_sents[index], :list_valid_sents[index]]
         cropped_matrices.append(cropped_matrix)
         window_mask = get_window_mask(cropped_matrix, list_valid_sents[index], window)
