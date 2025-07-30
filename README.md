@@ -72,7 +72,7 @@ python train_attention_gnn_node.py -s config/Summarizer/your_GATsummarizer_confi
 #### Analysis
 
 To visualize attentions adjacency matrix,
-*required: a trained MHA model, either a classifier or a summarizer*
+*required: a trained MHA model, either a classifier or a summarizer*.
 
 `num_print` defines number of samples prints from each split.
 `random_sampling` enables random samples instead of the first `<num_print>` instances. 
@@ -81,13 +81,13 @@ python visualize_attns.py -s config/<folder>/<your_MHA_config_file>.yaml [option
 ```
 
 To print structural statistics from a graph dataset,
-*required: a graph dataset*
+*required: a graph dataset*.
 ```
 python get_structural_graph_stats.py --data-dir '/path/to/folder/<model_name>/<type_graph>/processed
 ```
 
-To conduct analyses of your choice on the test split from the best model (with highest Val-f1 score) defined in the GAT config file.,
-*required: a graph dataset and a trained GNN summarizer*
+To conduct analyses of your choice on the test split from the best model (with highest Val-f1 score) defined in the GAT config file,
+*required: a graph dataset and a trained GNN summarizer*.
 
 `num_print` defines number of samples prints from each split.
 `random_sampling` enables random samples instead of the first `<num_print>` instances for t-SNE analysis.
