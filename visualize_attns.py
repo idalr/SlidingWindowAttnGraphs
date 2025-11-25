@@ -26,7 +26,7 @@ def main_run(config_file , settings_file, num_print, random_sampling):
     df_logger = pd.read_csv(path_logger + logger_file)
     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 
-    if dataset_name == "HND" or dataset_name == "BBC":
+    if dataset_name == "HND" or dataset_name == "BBC" or dataset_name == 'arXiv':
         task = 'classification'
         text_col = 'article_text'
     elif dataset_name == 'GR':
@@ -37,6 +37,9 @@ def main_run(config_file , settings_file, num_print, random_sampling):
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
+
+    ### minirun
+    df_train, df_val, df_test = df_train[:10], df_val[:10], df_test[:10]
 
     ids2remove_train = check_dataframe(df_train, task=task)
     for id_remove in ids2remove_train:
@@ -104,7 +107,7 @@ def main_run(config_file , settings_file, num_print, random_sampling):
                                                          path_ckpt=path_vocab, df_val=None, task=task)
 
     print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-    if dataset_name == "HND" or dataset_name == "BBC":
+    if dataset_name == "HND" or dataset_name == "BBC" or dataset_name == 'arXiv':
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
     elif dataset_name == "GR":
         model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
