@@ -52,7 +52,7 @@ Alternatively, all three preprocessed datasets can be downloaded from:
 #### Document Classification
 To train MHA classifier:
 ```
-python train_MHAClassifier.py --config config/Classifier/your_MHAclassifier_config_file.yaml
+python train_MHAClassifier.py -s config/Classifier/your_MHAclassifier_config_file.yaml
 ```
 To train GAT classifier:
 ```
