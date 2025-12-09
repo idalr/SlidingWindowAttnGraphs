@@ -1,0 +1,48 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: arXiv
+logger_name: df_logger_cw.csv
+model_name: NoTemp_w30      # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
+setting_file: None
+type_model: GAT
+binarized: False
+multi_layer: False                              # True for multi-layer attention models, False for single-layer
+baseline: False                                 # Always False for attention-based learned graphs
+type_graph: max                                # "full", "max" or "mean", depending on the type of statistical filtering to use
+unified_nodes: True
+
+data_paths:
+  path_logger: /content/drive/MyDrive/ADG/HomoGraphs_AX/
+  results_folder: /content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Classifier/Colab/
+  root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_AX/
+
+load_data_paths:
+  in_path: "/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True                             # True if validation set is available, False otherwise (like this case)
+
+model_arch_args:
+  num_classes: 11
+  lr: 0.001
+  dropout: 0.2
+  dim_features : [64, 128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
+  window: 30                              # set to 100 to run full self-attention, otherwise 1-99 according to % of document length
+
+batch_size: 8                                   # Batch size is set to 8 due to the long documents in arXiv dataset
+with_cw: True
+max_len: 1800                                   # Maximum sequence length (number of sentences) for arxiv documents
+
+trainer_args:
+  max_epochs: 50
+  enable_progress_bar: False
+  accumulate_grad_batches: 4                    # Accumulate gradients over 4 batches, as the batch size is small
+
+early_args:
+  patience: 5
+  min_delta: 0.001

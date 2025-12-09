@@ -174,7 +174,11 @@ def main_run(config_file , settings_file):
                                                              df_val=None, task="classification")
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
+        #model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        sent_dict_disk = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/vocab_sentences.csv')
+        invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        model_lightning.invert_vocab_sent = invert_vocab_sent
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
