@@ -62,11 +62,7 @@ def main_run(config_file, settings_file):
     #################################
 
     csv_path = config_file['load_data_paths']['in_path'] + 'vocab_sentences.csv'
-    lmdb_path = csv_path + '.lmdb'
-    # --- FIX: remove old folder if it exists ---
-    if os.path.exists(lmdb_path):
-        shutil.rmtree(lmdb_path)
-    # --- build LMDB ---
+    lmdb_path = "/content/vocab_sentences.lmdb"  # safe path
     build_lmdb_vocab(csv_path, lmdb_path)
 
     ### Train MHA-based model.
