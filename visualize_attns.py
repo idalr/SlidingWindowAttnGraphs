@@ -9,7 +9,7 @@ from src.models.base_model import MHAClassifier, MHASummarizer
 from src.pipeline.connector import retrieve_parameters, get_sample_indices, filtering_matrices
 from src.data.preprocess_data import load_data
 from src.data.text_loaders import create_loaders
-from src.data.utils import check_dataframe
+from src.data.utils import check_dataframe, clean_tokenization_sent
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -62,7 +62,10 @@ def main_run(config_file , settings_file, num_print, random_sampling):
 
     sent_lengths = []
     for i, doc in enumerate(df_train[text_col]):
-        sent_in_doc = sent_tokenize(doc)
+        if dataset_name == "BBC" or dataset_name == "HND":
+            sent_in_doc = sent_tokenize(doc)
+        else:
+            sent_in_doc = clean_tokenization_sent(doc, "text") # sent_tokenize(doc) if sent_tokenizer=True (HND and BBC)
         if len(sent_in_doc) == 0:
             print("Empty doc en:", i)
         sent_lengths.append(len(sent_in_doc))
@@ -70,14 +73,20 @@ def main_run(config_file , settings_file, num_print, random_sampling):
     if config_file["load_data_paths"]["with_val"] == True:
         sent_lengths_val = []
         for i, doc in enumerate(df_val[text_col]):
-            sent_in_doc = sent_tokenize(doc)
+            if dataset_name == "BBC" or dataset_name == "HND":
+                sent_in_doc = sent_tokenize(doc)
+            else:
+                sent_in_doc = clean_tokenization_sent(doc, "text")
             if len(sent_in_doc) == 0:
                 print("Empty doc en:", i)
             sent_lengths_val.append(len(sent_in_doc))
 
     sent_lengths_test = []
     for i, doc in enumerate(df_test[text_col]):
-        sent_in_doc = sent_tokenize(doc)
+        if dataset_name == "BBC" or dataset_name == "HND":
+            sent_in_doc = sent_tokenize(doc)
+        else:
+            sent_in_doc = clean_tokenization_sent(doc, "text")
         if len(sent_in_doc) == 0:
             print("Empty doc en:", i)
         sent_lengths_test.append(len(sent_in_doc))
