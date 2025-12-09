@@ -127,11 +127,36 @@ def main_run(config_file, settings_file):
 
         ### Load best checkpoint
         model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-
+        #model_lightning = MHAClassifier.load_from_checkpoint('/scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=05-Val_f1-ma=0.80.ckpt')
         print("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print("Temperature of loaded model:", model_lightning.temperature)
 
-        preds, _, all_labels, _, _ = model_lightning.predict(loader_test, cpu_store=False)
+        if dataset_name == "arXiv":
+            # Predict in batches to reduce memory use
+            preds_list = []
+            labels_list = []
+            model_lightning.eval()
+            with torch.no_grad():
+                for batch in loader_test:
+                    # Move only inputs to GPU
+                    documents_ids = batch["documents_ids"].to(model_lightning.device)
+                    src_key_padding_mask = batch["src_key_padding_mask"].to(model_lightning.device)
+                    matrix_mask = batch["matrix_mask"].to(model_lightning.device)
+                    # Keep labels on CPU
+                    labels = batch["labels"]
+                    # Forward
+                    out, _ = model_lightning(documents_ids, src_key_padding_mask, matrix_mask)
+                    # Predictions -> move back to CPU
+                    batch_preds = out.argmax(dim=1).cpu()
+                    preds_list.append(batch_preds)
+                    labels_list.append(labels.cpu())
+            # Concatenate CPU tensors
+            preds = torch.cat(preds_list)
+            all_labels = torch.cat(labels_list)
+        else:
+            preds, _, all_labels, _, _ = model_lightning.predict(loader_test, cpu_store=False)
+
+        # Calculate Acc and F1
         acc = (torch.Tensor(all_labels) == preds).float().mean()
         f1_score = F1Score(task='multiclass', num_classes=model_params["num_classes"], average=None)
         f1_all = f1_score(preds.int(), torch.Tensor(all_labels).int())
