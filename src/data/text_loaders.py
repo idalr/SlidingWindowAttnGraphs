@@ -52,10 +52,12 @@ def make_loader(docs_path, labels_path, ids_path, max_len, batch_size):
 # -------------------------
 # Helper: Stream documents → memmap
 # -------------------------
-def documents_to_ids_memmap_chunked(documents, vocab_dict, memmap_prefix, max_len, labels=None, ids=None, chunk_size=5000):
+def documents_to_ids_memmap_chunked(documents, vocab_dict, memmap_prefix, max_len,
+                                    labels=None, ids=None, chunk_size=5000, default_id=0):
     """
-    Convert documents to IDs in chunks using a small vocab dict (can be a subset / batch)
-    and write directly to memmap. Resumable if memmap exists.
+    Convert documents to IDs in chunks using vocab_dict.
+    Unknown sentences are replaced with default_id (e.g., 0).
+    Warn once about missing sentences.
     """
     n_docs = len(documents)
     os.makedirs(os.path.dirname(memmap_prefix), exist_ok=True)
@@ -67,6 +69,8 @@ def documents_to_ids_memmap_chunked(documents, vocab_dict, memmap_prefix, max_le
     if ids is not None:
         ids_mm = np.memmap(memmap_prefix + "_ids.mm", dtype="int32", mode="w+", shape=(n_docs,))
 
+    missing_sentences = set()  # store unique missing sentence IDs
+
     for start_idx in tqdm(range(0, n_docs, chunk_size), desc=f"Processing memmap {memmap_prefix}"):
         end_idx = min(start_idx + chunk_size, n_docs)
         chunk_docs = documents[start_idx:end_idx]
@@ -76,13 +80,20 @@ def documents_to_ids_memmap_chunked(documents, vocab_dict, memmap_prefix, max_le
             chunk_ids = ids[start_idx:end_idx]
 
         for i, doc in enumerate(chunk_docs):
-            doc_ids = [vocab_dict.get(sent, 0) for sent in doc]  # unknown sentence → 0
+            doc_ids = []
+            for sent in doc:
+                if sent in vocab_dict:
+                    doc_ids.append(vocab_dict[sent])
+                else:
+                    doc_ids.append(default_id)
+                    missing_sentences.add(sent)
+
             if len(doc_ids) < max_len:
-                doc_ids += [0] * (max_len - len(doc_ids))
+                doc_ids += [default_id] * (max_len - len(doc_ids))
             else:
                 doc_ids = doc_ids[:max_len]
-            docs_mm[start_idx + i] = np.array(doc_ids, dtype="int32")
 
+            docs_mm[start_idx + i] = np.array(doc_ids, dtype="int32")
             if labels is not None:
                 labels_mm[start_idx + i] = int(chunk_labels[i])
             if ids is not None:
@@ -92,7 +103,11 @@ def documents_to_ids_memmap_chunked(documents, vocab_dict, memmap_prefix, max_le
     if labels is not None: labels_mm.flush()
     if ids is not None: ids_mm.flush()
 
+    if missing_sentences:
+        print(f"[WARNING] {len(missing_sentences)} unique sentences not found in vocab. Replaced with default ID={default_id}.")
+
     return docs_mm.filename, labels_mm.filename if labels is not None else None, ids_mm.filename if ids is not None else None
+
 
 # -------------------------
 # Main create_loaders function

@@ -5,6 +5,24 @@ from torch import nn
 def retrieve_from_dict(dict, list_ids):
     return [dict[id.item()] for id in list_ids]
 
+def retrieve_from_dict_safe(dict_obj, list_ids, default="[UNK]"):
+    """
+    Map list of IDs to sentences safely.
+    Missing IDs replaced by `default`.
+    """
+    result = []
+    missing_count = 0
+    for id in list_ids:
+        key = id.item() if isinstance(id, torch.Tensor) else id
+        if key in dict_obj:
+            result.append(dict_obj[key])
+        else:
+            result.append(default)
+            missing_count += 1
+    if missing_count > 0:
+        print(f"[WARNING] {missing_count}/{len(list_ids)} IDs not found in vocab. Replaced with default.")
+    return result
+
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):
     factor = 1 / np.sqrt(q.size(-1))
     attn_logits = q @ k.transpose(-2, -1) * factor
