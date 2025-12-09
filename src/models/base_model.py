@@ -6,8 +6,8 @@ import numpy  as np
 from sentence_transformers import SentenceTransformer
 
 from src.models.core import Classifier_Lighting, Summarizer_Lighting
-from src.models.utils import (MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict,
-                              retrieve_from_dict_safe)
+from src.models.utils import (MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict)
+from utils_vocab import retrieve_from_lmdb
 
 
 class MHAClassifier(Classifier_Lighting):
@@ -90,7 +90,8 @@ class MHAClassifier(Classifier_Lighting):
     def forward(self, doc_ids, src_key_padding_mask, matrix_mask):
         x_emb = []
         for doc in doc_ids:
-            source = source = self.sent_model.encode(retrieve_from_dict_safe(self.invert_vocab_sent, doc[doc != 0])) #self.sent_model.encode(retrieve_from_dict(self.invert_vocab_sent, doc[doc != 0]))
+            #source = source = self.sent_model.encode(retrieve_from_dict(self.invert_vocab_sent, doc[doc != 0]))
+            source = self.sent_model.encode(retrieve_from_lmdb(self.invert_vocab_sent, doc[doc != 0]))
             complement = np.zeros((len(doc[doc == 0]), self.embed_dim))
             temp_emb = np.concatenate((source, complement))
             x_emb.append(temp_emb)
