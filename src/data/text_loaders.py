@@ -11,51 +11,55 @@ BIG_VAL = 1e9
 
 
 class DocumentDataset(Dataset):
-    def __init__(self, documents, labels, max_len, article_identifiers, task="classification"):
-        self.documents = documents
+    def __init__(self, raw_documents, labels, max_len, article_identifiers,
+                 vocab_sent, invert_vocab_sent, task="classification"):
+        self.raw_documents = raw_documents   # <-- Store RAW TEXT, not tokenized IDs
         self.labels = labels
         self.max_len = max_len
         self.article_id = article_identifiers
         self.task = task
+        self.vocab = vocab_sent
+        self.inv_vocab = invert_vocab_sent
+
+    def encode(self, sent_list):
+        # convert a list of sentences to ids
+        return [self.vocab.get(s, 0) for s in sent_list]  # O(1) per item
 
     def __len__(self):
-        return len(self.documents)
+        return len(self.raw_documents)
 
     def __getitem__(self, idx):
-        document = self.documents[idx]
+        # tokenization happens HERE instead of earlier
+        sentence_list = self.raw_documents[idx]  # a list of strings
+        document = self.encode(sentence_list)
+
         label = self.labels[idx]
         article_id = self.article_id[idx]
-
         original_len = len(document)
-        if self.task == "summarization":
-            labels_len = len(label)
-            if original_len != labels_len:
-                print("Error in lengths of document and labels in dataframe row-id:", idx, "with label lens as ",
-                      labels_len, "and doc len as", original_len)
-        num_pad_values = np.maximum(self.max_len - original_len, 0)
+        num_pad_values = max(self.max_len - original_len, 0)
 
         if num_pad_values > 0:
-            document = document + [0] * num_pad_values  # This setting assumes padding index is 0
-            attention_mask = torch.tensor([0] * original_len + [-BIG_VAL] * num_pad_values)  # To imit torch.inf
+            document = document + [0] * num_pad_values
+            attention_mask = torch.tensor([0] * original_len + [-BIG_VAL] * num_pad_values)
             matrix_mask = torch.concat(
-                [attention_mask[None, :].repeat(original_len, 1), -BIG_VAL * torch.ones(num_pad_values, self.max_len)],
-                dim=0)  # To imit torch.inf
+                [attention_mask[None, :].repeat(original_len, 1),
+                 -BIG_VAL * torch.ones(num_pad_values, self.max_len)],
+                dim=0)
         else:
             document = document[:self.max_len]
-            if self.task == "summarization":  # If summarization tasks are intended, provide sentece labels as a list of 0s and 1s
-                label = label[:self.max_len]
             attention_mask = torch.zeros(self.max_len)
             matrix_mask = torch.zeros(self.max_len, self.max_len)
+            if self.task == "summarization":
+                label = label[:self.max_len]
 
-        if self.task == "classification":
-            return {'documents_ids': torch.tensor(document), 'labels': torch.tensor(label),
-                    'src_key_padding_mask': attention_mask,
-                    "matrix_mask": matrix_mask, 'article_id': article_id}
-        else:
-            return {'documents_ids': torch.tensor(document), 'labels': torch.tensor(label + [-1] * num_pad_values),
-                    'src_key_padding_mask': attention_mask,
-                    "matrix_mask": matrix_mask,
-                    'article_id': article_id}  # Summarization could be conducted as a sent-clasification task. Therefore, labels must have the same length
+        return {
+            'documents_ids': torch.tensor(document),
+            'labels': torch.tensor(label),
+            'src_key_padding_mask': attention_mask,
+            'matrix_mask': matrix_mask,
+            'article_id': article_id
+        }
+
 
 
 def create_loaders(df_full_train, df_test, max_len, batch_size, with_val=True, tokenizer_from_scratch=True,
@@ -132,20 +136,26 @@ def create_loaders(df_full_train, df_test, max_len, batch_size, with_val=True, t
             invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
 
         vocab_sent = {v: k for k, v in invert_vocab_sent.items()}
-        documents_ids = documents_to_ids(documents, from_scratch=False, dict_text_ids=vocab_sent,
-                                         invert_text_ids=invert_vocab_sent)
+        #documents_ids = documents_to_ids(documents, from_scratch=False, dict_text_ids=vocab_sent,
+        #                                 invert_text_ids=invert_vocab_sent)
         if with_val:
             documents_ids_val = documents_to_ids(documents_val, from_scratch=False, dict_text_ids=vocab_sent,
                                                  invert_text_ids=invert_vocab_sent)
-            dataset_val = DocumentDataset(documents_ids_val, labels_val, max_len, article_identifiers_val, task=task)
-            loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
-        documents_ids_test = documents_to_ids(documents_test, from_scratch=False, dict_text_ids=vocab_sent,
-                                              invert_text_ids=invert_vocab_sent)
+            #dataset_val = DocumentDataset(documents_ids_val, labels_val, max_len, article_identifiers_val, task=task)
+            dataset_val = DocumentDataset(documents_val, labels_val, max_len, article_identifiers_val,
+                                          vocab_sent, invert_vocab_sent, task)
+            loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0)
+        #documents_ids_test = documents_to_ids(documents_test, from_scratch=False, dict_text_ids=vocab_sent,
+        #                                      invert_text_ids=invert_vocab_sent)
 
-    dataset_train = DocumentDataset(documents_ids, labels, max_len, article_identifiers, task=task)
-    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
-    dataset_test = DocumentDataset(documents_ids_test, labels_test, max_len, article_identifiers_test, task=task)
-    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
+    #dataset_train = DocumentDataset(documents_ids, labels, max_len, article_identifiers, task=task)
+    dataset_train = DocumentDataset(documents, labels, max_len, article_identifiers,
+                                    vocab_sent, invert_vocab_sent, task)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=False, num_workers=0)
+    #dataset_test = DocumentDataset(documents_ids_test, labels_test, max_len, article_identifiers_test, task=task)
+    dataset_test = DocumentDataset(documents_test, labels_test, max_len, article_identifiers_test,
+                                   vocab_sent, invert_vocab_sent, task)
+    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=0)
 
     if with_val:
         return loader_train, loader_val, loader_test, df_train, df_val, vocab_sent, invert_vocab_sent
