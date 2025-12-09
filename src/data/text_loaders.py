@@ -164,67 +164,96 @@ BIG_VAL = 1e9
 #     else:
 #         return loader_train, loader_test, vocab_sent, invert_vocab_sent
 
+import sqlite3
 
-def load_vocab_from_csv(path):
+import os
+import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
+import pandas as pd
+import sqlite3
+from sklearn.model_selection import train_test_split
+from nltk import sent_tokenize  # or your own clean_tokenization_sent
 
-    path = os.path.join(path, "vocab_sentences.csv")
-    print(f"\n[INFO] Loading vocabulary CSV:\n{path}")
 
-    if not os.path.isfile(path):
-        raise FileNotFoundError(f"Vocabulary CSV not found: {path}")
+# -------------------------
+# 1️⃣ Helper: Create SQLite vocab DB
+# -------------------------
+def create_vocab_db(csv_path, db_path="/content/vocab.db"):
+    if os.path.exists(db_path):
+        print(f"[INFO] Using existing vocab DB: {db_path}")
+        return db_path
 
-    invert_vocab_sent = {}
-    try:
-        iterator = pd.read_csv(path, chunksize=200_000)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load vocabulary CSV: {e}")
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE vocab (sentence TEXT PRIMARY KEY, sentence_id INT)")
 
-    for chunk in tqdm(iterator, desc="Reading vocab CSV in chunks", unit="chunk"):
-        if "Sentence_id" not in chunk.columns or "Sentence" not in chunk.columns:
-            raise ValueError("CSV must contain columns: Sentence_id, Sentence")
-        invert_vocab_sent.update({int(k): str(v) for k, v in zip(chunk["Sentence_id"], chunk["Sentence"])})
+    iterator = pd.read_csv(csv_path, chunksize=100_000)
+    for chunk in tqdm(iterator, desc="Creating vocab DB"):
+        cur.executemany(
+            "INSERT OR IGNORE INTO vocab VALUES (?, ?)",
+            zip(chunk["Sentence"], chunk["Sentence_id"])
+        )
+        conn.commit()
+    conn.close()
+    print(f"[INFO] Vocabulary DB created at {db_path}")
+    return db_path
 
-    vocab_sent = {v: k for k, v in invert_vocab_sent.items()}
-    print(f"[INFO] Vocabulary loaded: {len(vocab_sent)} entries\n")
 
-    return vocab_sent, invert_vocab_sent
+# -------------------------
+# 2️⃣ Helper: Stream documents → memmap
+# -------------------------
+def documents_to_ids_memmap(documents, db_path, memmap_prefix, max_len, labels=None, ids=None):
+    n_docs = len(documents)
+    print(f"[INFO] Converting {n_docs} docs → memmap: {memmap_prefix}")
 
-def build_memmap_dataset(doc_ids, labels, ids, max_len, prefix):
-    n = len(doc_ids)
+    docs_mm = np.memmap(memmap_prefix + "_docs.mm", dtype="int32", mode="w+", shape=(n_docs, max_len))
+    if labels is not None:
+        labels_mm = np.memmap(memmap_prefix + "_labels.mm", dtype="int32", mode="w+", shape=(n_docs,))
+    if ids is not None:
+        ids_mm = np.memmap(memmap_prefix + "_ids.mm", dtype="int32", mode="w+", shape=(n_docs,))
 
-    os.makedirs(os.path.dirname(prefix), exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
 
-    docs_mm = np.memmap(prefix + "_docs.mm", dtype="int32", mode="w+", shape=(n, max_len))
-    labels_mm = np.memmap(prefix + "_labels.mm", dtype="int32", mode="w+", shape=(n,))
-    ids_mm = np.memmap(prefix + "_ids.mm", dtype="int32", mode="w+", shape=(n,))
+    for i in tqdm(range(n_docs), desc=f"Streaming docs → {memmap_prefix}", unit="doc"):
+        doc = documents[i]
+        doc_ids = []
+        for sent in doc:
+            cur.execute("SELECT sentence_id FROM vocab WHERE sentence=?", (sent,))
+            res = cur.fetchone()
+            doc_ids.append(res[0] if res is not None else 0)
 
-    for i in tqdm(range(n), desc=f"Memmapping → {prefix}", unit="doc"):
-        seq = doc_ids[i]
-        L = len(seq)
-
-        if L < max_len:
-            padded = seq + [0] * (max_len - L)
+        # pad/truncate
+        if len(doc_ids) < max_len:
+            doc_ids += [0] * (max_len - len(doc_ids))
         else:
-            padded = seq[:max_len]
+            doc_ids = doc_ids[:max_len]
 
-        docs_mm[i] = np.array(padded, dtype="int32")
-        labels_mm[i] = int(labels[i])
-        ids_mm[i] = int(ids[i])
+        docs_mm[i] = np.array(doc_ids, dtype="int32")
+        if labels is not None:
+            labels_mm[i] = int(labels[i])
+        if ids is not None:
+            ids_mm[i] = int(ids[i])
 
     docs_mm.flush()
-    labels_mm.flush()
-    ids_mm.flush()
+    if labels is not None: labels_mm.flush()
+    if ids is not None: ids_mm.flush()
+    conn.close()
 
-    return prefix + "_docs.mm", prefix + "_labels.mm", prefix + "_ids.mm"
+    return docs_mm.filename, labels_mm.filename if labels is not None else None, ids_mm.filename if ids is not None else None
 
 
+# -------------------------
+# 3️⃣ Dataset + DataLoader
+# -------------------------
 class MemmapDocumentDataset(Dataset):
     def __init__(self, docs_path, labels_path, ids_path, max_len):
         self.docs = np.memmap(docs_path, mode="r", dtype="int32").reshape(-1, max_len)
-        self.labels = np.memmap(labels_path, mode="r", dtype="int32")
-        self.ids = np.memmap(ids_path, mode="r", dtype="int32")
-
-        self.N = len(self.labels)
+        self.labels = np.memmap(labels_path, mode="r", dtype="int32") if labels_path else None
+        self.ids = np.memmap(ids_path, mode="r", dtype="int32") if ids_path else None
+        self.N = len(self.docs)
         self.max_len = max_len
 
     def __len__(self):
@@ -232,8 +261,8 @@ class MemmapDocumentDataset(Dataset):
 
     def __getitem__(self, idx):
         doc = torch.from_numpy(self.docs[idx]).long()
-        label = int(self.labels[idx])
-        aid = int(self.ids[idx])
+        label = int(self.labels[idx]) if self.labels is not None else None
+        aid = int(self.ids[idx]) if self.ids is not None else None
 
         mask = (doc == 0).float() * -1e9
         matrix_mask = mask.unsqueeze(0).repeat(self.max_len, 1)
@@ -246,23 +275,27 @@ class MemmapDocumentDataset(Dataset):
             "article_id": aid,
         }
 
-def make_loader(docs_path, labels_path, ids_path, max_len, batch_size):
-    ds = MemmapDocumentDataset(docs_path, labels_path, ids_path, max_len)
 
+def make_loader(docs_path, labels_path, ids_path, max_len, batch_size):
+    dataset = MemmapDocumentDataset(docs_path, labels_path, ids_path, max_len)
     return DataLoader(
-        ds,
+        dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
         pin_memory=True,
+        num_workers=2,
         persistent_workers=True
     )
 
 
+# -------------------------
+# 4️⃣ Main create_loaders()
+# -------------------------
 def create_loaders(df_full_train, df_test, max_len, batch_size,
                    with_val=True, tokenizer_from_scratch=True,
                    path_ckpt='', df_val=None, task="classification",
                    sent_tokenizer=False):
+
     source_column_name = {"classification": 'article_text', "summarization": 'Cleaned_Article'}
     label_column_name = {"classification": 'article_label', "summarization": 'Calculated_Labels'}
     id_column_name = {"classification": 'article_id', "summarization": 'Article_ID'}
@@ -279,7 +312,7 @@ def create_loaders(df_full_train, df_test, max_len, batch_size,
         df_train = df_full_train
 
     # -----------------------------
-    # 2 — tokenize documents into lists of sentences/tokens
+    # 2 — tokenize documents
     # -----------------------------
     def proc(df):
         return [
@@ -310,64 +343,35 @@ def create_loaders(df_full_train, df_test, max_len, batch_size,
         ids_val = list(df_val[id_column_name[task]])
 
     # -----------------------------
-    # 3 — vocabulary handling
+    # 3 — vocabulary DB
     # -----------------------------
     if tokenizer_from_scratch:
-        print("\n[INFO] Creating vocabulary from scratch is TOO RAM HEAVY — RECOMMENDED: use vocab_csv.\n")
-        raise RuntimeError("You must supply vocab via CSV for large datasets.")
-    else:
-        # path_ckpt now MUST point to vocab CSV
-        try:
-            vocab_sent, invert_vocab_sent = load_vocab_from_csv(path_ckpt)
-        except Exception as e:
-            raise RuntimeError(f"Failed loading vocab CSV: {e}")
+        raise RuntimeError("For large datasets, you MUST provide path_ckpt → vocab CSV")
+    vocab_db = create_vocab_db("/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/vocab_sentences.csv")
 
     # -----------------------------
-    # 4 — convert documents to integer ids
+    # 4 — memmap conversion
     # -----------------------------
-    def to_ids(docs):
-        return documents_to_ids(
-            docs,
-            from_scratch=False,
-            dict_text_ids=vocab_sent,
-            invert_text_ids=invert_vocab_sent
-        )
-
-    print("[INFO] Converting documents to integer IDs...")
-    documents_ids_train = to_ids(documents_train)
-    documents_ids_test = to_ids(documents_test)
-    if with_val:
-        documents_ids_val = to_ids(documents_val)
-
-    # -----------------------------
-    # 5 — MEMMAP construction (RAM-safe)
-    # -----------------------------
-    print("\n[INFO] Building memmap datasets...\n")
-
-    train_docs, train_labels, train_ids = build_memmap_dataset(
-        documents_ids_train, labels_train, ids_train,
-        max_len, "/content/mmap/train"
+    train_docs_mm, train_labels_mm, train_ids_mm = documents_to_ids_memmap(
+        documents_train, vocab_db, "/content/mmap/train", max_len, labels_train, ids_train
     )
 
-    test_docs, test_labels, test_ids = build_memmap_dataset(
-        documents_ids_test, labels_test, ids_test,
-        max_len, "/content/mmap/test"
+    test_docs_mm, test_labels_mm, test_ids_mm = documents_to_ids_memmap(
+        documents_test, vocab_db, "/content/mmap/test", max_len, labels_test, ids_test
     )
 
     if with_val:
-        val_docs, val_labels, val_ids = build_memmap_dataset(
-            documents_ids_val, labels_val, ids_val,
-            max_len, "/content/mmap/val"
+        val_docs_mm, val_labels_mm, val_ids_mm = documents_to_ids_memmap(
+            documents_val, vocab_db, "/content/mmap/val", max_len, labels_val, ids_val
         )
 
     # -----------------------------
-    # 6 — GPU-pinned DataLoaders
+    # 5 — GPU-pinned DataLoaders
     # -----------------------------
-    loader_train = make_loader(train_docs, train_labels, train_ids, max_len, batch_size)
-    loader_test = make_loader(test_docs, test_labels, test_ids, max_len, batch_size)
-
+    loader_train = make_loader(train_docs_mm, train_labels_mm, train_ids_mm, max_len, batch_size)
+    loader_test = make_loader(test_docs_mm, test_labels_mm, test_ids_mm, max_len, batch_size)
     if with_val:
-        loader_val = make_loader(val_docs, val_labels, val_ids, max_len, batch_size)
-        return loader_train, loader_val, loader_test, df_train, df_val, vocab_sent, invert_vocab_sent
+        loader_val = make_loader(val_docs_mm, val_labels_mm, val_ids_mm, max_len, batch_size)
+        return loader_train, loader_val, loader_test, df_train, df_val
     else:
-        return loader_train, loader_test, vocab_sent, invert_vocab_sent
+        return loader_train, loader_test

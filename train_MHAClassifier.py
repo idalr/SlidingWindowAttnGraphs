@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 from src.data.preprocess_data import load_data
 from src.models.base_model import MHAClassifier
-from src.data.text_loaders import create_loaders
+from src.data.text_loaders import * #create_loaders
 from src.data.utils import get_class_weights
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
@@ -54,6 +54,10 @@ def main_run(config_file, settings_file):
     else:
         max_len = config_file["max_len"]
     print("Max number of sentences allowed per document:", max_len)
+
+    ################################# minirun
+    df_train, df_val, df_test = df_train[:100], df_val[:50], df_test[:50]
+    #################################
 
     ### Train MHA-based model.
     for exec_i in range(config_file["num_executions"]):
