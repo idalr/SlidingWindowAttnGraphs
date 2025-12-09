@@ -14,6 +14,7 @@ load_data_paths:
   labels_train: ""
   data_test: ""
   labels_test: ""
+  vocab_csv: "/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/vocab_sentences.csv"
   with_val: True                  # True if validation set is available, False otherwise
 
 model_arch_args:

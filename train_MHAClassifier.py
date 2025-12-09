@@ -60,7 +60,7 @@ def main_run(config_file, settings_file):
         print("\n=============================")
         print("Execution number:", exec_i)
         print("=============================")
-        try:
+        if config_file["load_data_paths"]["vocab_csv"]: #try:
             if config_file["load_data_paths"]["with_val"] == True:
                 loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
                                                                                    config_file["batch_size"],
@@ -78,7 +78,7 @@ def main_run(config_file, settings_file):
                                                                                    config_file["load_data_paths"][
                                                                                        "in_path"])
         ### Create sentence vocabulary as a dictionary
-        except:
+        else: #except:
             print("Error: Vocabulary not found.\nCreating sentence vocabulary...")
             if config_file["load_data_paths"]["with_val"] == True:
                 loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test,
