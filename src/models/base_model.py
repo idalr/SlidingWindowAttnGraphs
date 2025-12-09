@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.models.core import Classifier_Lighting, Summarizer_Lighting
 from src.models.utils import (MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict)
-from utils_vocab import retrieve_from_lmdb
+from utils_vocab import load_lmdb_vocab, retrieve_from_lmdb
 
 
 class MHAClassifier(Classifier_Lighting):
@@ -56,7 +56,8 @@ class MHAClassifier(Classifier_Lighting):
                                                                  dropout=attn_dropout, activation_attention=activation_attention)
 
         #sent_dict_disk = pd.read_csv(path_invert_vocab_sent+"vocab_sentences.csv")
-        self.invert_vocab_sent = {} #{k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
+        #self.invert_vocab_sent = {} #{k:v for k,v in zip(sent_dict_disk['Sentence_id'],sent_dict_disk['Sentence'])}
+        self.invert_vocab_sent = load_lmdb_vocab(path_invert_vocab_sent)
         self.save_hyperparameters(ignore=["invert_vocab_sent"]) ### for loading later
 
     def training_step(self, batch, batch_idx):

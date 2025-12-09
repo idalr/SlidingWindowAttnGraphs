@@ -2,11 +2,13 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+from nltk import sent_tokenize
 
-from utils_vocab import (
+from src.data.utils_vocab import (
     build_lmdb_vocab,
-    LmdbVocab,
+    LmdbVocab, documents_to_ids,
 )
+from src.data.utils import clean_tokenization_sent
 
 ##############################################
 # DocumentDataset – unchanged
@@ -71,118 +73,107 @@ def create_loaders(df_full_train, df_test, max_len, batch_size, with_val=True,
                    tokenizer_from_scratch=True, path_ckpt='', df_val=None,
                    task="classification", sent_tokenizer=False):
 
-    source_column_name = {"classification": 'article_text', "summarization": 'Cleaned_Article'}
-    label_column_name = {"classification": 'article_label', "summarization": 'Calculated_Labels'}
-    id_column_name    = {"classification": 'article_id',    "summarization": 'Article_ID'}
+    from utils_vocab import (
+        load_lmdb_vocab, documents_to_ids
+    )
 
-    ##############################################
-    # 1. Train/Val/Test splits and tokenization
-    ##############################################
+    source_column_name = {
+        "classification": 'article_text',
+        "summarization": 'Cleaned_Article'
+    }
+    label_column_name = {
+        "classification": 'article_label',
+        "summarization": 'Calculated_Labels'
+    }
+    id_column_name = {
+        "classification": 'article_id',
+        "summarization": 'Article_ID'
+    }
 
+    # --------------------------------------------------------
+    # LOAD LMDB VOCAB (required for both tokenizer_from_scratch True/False)
+    # --------------------------------------------------------
+    vocab_path = path_ckpt + "vocab_sentences.lmdb"
+    print("Loading LMDB vocab from:", vocab_path)
+    vocab = load_lmdb_vocab(vocab_path)
+
+    # --------------------------------------------------------
+    # SPLIT DATA
+    # --------------------------------------------------------
     if with_val:
         if df_val is None:
             df_train, df_val = train_test_split(df_full_train, test_size=0.2)
         else:
             df_train = df_full_train
 
-        documents = [clean_tokenization_sent(doc, "text")
-                     for doc in df_train[source_column_name[task]]]
-        documents_val = [clean_tokenization_sent(doc, "text")
-                         for doc in df_val[source_column_name[task]]]
+        documents = [
+            sent_tokenize(doc) if sent_tokenizer else clean_tokenization_sent(doc, "text")
+            for doc in df_train[source_column_name[task]]
+        ]
+        documents_val = [
+            sent_tokenize(doc) if sent_tokenizer else clean_tokenization_sent(doc, "text")
+            for doc in df_val[source_column_name[task]]
+        ]
 
-        labels = list(df_train[label_column_name[task]])
-        labels_val = list(df_val[label_column_name[task]])
+        if task == "classification":
+            labels = list(df_train[label_column_name[task]])
+            labels_val = list(df_val[label_column_name[task]])
+        else:
+            labels = [
+                clean_tokenization_sent(doc, "label")
+                for doc in df_train[label_column_name[task]]
+            ]
+            labels_val = [
+                clean_tokenization_sent(doc, "label")
+                for doc in df_val[label_column_name[task]]
+            ]
 
         article_identifiers = list(df_train[id_column_name[task]])
         article_identifiers_val = list(df_val[id_column_name[task]])
 
     else:
-        df_train = df_full_train
-        documents = [clean_tokenization_sent(doc, "text")
-                     for doc in df_full_train[source_column_name[task]]]
-        labels = list(df_full_train[label_column_name[task]])
-        article_identifiers = list(df_full_train[id_column_name[task]])
+        documents = [...]
+        labels = [...]
+        article_identifiers = [...]
 
-    documents_test = [clean_tokenization_sent(doc, "text")
-                      for doc in df_test[source_column_name[task]]]
-    labels_test = list(df_test[label_column_name[task]])
+    documents_test = [
+        sent_tokenize(doc) if sent_tokenizer else clean_tokenization_sent(doc, "text")
+        for doc in df_test[source_column_name[task]]
+    ]
+    if task == "classification":
+        labels_test = list(df_test[label_column_name[task]])
+    else:
+        labels_test = [
+            clean_tokenization_sent(doc, "label")
+            for doc in df_test[label_column_name[task]]
+        ]
     article_identifiers_test = list(df_test[id_column_name[task]])
 
-    ##############################################
-    # 2. Tokenizer logic (scratch or LMDB vocab)
-    ##############################################
+    # --------------------------------------------------------
+    # CONVERT TO IDs USING LMDB
+    # --------------------------------------------------------
+    print("Converting documents to IDs...")
 
-    if tokenizer_from_scratch:
-        # Your old logic remains unchanged
-        documents_ids, vocab_sent, invert_vocab_sent = documents_to_ids(documents)
-
-        if with_val:
-            documents_ids_val, _, _ = documents_to_ids(
-                documents_val,
-                from_scratch=False,
-                dict_text_ids=vocab_sent,
-                invert_text_ids=invert_vocab_sent
-            )
-
-        documents_ids_test, _, _ = documents_to_ids(
-            documents_test,
-            from_scratch=False,
-            dict_text_ids=vocab_sent,
-            invert_text_ids=invert_vocab_sent
-        )
-
-    else:
-        ##############################################
-        # *** LMDB VOCAB LOAD ***
-        ##############################################
-
-        vocab_csv  = os.path.join(path_ckpt, "vocab_sentences.csv")
-        vocab_lmdb = os.path.join(path_ckpt, "vocab_sentences.lmdb")
-
-        if not os.path.exists(vocab_lmdb):
-            print("[INFO] LMDB vocab not found. Building it...")
-            build_lmdb_vocab(vocab_csv, vocab_lmdb)
-
-        print("[INFO] Loading LMDB vocab...")
-        invert_vocab_sent = LmdbVocab(vocab_lmdb)
-
-        # Now convert sentences → IDs using "documents_to_ids"
-        # but this time, vocab_sent and invert_vocab_sent remain on disk
-        vocab_sent = None  # no RAM dictionary
-
-        documents_ids = documents_to_ids(
-            documents, from_scratch=False,
-            dict_text_ids=None,
-            invert_text_ids=invert_vocab_sent
-        )
-
-        if with_val:
-            documents_ids_val = documents_to_ids(
-                documents_val, from_scratch=False,
-                dict_text_ids=None,
-                invert_text_ids=invert_vocab_sent
-            )
-
-        documents_ids_test = documents_to_ids(
-            documents_test, from_scratch=False,
-            dict_text_ids=None,
-            invert_text_ids=invert_vocab_sent
-        )
-
-    ##############################################
-    # 3. Create PyTorch datasets & loaders
-    ##############################################
-
-    dataset_train = DocumentDataset(documents_ids, labels, max_len, article_identifiers, task)
-    loader_train  = DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
-
-    dataset_test = DocumentDataset(documents_ids_test, labels_test, max_len, article_identifiers_test, task)
-    loader_test  = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
+    documents_ids = documents_to_ids(documents, vocab, mode="text")
+    documents_ids_test = documents_to_ids(documents_test, vocab, mode="text")
 
     if with_val:
-        dataset_val = DocumentDataset(documents_ids_val, labels_val, max_len, article_identifiers_val, task)
+        documents_ids_val = documents_to_ids(documents_val, vocab, mode="text")
+
+    # --------------------------------------------------------
+    # DATASETS + LOADERS
+    # --------------------------------------------------------
+    dataset_train = DocumentDataset(documents_ids, labels, max_len, article_identifiers, task=task)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
+
+    if with_val:
+        dataset_val = DocumentDataset(documents_ids_val, labels_val, max_len, article_identifiers_val, task=task)
         loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False)
 
-        return loader_train, loader_val, loader_test, df_train, df_val, vocab_sent, invert_vocab_sent
+    dataset_test = DocumentDataset(documents_ids_test, labels_test, max_len, article_identifiers_test, task=task)
+    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
 
-    return loader_train, loader_test, vocab_sent, invert_vocab_sent
+    if with_val:
+        return loader_train, loader_val, loader_test, df_train, df_val, vocab, None
+    else:
+        return loader_train, loader_test, vocab, None

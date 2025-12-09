@@ -19,6 +19,7 @@ from src.data.preprocess_data import load_data
 from src.models.base_model import MHAClassifier
 from src.data.text_loaders import * #create_loaders
 from src.data.utils import get_class_weights
+from src.data.utils_vocab import build_lmdb_vocab
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -59,13 +60,15 @@ def main_run(config_file, settings_file):
     df_train, df_val, df_test = df_train[:100], df_val[:50], df_test[:50]
     #################################
 
+    csv_path = config_file['load_data_paths']['in_path'] + 'vocab_sentences.csv'
+    lmdb_path = csv_path + '.lmdb'
+    build_lmdb_vocab(csv_path, lmdb_path)
+
     ### Train MHA-based model.
     for exec_i in range(config_file["num_executions"]):
         print("\n=============================")
         print("Execution number:", exec_i)
         print("=============================")
-
-        vocab_ckpt = "/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/vocab_sentences.csv"
 
         try:
             if config_file["load_data_paths"]["with_val"] == True:
@@ -73,13 +76,13 @@ def main_run(config_file, settings_file):
                                                                                    config_file["batch_size"],
                                                                                    df_val=df_val, task="classification",
                                                                                    tokenizer_from_scratch=False,
-                                                                                   path_ckpt=vocab_ckpt)
+                                                                                   path_ckpt=config_file['load_data_paths']['in_path'])
             else:
                 loader_train, loader_test = create_loaders(df_train, df_test, max_len,
                                                                                    config_file["batch_size"],
                                                                                    task="classification",
                                                                                    tokenizer_from_scratch=False,
-                                                                                   path_ckpt=vocab_ckpt)
+                                                                                   path_ckpt=config_file['load_data_paths']['in_path'])
         ### Create sentence vocabulary as a dictionary
         except:
             print("Error: Vocabulary not found.\nCreating sentence vocabulary...")
@@ -108,7 +111,7 @@ def main_run(config_file, settings_file):
             model_params["class_weights"] = None
 
         model_params["max_len"] = max_len
-        model_params["path_invert_vocab_sent"] = config_file["load_data_paths"]["in_path"]
+        model_params["path_invert_vocab_sent"] = lmdb_path #config_file["load_data_paths"]["in_path"]
         model_lightning = MHAClassifier(**model_params)
 
         early_stop_callback = EarlyStopping(monitor="Val_f1-ma", mode="max", verbose=True, **config_file["early_args"])
