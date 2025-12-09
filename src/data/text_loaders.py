@@ -5,7 +5,8 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from nltk import sent_tokenize, clean_tokenization_sent
+from nltk import sent_tokenize
+from src.data.utils import clean_tokenization_sent
 
 # -------------------------
 # Dataset Class for Memmap

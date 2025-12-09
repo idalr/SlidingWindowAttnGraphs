@@ -64,23 +64,22 @@ def main_run(config_file, settings_file):
         print("\n=============================")
         print("Execution number:", exec_i)
         print("=============================")
+
+        vocab_ckpt = "/content/drive/MyDrive/Colab Notebooks/datasets/arXiv/vocab_sentences.csv"
+
         try:
             if config_file["load_data_paths"]["with_val"] == True:
-                loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
+                loader_train, loader_val, loader_test, _, _ = create_loaders(df_train, df_test, max_len,
                                                                                    config_file["batch_size"],
                                                                                    df_val=df_val, task="classification",
                                                                                    tokenizer_from_scratch=False,
-                                                                                   path_ckpt=
-                                                                                   config_file["load_data_paths"][
-                                                                                       "in_path"])
+                                                                                   path_ckpt=vocab_ckpt)
             else:
-                loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
+                loader_train, loader_test = create_loaders(df_train, df_test, max_len,
                                                                                    config_file["batch_size"],
                                                                                    task="classification",
                                                                                    tokenizer_from_scratch=False,
-                                                                                   path_ckpt=
-                                                                                   config_file["load_data_paths"][
-                                                                                       "in_path"])
+                                                                                   path_ckpt=vocab_ckpt)
         ### Create sentence vocabulary as a dictionary
         except:
             print("Error: Vocabulary not found.\nCreating sentence vocabulary...")
