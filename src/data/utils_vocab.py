@@ -30,28 +30,38 @@ def build_lmdb_vocab(csv_path, lmdb_path):
         print(f"LMDB already exists at {lmdb_path}")
         return
 
+    # open env
     env = lmdb.open(
         lmdb_path,
         map_size=1024 * 1024 * 1024 * 512,
         subdir=False,
         max_dbs=2
     )
-    text2id = env.open_db(b"text2id")
-    id2text = env.open_db(b"id2text")
+
+    # create/open named DBs explicitly
+    text2id = env.open_db(b"text2id", dupsort=False)
+    id2text = env.open_db(b"id2text", dupsort=False)
 
     print("Building LMDB vocab...")
     with env.begin(write=True) as txn:
-        with open(csv_path, "r", encoding="utf8") as f:
-            reader = csv.DictReader(f)
-            for i, row in enumerate(reader):
-                sid = row["Sentence_id"].strip()
-                text = row["Sentence"].strip()
+        for i, row in enumerate(csv.DictReader(open(csv_path, "r", encoding="utf8"))):
+            sid = row["Sentence_id"].strip()
+            text = row["Sentence"].strip()
 
-                txn.put(text.encode("utf8"), sid.encode("utf8"), db=text2id)
-                txn.put(sid.encode("utf8"), text.encode("utf8"), db=id2text)
+            # encode as bytes
+            key_text = text.encode("utf8")
+            val_text = sid.encode("utf8")
+            key_sid = sid.encode("utf8")
+            val_sid = text.encode("utf8")
 
-                if i % 500000 == 0:
-                    print(f"Inserted {i} items...")
+            # insert into respective DBs
+            txn.put(key_text, val_text, db=text2id)
+            txn.put(key_sid, val_sid, db=id2text)
+
+            if i % 500_000 == 0 and i > 0:
+                txn.commit()
+                txn = env.begin(write=True)
+                print(f"Inserted {i:,} items...")
 
     print("LMDB vocab build complete.")
 

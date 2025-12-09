@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.models.core import Classifier_Lighting, Summarizer_Lighting
 from src.models.utils import (MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict)
-from utils_vocab import load_lmdb_vocab, retrieve_from_lmdb
+from src.data.utils_vocab import load_lmdb_vocab, retrieve_from_lmdb
 
 
 class MHAClassifier(Classifier_Lighting):

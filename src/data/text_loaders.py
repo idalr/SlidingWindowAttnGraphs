@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from nltk import sent_tokenize
 
 from src.data.utils_vocab import (
-    build_lmdb_vocab,
+    build_lmdb_vocab, load_lmdb_vocab,
     LmdbVocab, documents_to_ids,
 )
 from src.data.utils import clean_tokenization_sent
@@ -72,10 +72,6 @@ class DocumentDataset(Dataset):
 def create_loaders(df_full_train, df_test, max_len, batch_size, with_val=True,
                    tokenizer_from_scratch=True, path_ckpt='', df_val=None,
                    task="classification", sent_tokenizer=False):
-
-    from utils_vocab import (
-        load_lmdb_vocab, documents_to_ids
-    )
 
     source_column_name = {
         "classification": 'article_text',
