@@ -1,6 +1,8 @@
 import lmdb
 import csv
 import os
+import shutil
+import pandas as pd
 
 class LmdbVocab:
     def __init__(self, path, readonly=True):
@@ -25,26 +27,30 @@ class LmdbVocab:
             return txn.get(key)
 
 
-def build_lmdb_vocab(csv_path, lmdb_path):
+# =========================================
+# build_lmdb_vocab_safe.py
+# =========================================
+
+def build_lmdb_vocab(csv_path, lmdb_path, chunk_size=100_000):
     """
-    Build LMDB vocab from CSV of Sentence -> Sentence_id.
+    Build a safe LMDB vocab from CSV of Sentence -> Sentence_id.
 
     csv_path: str, path to 'vocab_sentences.csv'
-    lmdb_path: str, path to LMDB file (e.g., '/content/vocab_sentences.lmdb')
+    lmdb_path: str, path to LMDB file (local Colab path)
+    chunk_size: int, number of rows per commit
     """
-    # Remove old LMDB if exists
+
+    # remove old LMDB if exists
     if os.path.exists(lmdb_path):
-        import shutil
         if os.path.isdir(lmdb_path):
             shutil.rmtree(lmdb_path)
         else:
             os.remove(lmdb_path)
 
-    # Open LMDB environment
     env = lmdb.open(
         lmdb_path,
         map_size=1024 * 1024 * 1024 * 512,  # 512 GB virtual
-        subdir=False,  # use file, not directory
+        subdir=False,
         max_dbs=2
     )
 
@@ -52,32 +58,37 @@ def build_lmdb_vocab(csv_path, lmdb_path):
     text2id = env.open_db(b"text2id", dupsort=False)
     id2text = env.open_db(b"id2text", dupsort=False)
 
-    print("Building LMDB vocab...")
+    print("Building LMDB vocab from CSV in chunks...")
 
-    with env.begin(write=True) as txn:
-        with open(csv_path, "r", encoding="utf8") as f:
-            reader = csv.DictReader(f)
-            for i, row in enumerate(reader):
-                sid = row["Sentence_id"].strip()
-                text = row["Sentence"].strip()
+    txn = env.begin(write=True)
+    inserted = 0
 
-                # encode keys and values as bytes
-                key_text = text.encode("utf8")
-                val_text = sid.encode("utf8")
-                key_sid = sid.encode("utf8")
-                val_sid = text.encode("utf8")
+    # Read CSV in chunks to avoid huge RAM usage
+    for chunk in pd.read_csv(csv_path, chunksize=chunk_size):
+        for idx, row in chunk.iterrows():
+            sentence = row['Sentence'].strip()
+            sid = int(row['Sentence_id'])
 
-                # insert
-                txn.put(key_text, val_text, db=text2id)
-                txn.put(key_sid, val_sid, db=id2text)
+            key_text = sentence.encode("utf8")
+            val_text = str(sid).encode("utf8")
+            key_sid = str(sid).encode("utf8")
+            val_sid = sentence.encode("utf8")
 
-                # commit every 500k rows to avoid huge transactions
-                if i > 0 and i % 500_000 == 0:
-                    txn.commit()
-                    txn = env.begin(write=True)
-                    print(f"Inserted {i:,} items...")
+            txn.put(key_text, val_text, db=text2id)
+            txn.put(key_sid, val_sid, db=id2text)
+            inserted += 1
 
-    print("LMDB vocab build complete.")
+            # commit periodically
+            if inserted % chunk_size == 0:
+                txn.commit()
+                txn = env.begin(write=True)
+                print(f"Inserted {inserted:,} sentences...")
+
+    # final commit
+    txn.commit()
+    env.close()
+    print(f"LMDB vocab build complete! Total sentences: {inserted:,}")
+
 
 
 def load_lmdb_vocab(lmdb_path):
