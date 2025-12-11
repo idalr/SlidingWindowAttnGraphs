@@ -3,6 +3,7 @@ from torch_geometric.utils import degree
 from tqdm import tqdm
 import os
 import argparse
+import subprocess
 
 def main_run():
     arg_parser = argparse.ArgumentParser()
@@ -18,6 +19,9 @@ def main_run():
     # Validate it's a directory
     if not os.path.isdir(data_dir):
         raise ValueError(f"{data_dir} is not a valid directory")
+
+    dir_size = subprocess.check_output(["du", "-sh", data_dir]).split()[0].decode()
+    print(f"Graph dir size: {dir_size}")
 
     # List all matching data files
     files = [f for f in os.listdir(data_dir) if f.startswith('data') and f.endswith('.pt')]
