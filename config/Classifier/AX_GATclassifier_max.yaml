@@ -1,0 +1,46 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: arXiv
+logger_name: df_logger_cw.csv
+model_name: NoTemp_w30
+setting_file: None
+type_model: GAT
+binarized: False
+baseline: False                             # Always False for attention-based learned graphs
+type_graph: max                            # "full", "max" or "mean", depending on the type of statistical filtering to use
+unified_nodes: True
+
+
+data_paths:
+  path_logger: ./models/
+  results_folder: ./results/
+  root_graph_dataset: ./dataset/graphs/
+
+load_data_paths:
+  in_path: "./dataset/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True                            # True if validation set is available, False otherwise
+
+model_arch_args:
+  num_classes: 11
+  lr: 0.001
+  dropout: 0.2
+  dim_features : [64, 128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
+
+batch_size: 8
+with_cw: True
+
+trainer_args:
+  max_epochs: 50
+  enable_progress_bar: False
+  accumulate_grad_batches: 4
+
+early_args:
+  patience: 5
+  min_delta: 0.001

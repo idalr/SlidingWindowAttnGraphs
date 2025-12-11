@@ -32,7 +32,7 @@ def main_run(config_file , settings_file):
     dataset_name = config_file["dataset_name"]
     path_vocab = config_file["load_data_paths"]["in_path"]
     model_name = config_file["model_name"]
-    setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
+    #setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
     flag_binary = config_file["binarized"]
     multi_flag = config_file["multi_layer"]
@@ -49,6 +49,9 @@ def main_run(config_file , settings_file):
     n_layers = config_file["model_arch_args"]["n_layers"]
     num_runs = config_file["model_arch_args"]["num_runs"]
 
+    # TODO: populate for NT with manual config
+    ## test-run file
+    ## keep current version for ReLu if work
     model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
