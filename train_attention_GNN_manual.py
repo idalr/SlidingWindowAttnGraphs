@@ -52,8 +52,10 @@ def main_run(config_file , settings_file):
     num_runs = config_file["model_arch_args"]["num_runs"]
 
     model_name = config_file["model_name"]
-    df_logger = pd.read_csv(path_logger + logger_name)
-    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+    #df_logger = pd.read_csv(path_logger + logger_name)
+    #path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+    path_checkpoint = '/scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=06-Val_f1-ma=0.81.ckpt' # TODO: insert here
+    model_score = 0.81 # TODO: insert here
     file_to_save = model_name+"_"+str(model_score)[:5]
     type_graph = config_file["type_graph"]
     path_models = path_logger+model_name+"/"
