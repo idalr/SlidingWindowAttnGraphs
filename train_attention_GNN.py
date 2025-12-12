@@ -108,8 +108,6 @@ def main_run(config_file , settings_file):
         else:
             df_train, _ = load_data(**config_file["load_data_paths"])
 
-        df_train, df_val, df_test = df_train[:50], df_val[:50], df_test[:50]
-
         if config_file["with_cw"] == True:
             my_class_weights, labels_counter = get_class_weights(df_train)
             calculated_cw = my_class_weights
@@ -131,8 +129,6 @@ def main_run(config_file , settings_file):
             df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
         else:
             df_train, df_test = load_data(**config_file["load_data_paths"])
-
-        df_train, df_val, df_test = df_train[:50], df_val[:50], df_test[:50]
 
         ids2remove_train = check_dataframe(df_train, task='classification')
         for id_remove in ids2remove_train:
