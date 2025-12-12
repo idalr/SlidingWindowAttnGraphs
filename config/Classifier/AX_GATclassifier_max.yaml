@@ -10,6 +10,7 @@ binarized: False
 baseline: False                             # Always False for attention-based learned graphs
 type_graph: max                            # "full", "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
+multi_layer: False
 
 
 data_paths:
@@ -33,6 +34,7 @@ model_arch_args:
   n_layers: [1, 2, 3]
   num_runs: 5
 
+max_len: 1800
 batch_size: 8
 with_cw: True
 
