@@ -11,9 +11,11 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from src.graphs.gnn_model import GAT_model, GCN_model, partitions
 from src.models.base_model import MHAClassifier
-from src.pipeline.eval import retrieve_parameters, eval_results
+from src.pipeline.eval import eval_results
+from src.pipeline.connector import retrieve_parameters
 from src.data.preprocess_data import load_data
-from src.data.text_loaders import create_loaders, get_class_weights, check_dataframe
+from src.data.text_loaders import create_loaders
+from src.data.utils import get_class_weights, check_dataframe
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -73,6 +75,14 @@ def main_run(config_file , settings_file):
         filename_val = "post_predict_val_documents.csv"
     filename_train = "post_predict_train_documents.csv"
     filename_test = "post_predict_test_documents.csv"
+
+    # create folders if not exist
+    if not os.path.exists(root_graph):
+        os.makedirs(root_graph)
+    if not os.path.exists(path_results):
+        os.makedirs(path_results)
+    if not os.path.exists(path_logger):
+        os.makedirs(path_logger)
 
     try:
         print("Running", type_model, "on Attention-based document graphs.")
@@ -202,6 +212,8 @@ def main_run(config_file , settings_file):
         if not os.path.exists(path_root + "/raw/" + filename_train):
             path_dataset = path_root + "/raw/"
             print("\nCreating files for PyG dataset in:", path_dataset)
+            if not os.path.exists(path_dataset):
+                os.makedirs(path_dataset)
             df_logger = pd.read_csv(path_logger + logger_name)
 
             ### Forward pass to get predictions from loaded MHA model
@@ -252,7 +264,7 @@ def main_run(config_file , settings_file):
             print("Finished and saved in:", path_dataset + filename_test)
 
         else:
-            print("File Requirements already satified in ", path_root + "/raw/")
+            print("File Requirements already satisfied in ", path_root + "/raw/")
 
         if type_graph == "full":
             filter_type = None

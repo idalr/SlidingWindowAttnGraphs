@@ -20,9 +20,6 @@ def main_run():
     if not os.path.isdir(data_dir):
         raise ValueError(f"{data_dir} is not a valid directory")
 
-    dir_size = subprocess.check_output(["du", "-sh", data_dir]).split()[0].decode()
-    print(f"Graph dir size: {dir_size}")
-
     # List all matching data files
     files = [f for f in os.listdir(data_dir) if f.startswith('data') and f.endswith('.pt')]
 
@@ -51,10 +48,25 @@ def main_run():
     avg_nodes_per_graph = total_nodes / num_graphs if num_graphs > 0 else 0
     avg_edges_per_graph = total_edges / num_graphs if num_graphs > 0 else 0
 
-    print(f"Total graphs: {num_graphs}")
-    print(f"Average node degree:        {avg_degree:.4f}")
-    print(f"Average nodes per graph:    {avg_nodes_per_graph:.2f}")
-    print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
+    dir_size = subprocess.check_output(["du", "-sh", data_dir]).split()[0].decode()
+    file_results = 'graph_stat_ana'
+
+    with open(file_results + '.txt', 'a') as f:
+        print("================================================")
+        print("================================================", file=f)
+        print(f"Analyzed folder: {data_dir}", file=f)
+        print(f"Graph dir size: {dir_size}")
+        print(f"Graph dir size: {dir_size}", file=f)
+        print(f"Total graphs: {num_graphs}")
+        print(f"Total graphs: {num_graphs}", file=f)
+        print(f"Average node degree:        {avg_degree:.4f}")
+        print(f"Average node degree:        {avg_degree:.4f}", file=f)
+        print(f"Average nodes per graph:    {avg_nodes_per_graph:.2f}")
+        print(f"Average nodes per graph:    {avg_nodes_per_graph:.2f}", file=f)
+        print(f"Average edges per graph:    {avg_edges_per_graph:.2f}")
+        print(f"Average edges per graph:    {avg_edges_per_graph:.2f}", file=f)
+        print("================================================", file=f)
+        f.close()
 
 if __name__ == "__main__":
     main_run()
