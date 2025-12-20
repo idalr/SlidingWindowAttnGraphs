@@ -182,18 +182,19 @@ def main_run(config_file , settings_file):
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
+        ### Model performance in validation and test partitions -- register results on file_results.txt
         if config_file["load_data_paths"]["with_val"] == True:
-            preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(
-                loader_val, cpu_store=False)
+            preds_v, _, all_labels_v, all_article_identifiers_v = model_lightning.predict_minimal(
+                loader_val, cpu_store=False, return_attn=False)
             acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
-            if unified_flag == True:
-                del full_attn_weights_v
+            #if unified_flag == True:
+            #    del full_attn_weights_v
 
-        preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False)
+        preds_test, _, all_labels_test, all_article_identifiers_test = model_lightning.predict_minimal(
+            loader_test, cpu_store=False, return_attn=False)
         acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-        if unified_flag == True:
-            del full_attn_weights_test
+        #if unified_flag == True:
+        #    del full_attn_weights_test
 
         if config_file["load_data_paths"]["with_val"] == True:
             filename_val = "post_predict_val_documents.csv"

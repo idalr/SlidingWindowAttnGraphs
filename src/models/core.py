@@ -73,6 +73,41 @@ class Classifier_Lighting(pl.LightningModule):
 
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
+    def predict_minimal(
+            self,
+            test_loader,
+            cpu_store=True,
+            return_attn=False
+    ):
+        self.eval()
+        preds = []
+        all_labels = []
+        all_article_identifiers = []
+        full_attn_weights = [] if return_attn else None # OPTIONAL: only if needed
+        with torch.no_grad():
+            for data in test_loader:
+                out, att_w = self(
+                    data['documents_ids'].to(self.device),
+                    data['src_key_padding_mask'].to(self.device),
+                    data['matrix_mask'].to(self.device),
+                )
+                pred = out.argmax(dim=1)
+
+                if cpu_store:
+                    preds.append(pred.cpu())
+                else:
+                    preds.append(pred)
+
+                if return_attn:
+                    full_attn_weights.append(att_w.cpu())
+                all_labels.extend(data['labels'])
+                all_article_identifiers.extend(data['article_id'])
+
+                del out, att_w, pred
+                torch.cuda.empty_cache()
+        preds = torch.cat(preds)
+        return preds, full_attn_weights, all_labels, all_article_identifiers
+
     def predict_single(self, batch_single, cpu_store=True):
         self.eval()
         preds = []

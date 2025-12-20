@@ -1,33 +1,9 @@
 import torch
 import numpy as np
 from torch import nn
-import lmdb
-import pickle
-from collections import Counter
 
 def retrieve_from_dict(dict, list_ids):
     return [dict[id.item()] for id in list_ids]
-
-def retrieve_from_lmdb(lmdb_env, list_ids):
-    """Safely retrieve sentences by ID from LMDB."""
-    results = []
-    missing = 0
-
-    with lmdb_env.begin() as txn:
-        for idx in list_ids:
-            key = str(int(idx)).encode("utf-8")
-            val = txn.get(key)
-            if val is None:
-                missing += 1
-                results.append("[MISSING_SENTENCE]")
-            else:
-                results.append(pickle.loads(val))
-
-    if missing > 0:
-        print(f"[WARNING] {missing}/{len(list_ids)} IDs not found in LMDB.")
-
-    return results
-
 
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):
     factor = 1 / np.sqrt(q.size(-1))
