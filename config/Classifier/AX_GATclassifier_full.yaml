@@ -13,9 +13,9 @@ type_graph: full                                # "full", "max" or "mean", depen
 unified_nodes: True
 
 data_paths:
-  path_logger: /content/drive/MyDrive/ADG/HomoGraphs_AX/
+  path_logger: /content/drive/MyDrive/ADG/HomoGraphs_ArXiv/
   results_folder: /content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Classifier/Colab/
-  root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_AX/
+  root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_ArXiv/
 
 load_data_paths:
   in_path: "/content/drive/MyDrive/Colab Notebooks/datasets/arXiv_small/"
