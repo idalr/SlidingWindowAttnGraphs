@@ -5,15 +5,7 @@ import os
 import argparse
 import subprocess
 
-def main_run():
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument(
-        "--data_dir",
-        type=str,
-        required=True,
-        help="path to the input directory",
-    )
-    args = arg_parser.parse_args()
+def main_run(args):
 
     data_dir = args.data_dir
     # Validate it's a directory
@@ -69,4 +61,13 @@ def main_run():
         f.close()
 
 if __name__ == "__main__":
-    main_run()
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "--data_dir",
+        type=str,
+        required=True,
+        help="path to the input directory",
+    )
+    args = arg_parser.parse_args()
+
+    main_run(args)
