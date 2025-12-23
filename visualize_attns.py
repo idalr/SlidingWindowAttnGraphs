@@ -9,7 +9,7 @@ from src.models.base_model import MHAClassifier, MHASummarizer
 from src.pipeline.connector import retrieve_parameters, get_sample_indices, filtering_matrices
 from src.data.preprocess_data import load_data
 from src.data.text_loaders import create_loaders
-from src.data.utils import check_dataframe
+from src.data.utils import check_dataframe, clean_tokenization_sent
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
@@ -26,7 +26,7 @@ def main_run(config_file , settings_file, num_print, random_sampling):
     df_logger = pd.read_csv(path_logger + logger_file)
     path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
 
-    if dataset_name == "HND" or dataset_name == "BBC":
+    if dataset_name == "HND" or dataset_name == "BBC" or dataset_name == 'arXiv':
         task = 'classification'
         text_col = 'article_text'
     elif dataset_name == 'GR':
@@ -37,6 +37,9 @@ def main_run(config_file , settings_file, num_print, random_sampling):
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
+
+    ### minirun
+    df_train, df_val, df_test = df_train[:10], df_val[:10], df_test[:10]
 
     ids2remove_train = check_dataframe(df_train, task=task)
     for id_remove in ids2remove_train:
@@ -59,7 +62,10 @@ def main_run(config_file , settings_file, num_print, random_sampling):
 
     sent_lengths = []
     for i, doc in enumerate(df_train[text_col]):
-        sent_in_doc = sent_tokenize(doc)
+        if dataset_name == "BBC" or dataset_name == "HND":
+            sent_in_doc = sent_tokenize(doc)
+        else:
+            sent_in_doc = clean_tokenization_sent(doc, "text") # sent_tokenize(doc) if sent_tokenizer=True (HND and BBC)
         if len(sent_in_doc) == 0:
             print("Empty doc en:", i)
         sent_lengths.append(len(sent_in_doc))
@@ -67,14 +73,20 @@ def main_run(config_file , settings_file, num_print, random_sampling):
     if config_file["load_data_paths"]["with_val"] == True:
         sent_lengths_val = []
         for i, doc in enumerate(df_val[text_col]):
-            sent_in_doc = sent_tokenize(doc)
+            if dataset_name == "BBC" or dataset_name == "HND":
+                sent_in_doc = sent_tokenize(doc)
+            else:
+                sent_in_doc = clean_tokenization_sent(doc, "text")
             if len(sent_in_doc) == 0:
                 print("Empty doc en:", i)
             sent_lengths_val.append(len(sent_in_doc))
 
     sent_lengths_test = []
     for i, doc in enumerate(df_test[text_col]):
-        sent_in_doc = sent_tokenize(doc)
+        if dataset_name == "BBC" or dataset_name == "HND":
+            sent_in_doc = sent_tokenize(doc)
+        else:
+            sent_in_doc = clean_tokenization_sent(doc, "text")
         if len(sent_in_doc) == 0:
             print("Empty doc en:", i)
         sent_lengths_test.append(len(sent_in_doc))
@@ -104,7 +116,7 @@ def main_run(config_file , settings_file, num_print, random_sampling):
                                                          path_ckpt=path_vocab, df_val=None, task=task)
 
     print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-    if dataset_name == "HND" or dataset_name == "BBC":
+    if dataset_name == "HND" or dataset_name == "BBC" or dataset_name == 'arXiv':
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
     elif dataset_name == "GR":
         model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)

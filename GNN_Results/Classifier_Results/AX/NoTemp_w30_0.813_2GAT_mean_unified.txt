@@ -1,0 +1,679 @@
+================================================
+Evaluation of pre-trained model: NoTemp_w30
+Model checkpoint: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=06-Val_f1-ma=0.81.ckpt
+================================================
+================================================
+Attention Graph Creation/Loading Time: mean
+================================================
+[TRAIN] Dataset creation time:  164462.78332686424
+[VAL] Dataset creation time:  15189.258486509323
+[TEST] Dataset creation time:  14252.387829065323
+================================================
+Evaluation of pre-trained model: NoTemp_w30
+Model checkpoint: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=06-Val_f1-ma=0.81.ckpt
+================================================
+[VAL] Acc: 0.8327316045761108
+[VAL] F1-macro: 0.8309056162834167
+[VAL] F1-scores: tensor([0.9119, 0.7866, 0.6379, 0.8344, 0.9359, 0.7789, 0.8904, 0.8442, 0.8499,
+        0.7599, 0.9099], device='cuda:0')
+------------------------
+[TEST] Acc: 0.8408817648887634
+[TEST] F1-macro: 0.8378722667694092
+[TEST] F1-scores: tensor([0.9163, 0.8467, 0.6378, 0.8534, 0.9389, 0.8114, 0.8840, 0.8440, 0.8657,
+        0.7363, 0.8821], device='cuda:0')
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 14
+Training time: 1149.80 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_64U_mean_unified_run0-OUT-epoch=09-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9006)
+F1-macro Test: tensor(0.8955)
+F1 for each class: tensor([0.9698, 0.8921, 0.7175, 0.8884, 0.9717, 0.8883, 0.9310, 0.9021, 0.9310,
+        0.8406, 0.9174])
+Training + Testing time: 1210.402420282364
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 18
+Training time: 1330.87 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_64U_mean_unified_run1-OUT-epoch=13-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9070)
+F1-macro Test: tensor(0.9038)
+F1 for each class: tensor([0.9811, 0.8884, 0.7494, 0.9079, 0.9787, 0.9043, 0.9344, 0.9195, 0.9228,
+        0.8382, 0.9169])
+Training + Testing time: 1371.107918024063
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 12
+Training time: 900.41 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_64U_mean_unified_run2-OUT-epoch=10-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9050)
+F1-macro Test: tensor(0.9012)
+F1 for each class: tensor([0.9837, 0.8818, 0.7240, 0.9172, 0.9806, 0.9120, 0.9255, 0.9002, 0.9348,
+        0.8326, 0.9209])
+Training + Testing time: 927.592705488205
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 10
+Training time: 782.84 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_64U_mean_unified_run3-OUT-epoch=05-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.8737)
+F1-macro Test: tensor(0.8684)
+F1 for each class: tensor([0.9765, 0.8372, 0.6818, 0.8795, 0.9784, 0.8421, 0.9091, 0.8750, 0.8875,
+        0.7974, 0.8879])
+Training + Testing time: 809.7817568778992
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 9
+Training time: 691.94 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_64U_mean_unified_run4-OUT-epoch=04-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.8745)
+F1-macro Test: tensor(0.8707)
+F1 for each class: tensor([0.9602, 0.8614, 0.6911, 0.8707, 0.9655, 0.8586, 0.9286, 0.8649, 0.8861,
+        0.8000, 0.8905])
+Training + Testing time: 718.7538635730743
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.892 -- std: 0.015
+Test F1-macro: 0.888 -- std: 0.015
+Test F1 per class: [0.974 0.872 0.713 0.893 0.975 0.881 0.926 0.892 0.912 0.822 0.907]
+Training time: 971.17 -- std: 236.53
+Total time: 1007.53 -- std: 245.86
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 8
+Training time: 655.77 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_128U_mean_unified_run0-OUT-epoch=07-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9050)
+F1-macro Test: tensor(0.9017)
+F1 for each class: tensor([0.9783, 0.8916, 0.7385, 0.9221, 0.9831, 0.8911, 0.9307, 0.9138, 0.9173,
+        0.8266, 0.9257])
+Training + Testing time: 700.5342972278595
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 15
+Training time: 1142.94 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_128U_mean_unified_run1-OUT-epoch=10-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9114)
+F1-macro Test: tensor(0.9067)
+F1 for each class: tensor([0.9703, 0.8922, 0.7289, 0.9174, 0.9761, 0.9340, 0.9279, 0.9263, 0.9296,
+        0.8540, 0.9175])
+Training + Testing time: 1186.4546918869019
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 10
+Training time: 791.19 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_128U_mean_unified_run2-OUT-epoch=05-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.8870)
+F1-macro Test: tensor(0.8819)
+F1 for each class: tensor([0.9676, 0.8665, 0.7227, 0.8898, 0.9740, 0.8682, 0.9234, 0.8826, 0.9164,
+        0.8100, 0.8802])
+Training + Testing time: 833.8880174160004
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 13
+Training time: 1002.92 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_128U_mean_unified_run3-OUT-epoch=08-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9062)
+F1-macro Test: tensor(0.9030)
+F1 for each class: tensor([0.9784, 0.8819, 0.7592, 0.9170, 0.9810, 0.8998, 0.9400, 0.8952, 0.9241,
+        0.8322, 0.9246])
+Training + Testing time: 1045.8640520572662
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 13
+Training time: 1004.14 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_128U_mean_unified_run4-OUT-epoch=08-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.9018)
+F1-macro Test: tensor(0.8984)
+F1 for each class: tensor([0.9693, 0.8889, 0.7297, 0.9214, 0.9702, 0.9027, 0.9307, 0.8950, 0.9168,
+        0.8344, 0.9231])
+Training + Testing time: 1046.984585762024
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.902 -- std: 0.008
+Test F1-macro: 0.898 -- std: 0.009
+Test F1 per class: [0.973 0.884 0.736 0.914 0.977 0.899 0.931 0.903 0.921 0.831 0.914]
+Training time: 919.39 -- std: 173.24
+Total time: 962.75 -- std: 172.86
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 10
+Training time: 1008.35 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_256U_mean_unified_run0-OUT-epoch=06-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9070)
+F1-macro Test: tensor(0.9034)
+F1 for each class: tensor([0.9791, 0.9031, 0.7232, 0.9016, 0.9806, 0.9227, 0.9276, 0.9168, 0.9223,
+        0.8266, 0.9333])
+Training + Testing time: 1086.087658882141
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 10
+Training time: 1008.32 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_256U_mean_unified_run1-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9042)
+F1-macro Test: tensor(0.9019)
+F1 for each class: tensor([0.9744, 0.8852, 0.7543, 0.9311, 0.9719, 0.9105, 0.9371, 0.8970, 0.9149,
+        0.8241, 0.9206])
+Training + Testing time: 1084.0296297073364
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 7
+Training time: 734.47 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_256U_mean_unified_run2-OUT-epoch=02-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.8681)
+F1-macro Test: tensor(0.8638)
+F1 for each class: tensor([0.9592, 0.8468, 0.6803, 0.8768, 0.9641, 0.8108, 0.9190, 0.8602, 0.8923,
+        0.7895, 0.9024])
+Training + Testing time: 806.9260907173157
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 11
+Training time: 1099.96 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_256U_mean_unified_run3-OUT-epoch=06-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.9154)
+F1-macro Test: tensor(0.9124)
+F1 for each class: tensor([0.9812, 0.9051, 0.7559, 0.9067, 0.9828, 0.9199, 0.9419, 0.9211, 0.9321,
+        0.8597, 0.9305])
+Training + Testing time: 1175.472309589386
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 10
+Training time: 1009.96 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_1L_256U_mean_unified_run4-OUT-epoch=05-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.8930)
+F1-macro Test: tensor(0.8916)
+F1 for each class: tensor([0.9561, 0.8895, 0.7241, 0.9102, 0.9665, 0.8969, 0.9287, 0.8976, 0.9111,
+        0.8049, 0.9220])
+Training + Testing time: 1084.6157479286194
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.898 -- std: 0.016
+Test F1-macro: 0.895 -- std: 0.017
+Test F1 per class: [0.97  0.886 0.728 0.905 0.973 0.892 0.931 0.899 0.915 0.821 0.922]
+Training time: 972.21 -- std: 124.00
+Total time: 1047.43 -- std: 125.26
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 9
+Training time: 780.89 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_64U_mean_unified_run0-OUT-epoch=04-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.8998)
+F1-macro Test: tensor(0.8953)
+F1 for each class: tensor([0.9742, 0.8889, 0.7224, 0.9342, 0.9701, 0.8816, 0.9273, 0.9087, 0.9156,
+        0.8066, 0.9184])
+Training + Testing time: 828.3372716903687
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 10
+Training time: 854.92 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_64U_mean_unified_run1-OUT-epoch=05-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9014)
+F1-macro Test: tensor(0.8927)
+F1 for each class: tensor([0.9722, 0.8905, 0.6367, 0.9187, 0.9760, 0.8918, 0.9189, 0.9221, 0.9316,
+        0.8174, 0.9439])
+Training + Testing time: 903.3318839073181
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 10
+Training time: 857.48 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_64U_mean_unified_run2-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9046)
+F1-macro Test: tensor(0.9017)
+F1 for each class: tensor([0.9420, 0.8865, 0.7488, 0.9275, 0.9530, 0.9160, 0.9325, 0.9119, 0.9357,
+        0.8360, 0.9292])
+Training + Testing time: 905.5463287830353
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 12
+Training time: 1013.91 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_64U_mean_unified_run3-OUT-epoch=07-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9142)
+F1-macro Test: tensor(0.9104)
+F1 for each class: tensor([0.9662, 0.8946, 0.7663, 0.9220, 0.9605, 0.9254, 0.9336, 0.9152, 0.9462,
+        0.8630, 0.9217])
+Training + Testing time: 1062.6501743793488
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 697.83 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_64U_mean_unified_run4-OUT-epoch=06-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9078)
+F1-macro Test: tensor(0.9043)
+F1 for each class: tensor([0.9746, 0.9136, 0.7243, 0.9293, 0.9764, 0.9160, 0.9331, 0.8934, 0.9190,
+        0.8546, 0.9128])
+Training + Testing time: 746.4179708957672
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.906 -- std: 0.005
+Test F1-macro: 0.901 -- std: 0.006
+Test F1 per class: [0.966 0.895 0.72  0.926 0.967 0.906 0.929 0.91  0.93  0.836 0.925]
+Training time: 841.00 -- std: 104.38
+Total time: 889.26 -- std: 104.54
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 11
+Training time: 1171.70 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_128U_mean_unified_run0-OUT-epoch=06-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9251)
+F1-macro Test: tensor(0.9223)
+F1 for each class: tensor([0.9763, 0.8925, 0.7773, 0.9546, 0.9766, 0.9409, 0.9424, 0.9333, 0.9551,
+        0.8456, 0.9506])
+Training + Testing time: 1253.2307658195496
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 8
+Training time: 878.62 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_128U_mean_unified_run1-OUT-epoch=03-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.8974)
+F1-macro Test: tensor(0.8932)
+F1 for each class: tensor([0.9654, 0.8714, 0.7105, 0.9144, 0.9716, 0.9059, 0.9389, 0.9000, 0.9160,
+        0.8019, 0.9294])
+Training + Testing time: 959.0388231277466
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 11
+Training time: 1169.63 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_128U_mean_unified_run2-OUT-epoch=06-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9251)
+F1-macro Test: tensor(0.9214)
+F1 for each class: tensor([0.9857, 0.9017, 0.7594, 0.9442, 0.9851, 0.9543, 0.9344, 0.9330, 0.9459,
+        0.8496, 0.9425])
+Training + Testing time: 1249.4173469543457
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 8
+Training time: 879.85 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_128U_mean_unified_run3-OUT-epoch=04-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9154)
+F1-macro Test: tensor(0.9119)
+F1 for each class: tensor([0.9700, 0.9069, 0.7405, 0.9319, 0.9739, 0.9247, 0.9448, 0.9351, 0.9312,
+        0.8381, 0.9336])
+Training + Testing time: 959.8221549987793
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 9
+Training time: 974.44 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_128U_mean_unified_run4-OUT-epoch=04-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9122)
+F1-macro Test: tensor(0.9083)
+F1 for each class: tensor([0.9810, 0.9055, 0.7252, 0.9234, 0.9830, 0.9323, 0.9186, 0.9170, 0.9216,
+        0.8460, 0.9381])
+Training + Testing time: 1057.301786661148
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.915 -- std: 0.010
+Test F1-macro: 0.911 -- std: 0.011
+Test F1 per class: [0.976 0.896 0.743 0.934 0.978 0.932 0.936 0.924 0.934 0.836 0.939]
+Training time: 1014.85 -- std: 131.89
+Total time: 1095.76 -- std: 131.95
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 7
+Training time: 1200.59 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_256U_mean_unified_run0-OUT-epoch=02-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.8806)
+F1-macro Test: tensor(0.8773)
+F1 for each class: tensor([0.9663, 0.8878, 0.7186, 0.8621, 0.9625, 0.8653, 0.9286, 0.8957, 0.8832,
+        0.7887, 0.8918])
+Training + Testing time: 1350.9698247909546
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 6
+Training time: 1054.14 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_256U_mean_unified_run1-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9170)
+F1-macro Test: tensor(0.9141)
+F1 for each class: tensor([0.9809, 0.9177, 0.7532, 0.9066, 0.9831, 0.9344, 0.9407, 0.9224, 0.9452,
+        0.8293, 0.9412])
+Training + Testing time: 1205.2387776374817
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 9
+Training time: 1502.64 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_256U_mean_unified_run2-OUT-epoch=04-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.9058)
+F1-macro Test: tensor(0.9022)
+F1 for each class: tensor([0.9713, 0.9015, 0.7413, 0.9272, 0.9665, 0.9009, 0.9370, 0.9143, 0.9145,
+        0.8269, 0.9227])
+Training + Testing time: 1645.6789178848267
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 10
+Training time: 1650.87 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_256U_mean_unified_run3-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9255)
+F1-macro Test: tensor(0.9238)
+F1 for each class: tensor([0.9742, 0.9231, 0.7670, 0.9544, 0.9830, 0.9409, 0.9312, 0.9379, 0.9340,
+        0.8779, 0.9383])
+Training + Testing time: 1797.6171548366547
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 9
+Training time: 1502.97 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_2L_256U_mean_unified_run4-OUT-epoch=04-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9018)
+F1-macro Test: tensor(0.8981)
+F1 for each class: tensor([0.9633, 0.8954, 0.7268, 0.9362, 0.9636, 0.9024, 0.9374, 0.9174, 0.9306,
+        0.7924, 0.9141])
+Training + Testing time: 1642.2558822631836
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.906 -- std: 0.015
+Test F1-macro: 0.903 -- std: 0.016
+Test F1 per class: [0.971 0.905 0.741 0.917 0.972 0.909 0.935 0.918 0.921 0.823 0.922]
+Training time: 1382.24 -- std: 219.95
+Total time: 1528.35 -- std: 216.85
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 9
+Training time: 906.33 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_64U_mean_unified_run0-OUT-epoch=04-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9070)
+F1-macro Test: tensor(0.9028)
+F1 for each class: tensor([0.9789, 0.8995, 0.7357, 0.9123, 0.9828, 0.9046, 0.9363, 0.9083, 0.9233,
+        0.8235, 0.9259])
+Training + Testing time: 975.8544342517853
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 10
+Training time: 992.40 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_64U_mean_unified_run1-OUT-epoch=05-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9086)
+F1-macro Test: tensor(0.9055)
+F1 for each class: tensor([0.9764, 0.9073, 0.7599, 0.9116, 0.9784, 0.8911, 0.9261, 0.9204, 0.9274,
+        0.8360, 0.9256])
+Training + Testing time: 1061.6466171741486
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 11
+Training time: 1082.57 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_64U_mean_unified_run2-OUT-epoch=06-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9218)
+F1-macro Test: tensor(0.9196)
+F1 for each class: tensor([0.9744, 0.9095, 0.7446, 0.9449, 0.9783, 0.9396, 0.9370, 0.9345, 0.9442,
+        0.8558, 0.9526])
+Training + Testing time: 1151.3194477558136
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 10
+Training time: 993.38 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_64U_mean_unified_run3-OUT-epoch=05-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9122)
+F1-macro Test: tensor(0.9094)
+F1 for each class: tensor([0.9811, 0.8959, 0.7545, 0.9189, 0.9850, 0.9375, 0.9429, 0.9008, 0.9278,
+        0.8345, 0.9250])
+Training + Testing time: 1061.781436920166
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 10
+Training time: 995.12 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_64U_mean_unified_run4-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9030)
+F1-macro Test: tensor(0.9004)
+F1 for each class: tensor([0.9567, 0.9059, 0.7336, 0.9244, 0.9623, 0.8883, 0.9268, 0.9251, 0.9305,
+        0.8148, 0.9362])
+Training + Testing time: 1064.8839693069458
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.911 -- std: 0.006
+Test F1-macro: 0.908 -- std: 0.007
+Test F1 per class: [0.974 0.904 0.746 0.922 0.977 0.912 0.934 0.918 0.931 0.833 0.933]
+Training time: 993.96 -- std: 55.74
+Total time: 1063.10 -- std: 55.50
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 11
+Training time: 1512.39 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_128U_mean_unified_run0-OUT-epoch=06-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9158)
+F1-macro Test: tensor(0.9139)
+F1 for each class: tensor([0.9713, 0.9184, 0.7692, 0.9128, 0.9767, 0.9216, 0.9400, 0.9113, 0.9228,
+        0.8593, 0.9496])
+Training + Testing time: 1628.5943377017975
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 7
+Training time: 1010.46 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_128U_mean_unified_run1-OUT-epoch=05-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9114)
+F1-macro Test: tensor(0.9089)
+F1 for each class: tensor([0.9810, 0.9136, 0.7480, 0.9091, 0.9851, 0.9199, 0.9240, 0.9017, 0.9281,
+        0.8472, 0.9406])
+Training + Testing time: 1125.7087411880493
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 9
+Training time: 1258.48 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_128U_mean_unified_run2-OUT-epoch=04-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9130)
+F1-macro Test: tensor(0.9106)
+F1 for each class: tensor([0.9813, 0.8983, 0.7310, 0.9301, 0.9828, 0.9219, 0.9389, 0.9290, 0.9453,
+        0.8184, 0.9393])
+Training + Testing time: 1372.3700876235962
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 1262.42 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_128U_mean_unified_run3-OUT-epoch=06-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9299)
+F1-macro Test: tensor(0.9278)
+F1 for each class: tensor([0.9685, 0.9231, 0.8109, 0.9573, 0.9669, 0.9313, 0.9537, 0.9342, 0.9386,
+        0.8720, 0.9496])
+Training + Testing time: 1380.5969145298004
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 1136.65 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_128U_mean_unified_run4-OUT-epoch=03-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.9014)
+F1-macro Test: tensor(0.8975)
+F1 for each class: tensor([0.9716, 0.9027, 0.7312, 0.9270, 0.9603, 0.8840, 0.9360, 0.8989, 0.9228,
+        0.8241, 0.9138])
+Training + Testing time: 1254.5030760765076
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.914 -- std: 0.009
+Test F1-macro: 0.912 -- std: 0.010
+Test F1 per class: [0.975 0.911 0.758 0.927 0.974 0.916 0.939 0.915 0.932 0.844 0.939]
+Training time: 1236.08 -- std: 166.33
+Total time: 1352.35 -- std: 166.40
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 9
+Training time: 2089.73 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_256U_mean_unified_run0-OUT-epoch=04-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.9130)
+F1-macro Test: tensor(0.9106)
+F1 for each class: tensor([0.9721, 0.9152, 0.7612, 0.9353, 0.9804, 0.8895, 0.9228, 0.9129, 0.9258,
+        0.8696, 0.9321])
+Training + Testing time: 2319.376995563507
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 7
+Training time: 1673.93 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_256U_mean_unified_run1-OUT-epoch=02-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.8894)
+F1-macro Test: tensor(0.8855)
+F1 for each class: tensor([0.9640, 0.8718, 0.6992, 0.9079, 0.9684, 0.8776, 0.9237, 0.8958, 0.9079,
+        0.7962, 0.9282])
+Training + Testing time: 1895.164873123169
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 9
+Training time: 2088.22 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_256U_mean_unified_run2-OUT-epoch=04-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.9146)
+F1-macro Test: tensor(0.9119)
+F1 for each class: tensor([0.9550, 0.9136, 0.7855, 0.9283, 0.9556, 0.8976, 0.9429, 0.9191, 0.9301,
+        0.8571, 0.9459])
+Training + Testing time: 2309.3568687438965
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 2133.05 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_256U_mean_unified_run0-OUT-epoch=04-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9174)
+F1-macro Test: tensor(0.9149)
+F1 for each class: tensor([0.9809, 0.9219, 0.7612, 0.9379, 0.9811, 0.9184, 0.9366, 0.9293, 0.9312,
+        0.8391, 0.9259])
+Training + Testing time: 2351.746366739273
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 12
+Training time: 2948.78 secs
+Best model path: /scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/GAT/mean_unified/GAT_3L_256U_mean_unified_run1-OUT-epoch=07-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.9311)
+F1-macro Test: tensor(0.9274)
+F1 for each class: tensor([0.9905, 0.9171, 0.8042, 0.9424, 0.9936, 0.9223, 0.9482, 0.9356, 0.9543,
+        0.8550, 0.9383])
+Training + Testing time: 3223.5068023204803
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.913 -- std: 0.017
+Test F1-macro: 0.910 -- std: 0.016
+Test F1 per class: [0.973 0.907 0.762 0.930 0.976 0.901 0.935 0.919 0.930 0.843 0.938]
+Training time: 2186.74 -- std: 533.52
+Total time: 2419.83 -- std: 588.42
+************************************************

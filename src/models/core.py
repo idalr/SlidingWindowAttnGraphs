@@ -42,7 +42,51 @@ class Classifier_Lighting(pl.LightningModule):
         f1_ma = f1_score(pred, data['labels'])
         return {"loss": loss, "f1-ma": f1_ma, 'acc': acc}
 
-    def predict(self, test_loader, cpu_store=True, flag_file=False):
+    def predict(self, test_loader, cpu_store=True, flag_file=False,
+            return_attn=True, return_doc_ids=True):
+        self.eval()
+        preds = []
+        all_labels = []
+        all_article_identifiers = []
+        full_attn_weights = [] if return_attn else None
+        all_doc_ids = [] if return_doc_ids else None
+
+        with torch.no_grad():
+            for data in test_loader:
+                if not flag_file:
+                    out, att_w = self(data['documents_ids'].to(self.device),
+                                      data['src_key_padding_mask'].to(self.device), data['matrix_mask'].to(self.device))
+                    pred = out.argmax(dim=1)
+                else:
+                    # file-mode: no forward pass
+                    pred = data['predictions']
+
+                # memory management
+                if cpu_store:
+                    preds.append(pred.detach().cpu())
+                else:
+                    preds.append(pred)
+                if return_attn and not flag_file:
+                    # immediately move off GPU
+                    full_attn_weights.append(att_w.detach().cpu())
+                if return_doc_ids:
+                    # ALWAYS on CPU
+                    all_doc_ids.extend(data['documents_ids'].cpu())
+
+                all_labels.extend(data['labels'])
+                all_article_identifiers.extend(data['article_id'])
+
+                # free GPU memory
+                if not flag_file:
+                    del out, att_w
+                del pred
+                torch.cuda.empty_cache()
+
+        preds = torch.cat(preds)
+
+        return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
+
+    def ori_predict(self, test_loader, cpu_store=True, flag_file=False):
         self.eval()
         preds = []
         full_attn_weights = []

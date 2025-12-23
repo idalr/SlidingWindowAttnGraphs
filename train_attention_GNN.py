@@ -11,9 +11,11 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from src.graphs.gnn_model import GAT_model, GCN_model, partitions
 from src.models.base_model import MHAClassifier
-from src.pipeline.eval import retrieve_parameters, eval_results
+from src.pipeline.eval import eval_results
+from src.pipeline.connector import retrieve_parameters
 from src.data.preprocess_data import load_data
-from src.data.text_loaders import create_loaders, get_class_weights, check_dataframe
+from src.data.text_loaders import create_loaders
+from src.data.utils import get_class_weights, check_dataframe
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -32,7 +34,7 @@ def main_run(config_file , settings_file):
     dataset_name = config_file["dataset_name"]
     path_vocab = config_file["load_data_paths"]["in_path"]
     model_name = config_file["model_name"]
-    setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
+    #setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
     flag_binary = config_file["binarized"]
     multi_flag = config_file["multi_layer"]
@@ -70,6 +72,14 @@ def main_run(config_file , settings_file):
         filename_val = "post_predict_val_documents.csv"
     filename_train = "post_predict_train_documents.csv"
     filename_test = "post_predict_test_documents.csv"
+
+    # create folders if not exist
+    if not os.path.exists(root_graph):
+        os.makedirs(root_graph)
+    if not os.path.exists(path_results):
+        os.makedirs(path_results)
+    if not os.path.exists(path_logger):
+        os.makedirs(path_logger)
 
     try:
         print("Running", type_model, "on Attention-based document graphs.")
@@ -179,17 +189,13 @@ def main_run(config_file , settings_file):
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
         if config_file["load_data_paths"]["with_val"] == True:
-            preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(
-                loader_val, cpu_store=False)
+            preds_v, _, all_labels_v, _, all_article_identifiers_v = model_lightning.predict(
+                loader_val, cpu_store=False, return_attn=False, return_doc_ids=False)
             acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
-            if unified_flag == True:
-                del full_attn_weights_v
 
-        preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False)
+        preds_test, _, all_labels_test, _, all_article_identifiers_test = model_lightning.predict(
+            loader_test, cpu_store=False, return_attn=False, return_doc_ids=False)
         acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-        if unified_flag == True:
-            del full_attn_weights_test
 
         if config_file["load_data_paths"]["with_val"] == True:
             filename_val = "post_predict_val_documents.csv"
@@ -199,13 +205,16 @@ def main_run(config_file , settings_file):
         if not os.path.exists(path_root + "/raw/" + filename_train):
             path_dataset = path_root + "/raw/"
             print("\nCreating files for PyG dataset in:", path_dataset)
+            if not os.path.exists(path_dataset):
+                os.makedirs(path_dataset)
             df_logger = pd.read_csv(path_logger + logger_name)
 
             ### Forward pass to get predictions from loaded MHA model
             print("Predicting Train")
             _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
                                                                                                cpu_store=False,
-                                                                                               flag_file=True)
+                                                                                               flag_file=True,
+                                                                                               return_attn=False)
             post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
@@ -221,7 +230,8 @@ def main_run(config_file , settings_file):
                 print("\nPredicting Val")
                 _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
                                                                                                    cpu_store=False,
-                                                                                                   flag_file=True)
+                                                                                                   flag_file=True,
+                                                                                                   return_attn=False)
                 post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
@@ -235,7 +245,7 @@ def main_run(config_file , settings_file):
 
             print("\nPredicting Test")
             _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-                loader_test, cpu_store=False, flag_file=True)
+                loader_test, cpu_store=False, flag_file=True, return_attn=False)
             post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test,
@@ -249,7 +259,7 @@ def main_run(config_file , settings_file):
             print("Finished and saved in:", path_dataset + filename_test)
 
         else:
-            print("File Requirements already satified in ", path_root + "/raw/")
+            print("File Requirements already satisfied in ", path_root + "/raw/")
 
         if type_graph == "full":
             filter_type = None
