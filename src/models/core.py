@@ -42,47 +42,8 @@ class Classifier_Lighting(pl.LightningModule):
         f1_ma = f1_score(pred, data['labels'])
         return {"loss": loss, "f1-ma": f1_ma, 'acc': acc}
 
-    def predict(self, test_loader, cpu_store=True,
-            return_attn=False):
-        self.eval()
-
-        preds = []
-        all_labels = []
-        all_article_identifiers = []
-        # only if needed
-        full_attn_weights = [] if return_attn else None
-
-        with torch.no_grad():
-            for data in test_loader:
-                out, att_w = self(
-                    data['documents_ids'].to(self.device),
-                    data['src_key_padding_mask'].to(self.device),
-                    data['matrix_mask'].to(self.device),
-                )
-                pred = out.argmax(dim=1)
-
-                if cpu_store:
-                    preds.append(pred.cpu())
-                else:
-                    preds.append(pred)
-
-                if return_attn:
-                    # ⚠️ Immediately move to CPU
-                    full_attn_weights.append(att_w.cpu())
-
-                all_labels.extend(data['labels'])
-                all_article_identifiers.extend(data['article_id'])
-
-                # 🔥 free batch memory immediately
-                del out, att_w, pred
-                torch.cuda.empty_cache()
-
-        preds = torch.cat(preds)
-
-        return preds, full_attn_weights, all_labels, all_article_identifiers
-
-    def new_predict(self, test_loader, cpu_store=True, flag_file=False,
-            return_attn=False, return_doc_ids=False):
+    def predict(self, test_loader, cpu_store=True, flag_file=False,
+            return_attn=True, return_doc_ids=True):
         self.eval()
         preds = []
         all_labels = []
