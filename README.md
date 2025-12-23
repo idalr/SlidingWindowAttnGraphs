@@ -83,7 +83,7 @@ python visualize_attns.py -s config/<folder>/<your_MHA_config_file>.yaml [option
 To print structural statistics from a graph dataset,
 *required: a graph dataset*.
 ```
-python get_structural_graph_stats.py --data-dir '/path/to/folder/<model_name>/<type_graph>/processed
+python get_structural_graph_stats.py --data_dir '/path/to/folder/<model_name>/<type_graph>/processed
 ```
 
 To conduct analyses of your choice on the test split from the best model (with highest Val-f1 score) defined in the GAT config file,
