@@ -26,7 +26,12 @@ from torchmetrics import F1Score
 
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
-def main_run(config_file , settings_file):
+def main_run(config_file , settings_file, model_path, model_score):
+
+    # path args
+    path_checkpoint = model_path
+    score = model_score
+
     ### Load configuration file and set parameters
     os.environ["CUDA_VISIBLE_DEVICES"] = config_file["cuda_visible_devices"]
     logger_name = config_file["logger_name"]
@@ -34,7 +39,7 @@ def main_run(config_file , settings_file):
     dataset_name = config_file["dataset_name"]
     path_vocab = config_file["load_data_paths"]["in_path"]
     model_name = config_file["model_name"]
-    #setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
+    setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
     flag_binary = config_file["binarized"]
     multi_flag = config_file["multi_layer"]
@@ -53,9 +58,6 @@ def main_run(config_file , settings_file):
 
     model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
-    path_checkpoint = config_file['manual']['path_checkpoint']
-    model_score = config_file['manual']['model_score']
-    vocab_sent_path = config_file['manual']['vocab_sent_path']
     file_to_save = model_name+"_"+str(model_score)[:5]
     type_graph = config_file["type_graph"]
     path_models = path_logger+model_name+"/"
@@ -185,7 +187,8 @@ def main_run(config_file , settings_file):
                                                              path_ckpt=path_vocab,
                                                              df_val=None, task="classification")
 
-        print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
+        print("\nLoading", model_name, "({0:.3f}".format(score), ") from:", path_checkpoint)
+        vocab_sent_path = os.path.normpath(os.path.join(config_file['load_data_path']['in_path']), 'vocab_sentences.csv')
         sent_dict_disk = pd.read_csv(vocab_sent_path)
         invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
@@ -465,8 +468,20 @@ if __name__ == "__main__":
         type=str,
         help="path of the settings file",
     )
+    arg_parser.add_argument(
+        "--model_path",
+        required=True,
+        type=str,
+        help="add model abs path",
+    )
+    arg_parser.add_argument(
+        "--model_score",
+        required=True,
+        type=str,
+        help="add model score",
+    )
     args = arg_parser.parse_args()
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
-    main_run(config_file, args.settings_file)
+    main_run(config_file, args.settings_file, args.model_path, args.model_score)

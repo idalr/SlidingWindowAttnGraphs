@@ -2,28 +2,23 @@ cuda_visible_devices: "0"
 device: gpu
 
 dataset_name: HND
-logger_name: HND-logger_filename.csv
-model_name: logger_name_used_in_MHA_config      # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
-setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
+logger_name: df_logger_cw.csv
+model_name: Extended_NoTemp_w30      # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
+#setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
 type_model: GAT
 binarized: False
 multi_layer: False                              # True for multi-layer attention models, False for single-layer
 baseline: False                                 # Always False for attention-based learned graphs
-type_graph: mean                                # "full", "max" or "mean", depending on the type of statistical filtering to use
+type_graph: max                                # "full", "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
 
-manual:
-  path_checkpoint: path/to/model
-  model_score: 1.000
-  vocab_sent_path: path/to/
-
 data_paths:
-  path_logger: /path/to/HND-logger/file/
-  results_folder: /path/to/GNN/results/folder/
-  root_graph_dataset: /path/to/graph-based/HND-dataset/folder/
+  path_logger: /content/drive/MyDrive/ADG/HomoGraphs_HND/
+  results_folder: /content/drive/MyDrive/ADG/AttGraphs/GNN_Results_Classifier/Colab/
+  root_graph_dataset: /content/drive/MyDrive/ADG/AttnGraphs_HND/
 
 load_data_paths:
-  in_path: "/path/to/data/folder/"
+  in_path: "/content/drive/MyDrive/Colab Notebooks/datasets/HyperNews/"
   data_train: "articles-training-byarticle-20181122.xml"        #downloaded from https://zenodo.org/records/5776081
   labels_train: "ground-truth-training-byarticle-20181122.xml"  #downloaded from https://zenodo.org/records/5776081
   data_test: "articles-test-byarticle-20181207.xml"             #downloaded from https://zenodo.org/records/5776081
