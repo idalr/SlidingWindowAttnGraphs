@@ -1,16 +1,22 @@
 import yaml
 import argparse
-from src.data.graph_data_loaders import UnifiedAttentionGraphs_Class
+from graph_data_loaders import UnifiedAttentionGraphs_Class
 import torch
 import os
 import time
 import pandas as pd
 import warnings
+
 warnings.filterwarnings("ignore")
 import numpy as np
 from nltk.tokenize import sent_tokenize
+
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from src.graphs.gnn_model import GAT_model, GCN_model, partitions
-from src.models.base_model import MHAClassifier
+from base_model import MHAClassifier
 from src.pipeline.eval import eval_results
 from src.pipeline.connector import retrieve_parameters
 from src.data.preprocess_data import load_data
@@ -23,11 +29,10 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 from torchmetrics import F1Score
 
-
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
-def main_run(config_file , settings_file, model_path, model_score):
 
+def main_run(config_file, settings_file, model_path, model_score):
     # path args
     path_checkpoint = model_path
     score = model_score
@@ -58,12 +63,13 @@ def main_run(config_file , settings_file, model_path, model_score):
 
     model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
-    file_to_save = model_name+"_"+str(model_score)[:5]
+    file_to_save = model_name + "_" + str(model_score)[:5]
     type_graph = config_file["type_graph"]
-    path_models = path_logger+model_name+"/"
+    path_models = path_logger + model_name + "/"
 
     if unified_flag == True:
-        path_root = os.path.join(root_graph, model_name,type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
+        path_root = os.path.join(root_graph, model_name,
+                                 type_graph + "_unified")  # root_graph+model_name+"/Attention/"+type_graph+ "_unified"
         project_name = model_name + "2" + type_model + "_" + type_graph + "_unified"
         file_results = os.path.join(path_results, file_to_save + "_2" + type_model + "_" + type_graph + "_unified")
     else:
@@ -180,29 +186,33 @@ def main_run(config_file , settings_file, model_path, model_score):
                                                                                config_file["batch_size"],
                                                                                tokenizer_from_scratch=False,
                                                                                path_ckpt=path_vocab,
-                                                                               df_val=df_val, task="classification")
+                                                                               df_val=df_val, task="classification",
+                                                                               sent_tokenizer=True)
         else:
             loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
                                                              with_val=False, tokenizer_from_scratch=False,
                                                              path_ckpt=path_vocab,
-                                                             df_val=None, task="classification")
+                                                             df_val=None, task="classification",
+                                                             sent_tokenizer=True)
 
-        print("\nLoading", model_name, "({0:.3f}".format(score), ") from:", path_checkpoint)
-        vocab_sent_path = os.path.normpath(os.path.join(config_file['load_data_path']['in_path']), 'vocab_sentences.csv')
+        print("\nLoading", model_name, "(", score, ") from:", path_checkpoint)
+        vocab_sent_path = os.path.normpath(
+            os.path.join(config_file['load_data_paths']['in_path'], 'vocab_sentences.csv'))
         sent_dict_disk = pd.read_csv(vocab_sent_path)
         invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
         model_lightning.invert_vocab_sent = invert_vocab_sent
+        print(len(invert_vocab_sent))
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
         if config_file["load_data_paths"]["with_val"] == True:
-            preds_v, _, all_labels_v, _, all_article_identifiers_v = model_lightning.predict(
-                loader_val, cpu_store=False, return_attn=False, return_doc_ids=False)
+            preds_v, _, all_labels_v, _, all_article_identifiers_v = model_lightning.ori_predict(
+                loader_val, cpu_store=False)
             acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
 
-        preds_test, _, all_labels_test, _, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False, return_attn=False, return_doc_ids=False)
+        preds_test, _, all_labels_test, _, all_article_identifiers_test = model_lightning.ori_predict(
+            loader_test, cpu_store=False)
         acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
         if config_file["load_data_paths"]["with_val"] == True:
@@ -217,12 +227,14 @@ def main_run(config_file , settings_file, model_path, model_score):
                 os.makedirs(path_dataset)
             df_logger = pd.read_csv(path_logger + logger_name)
 
+            # TODO: need to beautify ori_predict
+
             ### Forward pass to get predictions from loaded MHA model
             print("Predicting Train")
-            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
-                                                                                               cpu_store=False,
-                                                                                               flag_file=True,
-                                                                                               return_attn=False)
+            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.ori_predict(loader_train,
+                                                                                                       cpu_store=False,
+                                                                                                       flag_file=True,
+                                                                                                       )
             post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
@@ -236,10 +248,10 @@ def main_run(config_file , settings_file, model_path, model_score):
 
             if config_file["load_data_paths"]["with_val"] == True:
                 print("\nPredicting Val")
-                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
-                                                                                                   cpu_store=False,
-                                                                                                   flag_file=True,
-                                                                                                   return_attn=False)
+                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.ori_predict(loader_val,
+                                                                                                           cpu_store=False,
+                                                                                                           flag_file=True,
+                                                                                                           )
                 post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
@@ -252,12 +264,12 @@ def main_run(config_file , settings_file, model_path, model_score):
                 print("Finished and saved in:", path_dataset + filename_val)
 
             print("\nPredicting Test")
-            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-                loader_test, cpu_store=False, flag_file=True, return_attn=False)
+            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.ori_predict(
+                loader_test, cpu_store=False, flag_file=True)
             post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test,
-                                                 all_doc_ids_test):
+                                                     all_doc_ids_test):
                 post_predict_test_docs.loc[len(post_predict_test_docs)] = {
                     "article_id": article_id.item(),
                     "label": label.item(),
@@ -295,9 +307,9 @@ def main_run(config_file , settings_file, model_path, model_score):
             start_creation = time.time()
             if unified_flag == True:
                 dataset_train = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_train,
-                                                                 filter_type=type_graph, data_loader=loader_train,
-                                                                 model_ckpt=path_checkpoint, mode="train",
-                                                                 binarized=flag_binary, multi_layer_model=multi_flag)
+                                                             filter_type=type_graph, data_loader=loader_train,
+                                                             model=model_lightning, mode="train",
+                                                             binarized=flag_binary, multi_layer_model=multi_flag)
             else:
                 print(
                     "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
@@ -311,12 +323,12 @@ def main_run(config_file , settings_file, model_path, model_score):
                 start_creation = time.time()
                 if unified_flag == True:
                     dataset_val = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_val,
-                                                                   filter_type=type_graph, data_loader=loader_val,
-                                                                   model_ckpt=path_checkpoint, mode="val",
-                                                                   binarized=flag_binary, multi_layer_model=multi_flag)
+                                                               filter_type=type_graph, data_loader=loader_val,
+                                                               model=model_lightning, mode="val",
+                                                               binarized=flag_binary, multi_layer_model=multi_flag)
                 else:
                     print(
-                            "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
+                        "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
                     print("Aborting process.")
                     return
                 creation_val = time.time() - start_creation
@@ -326,12 +338,12 @@ def main_run(config_file , settings_file, model_path, model_score):
             start_creation = time.time()
             if unified_flag == True:
                 dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                                filter_type=type_graph, data_loader=loader_test,
-                                                                model_ckpt=path_checkpoint, mode="test",
-                                                                binarized=flag_binary, multi_layer_model=multi_flag)
+                                                            filter_type=type_graph, data_loader=loader_test,
+                                                            model=model_lightning, mode="test",
+                                                            binarized=flag_binary, multi_layer_model=multi_flag)
             else:
                 print(
-                        "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
+                    "Graph creation is only supported for unified sentence nodes. Please set unified_nodes to True in the config file.")
                 print("Aborting process.")
                 return
             creation_test = time.time() - start_creation
@@ -365,12 +377,12 @@ def main_run(config_file , settings_file, model_path, model_score):
                 for i in range(num_runs):
                     if type_model == "GAT":
                         model = GAT_model(dataset_train.num_node_features, dim, num_classes, nl, lr,
-                                            dropout=dropout,
-                                            class_weights=calculated_cw)
+                                          dropout=dropout,
+                                          class_weights=calculated_cw)
                     elif type_model == "GCN":
                         model = GCN_model(dataset_train.num_node_features, dim, num_classes, nl, lr,
-                                            dropout=dropout,
-                                            class_weights=calculated_cw)
+                                          dropout=dropout,
+                                          class_weights=calculated_cw)
                     else:
                         print("Type of GNN model not supported: No GNN was intended")
                         return
@@ -379,12 +391,12 @@ def main_run(config_file , settings_file, model_path, model_score):
 
                     if config_file["load_data_paths"]["with_val"] == True:
                         train_loader, val_loader, test_loader = partitions(dataset_train, dataset_test,
-                                                                               dataset_val=dataset_val,
-                                                                               bs=config_file["batch_size"])
+                                                                           dataset_val=dataset_val,
+                                                                           bs=config_file["batch_size"])
                     else:
                         train_loader, val_loader, test_loader = partitions(dataset_train, dataset_test,
-                                                                               dataset_val=None,
-                                                                               bs=config_file["batch_size"])
+                                                                           dataset_val=None,
+                                                                           bs=config_file["batch_size"])
                     print("Data loaders created.")
                     print("Training on:", len(train_loader.dataset), "samples")
                     print("Validating on:", len(val_loader.dataset), "samples")
@@ -393,18 +405,18 @@ def main_run(config_file , settings_file, model_path, model_score):
                                                         **config_file["early_args"])
                     path_for_savings = path_models + type_model + "/" + graph_construction
                     checkpoint_callback = ModelCheckpoint(monitor="Val_f1-ma", mode="max", save_top_k=1,
-                                                            dirpath=path_for_savings,
-                                                            filename=type_model + "_" + str(nl) + "L_" + str(
-                                                            dim) + "U_" + graph_construction + "_run" + str(
-                                                            i) + "-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
+                                                          dirpath=path_for_savings,
+                                                          filename=type_model + "_" + str(nl) + "L_" + str(
+                                                              dim) + "U_" + graph_construction + "_run" + str(
+                                                              i) + "-OUT-{epoch:02d}-{Val_f1-ma:.2f}")
 
                     wandb_logger = WandbLogger(name=model_name + '2' + type_model + "_" + str(nl) + "L_" + str(
                         dim) + "U_" + graph_construction + "_run" + str(i), save_dir=path_for_savings,
                                                project=project_name)
 
                     trainer = pl.Trainer(accelerator='gpu', devices=1,
-                                            callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
-                                            **config_file["trainer_args"])
+                                         callbacks=[early_stop_callback, checkpoint_callback], logger=wandb_logger,
+                                         **config_file["trainer_args"])
 
                     starti = time.time()
                     trainer.fit(model, train_loader, val_loader)
@@ -420,7 +432,7 @@ def main_run(config_file , settings_file, model_path, model_score):
                     checkpoint = torch.load(trainer.checkpoint_callback.best_model_path)
                     model.load_state_dict(checkpoint['state_dict'])
 
-                    preds, trues = model.predict(test_loader, cpu_store=False)
+                    preds, trues = model.ori_predict(test_loader, cpu_store=False)
                     acc = (torch.Tensor(trues) == preds).float().mean()
                     f1_score = F1Score(task='multiclass', num_classes=num_classes, average='none')
                     f1_all = f1_score(preds.int(), torch.Tensor(trues).int())
@@ -440,15 +452,15 @@ def main_run(config_file , settings_file, model_path, model_score):
                 print("\n************************************************", file=f)
                 print("RESULTS FOR N_LAYERS:", nl, " HIDDEN DIM_FEATURES:", dim, file=f)
                 print("Test Acc: %.3f" % np.mean(np.asarray(acc_tests)),
-                        "-- std: %.3f" % np.std(np.asarray(acc_tests)),
-                        file=f)
+                      "-- std: %.3f" % np.std(np.asarray(acc_tests)),
+                      file=f)
                 print("Test F1-macro: %.3f" % np.mean(np.asarray(f1ma_tests)),
-                        "-- std: %.3f" % np.std(np.asarray(f1ma_tests)), file=f)
+                      "-- std: %.3f" % np.std(np.asarray(f1ma_tests)), file=f)
                 print("Test F1 per class:", np.mean(np.asarray(f1_tests), axis=0), file=f)
                 print("Training time: %.2f" % np.mean(np.asarray(all_train_times)),
-                        "-- std: %.2f" % np.std(np.asarray(all_train_times)), file=f)
+                      "-- std: %.2f" % np.std(np.asarray(all_train_times)), file=f)
                 print("Total time: %.2f" % np.mean(np.asarray(all_full_times)),
-                        "-- std: %.2f" % np.std(np.asarray(all_full_times)), file=f)
+                      "-- std: %.2f" % np.std(np.asarray(all_full_times)), file=f)
                 print("************************************************\n\n", file=f)
 
         f.close()
@@ -456,6 +468,7 @@ def main_run(config_file , settings_file, model_path, model_score):
     end = time.time()
     total_time = end - start
     print("\nRUNNING TIME FOR ALL THE EXPERIMENTS: " + str(total_time))
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()

@@ -5,6 +5,10 @@ import pandas as pd
 import numpy  as np
 from sentence_transformers import SentenceTransformer
 
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from src.models.core import Classifier_Lighting, Summarizer_Lighting
 from src.models.utils import MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict
 

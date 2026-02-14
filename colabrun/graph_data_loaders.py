@@ -5,12 +5,15 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
-from src.models.base_model import MHASummarizer, retrieve_from_dict, MHAClassifier
+from base_model import MHASummarizer, retrieve_from_dict, MHAClassifier
 from src.data.graph_utils import solve_by_creating_edge, filtering_matrix
+
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 class UnifiedAttentionGraphs_Class(Dataset):
-    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model_ckpt="", mode="train",
+    def __init__(self, root, filename, filter_type, data_loader, degree=0.5, model="", mode="train",
                  transform=None, normalized=False, binarized=False, multi_layer_model=False, pre_transform=None):
 
         """
@@ -32,7 +35,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
         self.filter_type = filter_type
         self.data_loader = data_loader
         self.K = degree
-        self.model_ckpt = model_ckpt
+        self.model = model
         self.mode = mode
         self.normalized = normalized
         self.binarized = binarized
@@ -70,8 +73,9 @@ class UnifiedAttentionGraphs_Class(Dataset):
         all_batches = self.data_loader
 
         print("Loading MHAClassifier model...")
-        model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
-        model_window = int(model_lightning.window)
+        #model_lightning = MHAClassifier.load_from_checkpoint(self.model_ckpt)
+        model_lightning = self.model
+        model_window = int(self.model.window)
         print("Model correctly loaded.")
 
         if self.mode == "test":

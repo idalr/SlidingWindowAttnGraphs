@@ -4,7 +4,7 @@ device: gpu
 dataset_name: HND
 logger_name: df_logger_cw.csv
 model_name: Extended_NoTemp_w30      # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
-#setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
+setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
 type_model: GAT
 binarized: False
 multi_layer: False                              # True for multi-layer attention models, False for single-layer
