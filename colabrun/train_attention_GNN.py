@@ -33,7 +33,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 
 def main_run(config_file, settings_file, model_name, model_path, model_score):
-    # path args
+    ### path args
     path_checkpoint = model_path
     score = model_score
 
@@ -43,7 +43,6 @@ def main_run(config_file, settings_file, model_name, model_path, model_score):
     type_model = config_file["type_model"]
     dataset_name = config_file["dataset_name"]
     path_vocab = config_file["load_data_paths"]["in_path"]
-    #model_name = config_file["model_name"]
     setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
     flag_binary = config_file["binarized"]
@@ -61,7 +60,6 @@ def main_run(config_file, settings_file, model_name, model_path, model_score):
     n_layers = config_file["model_arch_args"]["n_layers"]
     num_runs = config_file["model_arch_args"]["num_runs"]
 
-    model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
     file_to_save = model_name + "_" + str(model_score)[:5]
     type_graph = config_file["type_graph"]
@@ -200,7 +198,7 @@ def main_run(config_file, settings_file, model_name, model_path, model_score):
             os.path.join(config_file['load_data_paths']['in_path'], 'vocab_sentences.csv'))
         sent_dict_disk = pd.read_csv(vocab_sent_path)
         invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-        model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint, weights_only=False)
         model_lightning.invert_vocab_sent = invert_vocab_sent
         print("Done")
 
