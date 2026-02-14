@@ -5,17 +5,6 @@ from torch import nn
 def retrieve_from_dict(dict, list_ids):
     return [dict[id.item()] for id in list_ids]
 
-# new func
-def retrieve_from_dict(dictionary, list_ids):
-    dict_key_type = type(next(iter(dictionary.keys())))
-
-    result = []
-    for idx in list_ids:
-        key = idx.item() if hasattr(idx, "item") else idx
-        key = dict_key_type(key)
-        result.append(dictionary[key])
-
-    return result
 
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):
     factor = 1 / np.sqrt(q.size(-1))

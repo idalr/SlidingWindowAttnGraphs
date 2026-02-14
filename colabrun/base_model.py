@@ -10,8 +10,19 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.models.core import Classifier_Lighting, Summarizer_Lighting
-from src.models.utils import MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention, retrieve_from_dict
+from src.models.utils import MultiHeadSelfAttention, SlidingWindowMultiHeadSelfAttention
 
+# new func
+def retrieve_from_dict(dictionary, list_ids):
+    dict_key_type = type(next(iter(dictionary.keys())))
+
+    result = []
+    for idx in list_ids:
+        key = idx.item() if hasattr(idx, "item") else idx
+        key = dict_key_type(key)
+        result.append(dictionary[key])
+
+    return result
 
 class MHAClassifier(Classifier_Lighting):
     def __init__(self, embed_dim, num_classes, hidden_dim,  max_len, lr, window,

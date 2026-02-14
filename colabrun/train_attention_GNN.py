@@ -202,7 +202,6 @@ def main_run(config_file, settings_file, model_path, model_score):
         invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
         model_lightning.invert_vocab_sent = invert_vocab_sent
-        print(len(invert_vocab_sent))
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
@@ -432,7 +431,7 @@ def main_run(config_file, settings_file, model_path, model_score):
                     checkpoint = torch.load(trainer.checkpoint_callback.best_model_path)
                     model.load_state_dict(checkpoint['state_dict'])
 
-                    preds, trues = model.ori_predict(test_loader, cpu_store=False)
+                    preds, trues = model.predict(test_loader, cpu_store=False)
                     acc = (torch.Tensor(trues) == preds).float().mean()
                     f1_score = F1Score(task='multiclass', num_classes=num_classes, average='none')
                     f1_all = f1_score(preds.int(), torch.Tensor(trues).int())
