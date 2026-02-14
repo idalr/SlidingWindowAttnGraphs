@@ -126,7 +126,7 @@ def main_run(config_file, settings_file):
         print(f"Training time: {train_time:.2f} secs")
 
         ### Load best checkpoint
-        model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, weights_only=False)
         #model_lightning = MHAClassifier.load_from_checkpoint('/scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=05-Val_f1-ma=0.80.ckpt')
         print("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print("Temperature of loaded model:", model_lightning.temperature)
@@ -157,9 +157,15 @@ def main_run(config_file, settings_file):
             preds, _, all_labels, _, _ = model_lightning.predict(loader_test, cpu_store=False)
 
         # Calculate Acc and F1
-        acc = (torch.Tensor(all_labels) == preds).float().mean()
-        f1_score = F1Score(task='multiclass', num_classes=model_params["num_classes"], average=None)
-        f1_all = f1_score(preds.int(), torch.Tensor(all_labels).int())
+        labels = torch.tensor(all_labels, device=preds.device).long()
+        if preds.ndim > 1:
+            preds = torch.argmax(preds, dim=1)
+        acc = (labels == preds).float().mean()
+        f1_metric = F1Score(task="multiclass", num_classes=model_params["num_classes"], average=None).to(preds.device)
+        f1_all = f1_metric(preds, labels)
+        #acc = (torch.Tensor(all_labels) == preds).float().mean()
+        #f1_score = F1Score(task='multiclass', num_classes=model_params["num_classes"], average=None)
+        #f1_all = f1_score(preds.int(), torch.Tensor(all_labels).int())
         print("Acc Test:", acc)
         print("F1-macro Test:", f1_all.mean())
         print("F1 for each class:", f1_all)
