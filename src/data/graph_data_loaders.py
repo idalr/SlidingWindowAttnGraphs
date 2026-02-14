@@ -54,7 +54,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
         if self.mode == "test":
             return [f'data_test_{i}.pt' for i in list(self.data.index)]
-        if self.mode == "val":
+        elif self.mode == "val":
             return [f'data_val_{i}.pt' for i in list(self.data.index)]
         else:
             return [f'data_{i}.pt' for i in list(self.data.index)]
@@ -261,7 +261,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
 
                 if self.mode == "test":
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
-                if self.mode == "val":
+                elif self.mode == "val":
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'))
                 else:
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
@@ -275,7 +275,7 @@ class UnifiedAttentionGraphs_Class(Dataset):
         """ Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
         if self.mode == "test":
             data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'), weights_only=False)
-        if self.mode == "val":
+        elif self.mode == "val":
             data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'), weights_only=False)
         else:
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
@@ -329,7 +329,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
         if self.mode == "test":
             return [f'data_test_{i}.pt' for i in list(self.data.index)]
-        if self.mode == "val":
+        elif self.mode == "val":
             return [f'data_val_{i}.pt' for i in list(self.data.index)]
         else:
             return [f'data_{i}.pt' for i in list(self.data.index)]
@@ -533,7 +533,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
 
                 if self.mode == "test":
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_test_{ide}.pt'))
-                if self.mode == "val":
+                elif self.mode == "val":
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_val_{ide}.pt'))
                 else:
                     torch.save(generated_data, os.path.join(self.processed_dir, f'data_{ide}.pt'))
@@ -547,7 +547,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         """ - Equivalent to __getitem__ in pytorch - Is not needed for PyG's InMemoryDataset """
         if self.mode == "test":
             data = torch.load(os.path.join(self.processed_dir, f'data_test_{idx}.pt'), weights_only=False)
-        if self.mode == "val":
+        elif self.mode == "val":
             data = torch.load(os.path.join(self.processed_dir, f'data_val_{idx}.pt'), weights_only=False)
         else:
             data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'), weights_only=False)
