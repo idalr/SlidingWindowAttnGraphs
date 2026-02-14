@@ -1,0 +1,41 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: "BBC"
+path_models: scratch2/rldallitsako/HomoGraphs_BBC/
+file_to_save: MHAClassifier
+logger_name: Extended_Sigmoid_BBC
+logger_file: df_logger_cw_BBC.csv
+num_executions: 5
+
+load_data_paths:
+  in_path: "scratch2/rldallitsako/datasets/BBC/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True                  # True if validation set is available, False otherwise
+
+model_arch_args:
+  num_classes: 5
+  lr: 0.001
+  embed_dim: 384 #sentence transformer
+  num_heads: 4
+  dropout: 0.2
+  hidden_dim : 128
+  intermediate: True
+  activation_attention: "sigmoid"
+  attn_dropout: 0.1
+  window: 30
+
+
+batch_size: 32
+with_cw: True
+
+trainer_args:
+  max_epochs: 20
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001
