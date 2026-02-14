@@ -53,7 +53,9 @@ def main_run(config_file , settings_file):
 
     model_name = config_file["model_name"]
     df_logger = pd.read_csv(path_logger + logger_name)
-    path_checkpoint, model_score = retrieve_parameters(model_name, df_logger)
+    path_checkpoint = config_file['manual']['path_checkpoint']
+    model_score = config_file['manual']['model_score']
+    vocab_sent_path = config_file['manual']['vocab_sent_path']
     file_to_save = model_name+"_"+str(model_score)[:5]
     type_graph = config_file["type_graph"]
     path_models = path_logger+model_name+"/"
@@ -184,7 +186,10 @@ def main_run(config_file , settings_file):
                                                              df_val=None, task="classification")
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
+        sent_dict_disk = pd.read_csv(vocab_sent_path)
+        invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)
+        model_lightning.invert_vocab_sent = invert_vocab_sent
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt

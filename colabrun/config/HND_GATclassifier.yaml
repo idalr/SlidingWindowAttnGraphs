@@ -12,6 +12,10 @@ baseline: False                                 # Always False for attention-bas
 type_graph: mean                                # "full", "max" or "mean", depending on the type of statistical filtering to use
 unified_nodes: True
 
+manual:
+  path_checkpoint: path/to/model
+  model_score: 1.000
+  vocab_sent_path: path/to/
 
 data_paths:
   path_logger: /path/to/HND-logger/file/
