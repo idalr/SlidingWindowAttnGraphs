@@ -32,7 +32,7 @@ from torchmetrics import F1Score
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 
-def main_run(config_file, settings_file, model_path, model_score):
+def main_run(config_file, settings_file, model_name, model_path, model_score):
     # path args
     path_checkpoint = model_path
     score = model_score
@@ -43,7 +43,7 @@ def main_run(config_file, settings_file, model_path, model_score):
     type_model = config_file["type_model"]
     dataset_name = config_file["dataset_name"]
     path_vocab = config_file["load_data_paths"]["in_path"]
-    model_name = config_file["model_name"]
+    #model_name = config_file["model_name"]
     setting_file = config_file["setting_file"]  # Setting file from which to pick the best checkpoint
 
     flag_binary = config_file["binarized"]
@@ -481,6 +481,12 @@ if __name__ == "__main__":
         help="path of the settings file",
     )
     arg_parser.add_argument(
+        "--model_name",
+        required=True,
+        type=str,
+        help="add model name",
+    )
+    arg_parser.add_argument(
         "--model_path",
         required=True,
         type=str,
@@ -496,4 +502,4 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
-    main_run(config_file, args.settings_file, args.model_path, args.model_score)
+    main_run(config_file, args.settings_file, args.model_name, args.model_path, args.model_score)
