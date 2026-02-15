@@ -5,6 +5,7 @@ from torch import nn
 def retrieve_from_dict(dict, list_ids):
     return [dict[id.item()] for id in list_ids]
 
+
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):
     factor = 1 / np.sqrt(q.size(-1))
     attn_logits = q @ k.transpose(-2, -1) * factor
