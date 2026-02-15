@@ -60,7 +60,7 @@ def main_run(config_file, settings_file, model_name, model_path, model_score):
     n_layers = config_file["model_arch_args"]["n_layers"]
     num_runs = config_file["model_arch_args"]["num_runs"]
 
-    df_logger = pd.read_csv(path_logger + logger_name)
+    #df_logger = pd.read_csv(path_logger + logger_name)
     file_to_save = model_name + "_" + str(model_score)[:5]
     type_graph = config_file["type_graph"]
     path_models = path_logger + model_name + "/"
@@ -227,7 +227,7 @@ def main_run(config_file, settings_file, model_name, model_path, model_score):
             print("\nCreating files for PyG dataset in:", path_dataset)
             if not os.path.exists(path_dataset):
                 os.makedirs(path_dataset)
-            df_logger = pd.read_csv(path_logger + logger_name)
+            #df_logger = pd.read_csv(path_logger + logger_name)
 
             # TODO: need to beautify ori_predict
 
