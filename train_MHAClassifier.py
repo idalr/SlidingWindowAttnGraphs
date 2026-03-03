@@ -68,7 +68,7 @@ def main_run(config_file, settings_file):
                                                                                    tokenizer_from_scratch=False,
                                                                                    path_ckpt=
                                                                                    config_file["load_data_paths"][
-                                                                                       "in_path"])
+                                                                                       "in_path"], sent_tokenizer=True)
             else:
                 loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
                                                                                    config_file["batch_size"],
@@ -76,7 +76,7 @@ def main_run(config_file, settings_file):
                                                                                    tokenizer_from_scratch=False,
                                                                                    path_ckpt=
                                                                                    config_file["load_data_paths"][
-                                                                                       "in_path"])
+                                                                                       "in_path"], sent_tokenizer=True)
         ### Create sentence vocabulary as a dictionary
         except:
             print("Error: Vocabulary not found.\nCreating sentence vocabulary...")
@@ -85,12 +85,12 @@ def main_run(config_file, settings_file):
                                                                                                    max_len, config_file[
                                                                                                        "batch_size"],
                                                                                                    df_val=df_val,
-                                                                                                   task="classification")
+                                                                                                   task="classification", sent_tokenizer=True)
             else:
                 loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test,
                                                                                                    max_len, config_file[
                                                                                                        "batch_size"],
-                                                                                                   task="classification")
+                                                                                                   task="classification", sent_tokenizer=True)
             sent_dict = pd.DataFrame(
                 data={'Sentence_id': list(invert_vocab_sent.keys()), 'Sentence': list(invert_vocab_sent.values())})
             sent_dict.to_csv(config_file["load_data_paths"]["in_path"] + "vocab_sentences.csv", index=False)
