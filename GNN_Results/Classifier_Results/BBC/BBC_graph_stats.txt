@@ -1,0 +1,98 @@
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Anneal_w30/full_unified/processed/
+Graph dir size: 109M
+Total graphs: 2167
+Average node degree:        27.8217
+Average nodes per graph:    19.44
+Average edges per graph:    540.77
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Anneal_w30/max_unified/processed/
+Graph dir size: 74M
+Total graphs: 2167
+Average node degree:        3.3542
+Average nodes per graph:    19.44
+Average edges per graph:    65.20
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Anneal_w30/mean_unified/processed/
+Graph dir size: 80M
+Total graphs: 2167
+Average node degree:        7.7289
+Average nodes per graph:    19.44
+Average edges per graph:    150.23
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_NoTemp_w30/full_unified/processed/
+Graph dir size: 109M
+Total graphs: 2167
+Average node degree:        27.8217
+Average nodes per graph:    19.44
+Average edges per graph:    540.77
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_NoTemp_w30/max_unified/processed/
+================================================
+Graph dir size: 74M
+Total graphs: 2167
+Average node degree:        3.4421
+Average nodes per graph:    19.44
+Average edges per graph:    66.90
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_NoTemp_w30/mean_unified/processed/
+================================================
+Graph dir size: 81M
+Total graphs: 2167
+Average node degree:        7.8707
+Average nodes per graph:    19.44
+Average edges per graph:    152.98
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_ReLu_w30/full_unified/processed/
+Graph dir size: 109M
+Total graphs: 2167
+Average node degree:        27.8217
+Average nodes per graph:    19.44
+Average edges per graph:    540.77
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_ReLu_w30/max_unified/processed/
+Graph dir size: 74M
+Total graphs: 2167
+Average node degree:        3.5673
+Average nodes per graph:    19.44
+Average edges per graph:    69.34
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_ReLu_w30/mean_unified/processed/
+Graph dir size: 81M
+Total graphs: 2167
+Average node degree:        8.1661
+Average nodes per graph:    19.44
+Average edges per graph:    158.72
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Sigmoid_w30/full_unified/processed/
+Graph dir size: 109M
+Total graphs: 2167
+Average node degree:        27.8217
+Average nodes per graph:    19.44
+Average edges per graph:    540.77
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Sigmoid_w30/max_unified/processed/
+Graph dir size: 74M
+Total graphs: 2167
+Average node degree:        3.5561
+Average nodes per graph:    19.44
+Average edges per graph:    69.12
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_BBC/BBC_Sigmoid_w30/mean_unified/processed/
+Graph dir size: 81M
+Total graphs: 2167
+Average node degree:        8.1476
+Average nodes per graph:    19.44
+Average edges per graph:    158.37
+================================================
