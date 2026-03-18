@@ -171,17 +171,24 @@ def main_run(config_file , settings_file):
 
         print("Max number of sentences allowed:", max_len)
 
+        if dataset_name == "HND":
+            use_sent_tokenizer = True
+        else:
+            use_sent_tokenizer = False
+
         if config_file["load_data_paths"]["with_val"] == True:
             loader_train, loader_val, loader_test, _, _, _, _ = create_loaders(df_train, df_test, max_len,
                                                                                config_file["batch_size"],
                                                                                tokenizer_from_scratch=False,
                                                                                path_ckpt=path_vocab,
-                                                                               df_val=df_val, task="classification")
+                                                                               df_val=df_val, task="classification",
+                                                                               sent_tokenizer=use_sent_tokenizer)
         else:
             loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
                                                              with_val=False, tokenizer_from_scratch=False,
                                                              path_ckpt=path_vocab,
-                                                             df_val=None, task="classification")
+                                                             df_val=None, task="classification",
+                                                             sent_tokenizer=use_sent_tokenizer)
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
         model_lightning = MHAClassifier.load_from_checkpoint(path_checkpoint)

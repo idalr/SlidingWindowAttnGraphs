@@ -55,6 +55,11 @@ def main_run(config_file, settings_file):
         max_len = config_file["max_len"]
     print("Max number of sentences allowed per document:", max_len)
 
+    if dataset_name == "HND":
+        use_sent_tokenizer = True
+    else:
+        use_sent_tokenizer = False
+
     ### Train MHA-based model.
     for exec_i in range(config_file["num_executions"]):
         print("\n=============================")
@@ -66,6 +71,7 @@ def main_run(config_file, settings_file):
                                                                                    config_file["batch_size"],
                                                                                    df_val=df_val, task="classification",
                                                                                    tokenizer_from_scratch=False,
+                                                                                   sent_tokenizer=use_sent_tokenizer,
                                                                                    path_ckpt=
                                                                                    config_file["load_data_paths"][
                                                                                        "in_path"])
@@ -74,6 +80,7 @@ def main_run(config_file, settings_file):
                                                                                    config_file["batch_size"],
                                                                                    task="classification",
                                                                                    tokenizer_from_scratch=False,
+                                                                                   sent_tokenizer=use_sent_tokenizer,
                                                                                    path_ckpt=
                                                                                    config_file["load_data_paths"][
                                                                                        "in_path"])
@@ -85,12 +92,14 @@ def main_run(config_file, settings_file):
                                                                                                    max_len, config_file[
                                                                                                        "batch_size"],
                                                                                                    df_val=df_val,
-                                                                                                   task="classification")
+                                                                                                   task="classification",
+                                                                                                   sent_tokenizer=use_sent_tokenizer)
             else:
                 loader_train, loader_val, loader_test, _, _, _, invert_vocab_sent = create_loaders(df_train, df_test,
                                                                                                    max_len, config_file[
                                                                                                        "batch_size"],
-                                                                                                   task="classification")
+                                                                                                   task="classification",
+                                                                                                   sent_tokenizer=use_sent_tokenizer)
             sent_dict = pd.DataFrame(
                 data={'Sentence_id': list(invert_vocab_sent.keys()), 'Sentence': list(invert_vocab_sent.values())})
             sent_dict.to_csv(config_file["load_data_paths"]["in_path"] + "vocab_sentences.csv", index=False)
@@ -127,7 +136,6 @@ def main_run(config_file, settings_file):
 
         ### Load best checkpoint
         model_lightning = MHAClassifier.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        #model_lightning = MHAClassifier.load_from_checkpoint('/scratch2/rldallitsako/HomoGraphs_ArXiv/NoTemp_w30/NoTemp_w30-epoch=05-Val_f1-ma=0.80.ckpt')
         print("Model loaded from:", trainer.checkpoint_callback.best_model_path)
         print("Temperature of loaded model:", model_lightning.temperature)
 
