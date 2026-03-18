@@ -125,18 +125,18 @@ def parse_blocks(text, filename, num_class=2):
 
 all_results = []
 
-# Loop through files
-for file in os.listdir(folder_path):
-    if file.endswith("unified.txt"):
-        with open(os.path.join(folder_path, file), "r") as f:
-            text = f.read()
-            all_results.extend(parse_blocks(text, file, num_class))
-
-# Convert to DataFrame
-df = pd.DataFrame(all_results)
-# Save
-df.to_csv(f"./GNN_Analyses/{dataset_name}/merged_results.csv", index=False)
-print(df.head())
+# # Loop through files
+# for file in os.listdir(folder_path):
+#     if file.endswith("unified.txt"):
+#         with open(os.path.join(folder_path, file), "r") as f:
+#             text = f.read()
+#             all_results.extend(parse_blocks(text, file, num_class))
+#
+# # Convert to DataFrame
+# df = pd.DataFrame(all_results)
+# # Save
+# df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_merged_results.csv", index=False)
+# print(df.head())
 
 # # for AVG
 # ## Wilcoxon
@@ -168,9 +168,9 @@ for file in os.listdir(folder_path):
 
 # Convert to DataFrame
 df = pd.DataFrame(all_runs)
-df.to_csv(f"./GNN_Analyses/{dataset_name}/per_run_results.csv", index=False)
-print("Saved per-run results.")
-print(df.head())
+# df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_per_run_results.csv", index=False)
+# print("Saved per-run results.")
+# print(df.head())
 
 # ------------------------------------------------
 # Compute ANOVA and Tukey
@@ -278,8 +278,8 @@ else:
     tukey_df = pd.DataFrame()
 
 # Save
-anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/anova_results.csv", index=False)
-tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/tukey_results.csv", index=False)
+anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_anova_results.csv", index=False)
+tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_tukey_results.csv", index=False)
 
 print("ANOVA results:")
 print(anova_df.head())
