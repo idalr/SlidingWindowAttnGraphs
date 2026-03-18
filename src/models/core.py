@@ -83,6 +83,7 @@ class Classifier_Lighting(pl.LightningModule):
                 torch.cuda.empty_cache()
 
         preds = torch.cat(preds)
+        full_attn_weights = torch.cat(full_attn_weights)
 
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
