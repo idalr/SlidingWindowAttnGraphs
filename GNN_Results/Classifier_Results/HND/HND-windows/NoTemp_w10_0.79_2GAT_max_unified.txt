@@ -1,0 +1,625 @@
+================================================
+Evaluation of pre-trained model: NoTemp_w10
+Model checkpoint: /content/drive/MyDrive/Colab Notebooks/models/Extended_NoTemp_w10-epoch=01-Val_f1-ma=0.79.ckpt
+================================================
+[TEST] Acc: 0.7343234419822693
+[TEST] F1-macro: 0.7310357093811035
+[TEST] F1-scores: tensor([0.7013, 0.7608])
+================================================
+================================================
+Attention Graph Creation/Loading Time: max
+================================================
+[TRAIN] Dataset creation time:  64.77180194854736
+[TEST] Dataset creation time:  59.39069318771362
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 7
+Training time: 28.85 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_64U_max_unified_run0-OUT-epoch=02-Val_f1-ma=0.70.ckpt
+Acc Test: tensor(0.7327)
+F1-macro Test: tensor(0.7327)
+F1 for each class: tensor([0.7327, 0.7327])
+Training + Testing time: 31.451240062713623
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 11
+Training time: 35.98 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_64U_max_unified_run1-OUT-epoch=06-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7508)
+F1-macro Test: tensor(0.7486)
+F1 for each class: tensor([0.7250, 0.7722])
+Training + Testing time: 38.845707654953
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 14
+Training time: 44.05 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_64U_max_unified_run2-OUT-epoch=09-Val_f1-ma=0.84.ckpt
+Acc Test: tensor(0.7706)
+F1-macro Test: tensor(0.7706)
+F1 for each class: tensor([0.7695, 0.7718])
+Training + Testing time: 46.534878730773926
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 8
+Training time: 26.82 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_64U_max_unified_run3-OUT-epoch=03-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7525)
+F1-macro Test: tensor(0.7525)
+F1 for each class: tensor([0.7508, 0.7541])
+Training + Testing time: 29.234922409057617
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 18
+Training time: 56.84 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_64U_max_unified_run4-OUT-epoch=13-Val_f1-ma=0.69.ckpt
+Acc Test: tensor(0.7591)
+F1-macro Test: tensor(0.7591)
+F1 for each class: tensor([0.7614, 0.7567])
+Training + Testing time: 59.284104108810425
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.753 -- std: 0.012
+Test F1-macro: 0.753 -- std: 0.012
+Test F1 per class: [0.748 0.757]
+Training time: 38.51 -- std: 10.98
+Total time: 41.07 -- std: 10.95
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 8
+Training time: 27.81 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_128U_max_unified_run0-OUT-epoch=06-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.7607)
+F1-macro Test: tensor(0.7607)
+F1 for each class: tensor([0.7642, 0.7571])
+Training + Testing time: 30.28516983985901
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 5
+Training time: 18.92 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_128U_max_unified_run1-OUT-epoch=00-Val_f1-ma=0.72.ckpt
+Acc Test: tensor(0.7574)
+F1-macro Test: tensor(0.7568)
+F1 for each class: tensor([0.7443, 0.7692])
+Training + Testing time: 21.954254150390625
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 15
+Training time: 53.45 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_128U_max_unified_run2-OUT-epoch=10-Val_f1-ma=0.72.ckpt
+Acc Test: tensor(0.7459)
+F1-macro Test: tensor(0.7451)
+F1 for each class: tensor([0.7594, 0.7308])
+Training + Testing time: 56.57835531234741
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 12
+Training time: 38.29 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_128U_max_unified_run3-OUT-epoch=07-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.7637)
+F1 for each class: tensor([0.7727, 0.7547])
+Training + Testing time: 40.901835680007935
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 7
+Training time: 24.66 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_128U_max_unified_run4-OUT-epoch=02-Val_f1-ma=0.73.ckpt
+Acc Test: tensor(0.7805)
+F1-macro Test: tensor(0.7804)
+F1 for each class: tensor([0.7750, 0.7858])
+Training + Testing time: 27.196118116378784
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.762 -- std: 0.011
+Test F1-macro: 0.761 -- std: 0.011
+Test F1 per class: [0.763 0.76 ]
+Training time: 32.63 -- std: 12.17
+Total time: 35.38 -- std: 12.27
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 5
+Training time: 19.08 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_256U_max_unified_run0-OUT-epoch=00-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7525)
+F1-macro Test: tensor(0.7524)
+F1 for each class: tensor([0.7483, 0.7565])
+Training + Testing time: 22.089335680007935
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 7
+Training time: 23.82 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_256U_max_unified_run1-OUT-epoch=02-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.7640)
+F1 for each class: tensor([0.7613, 0.7667])
+Training + Testing time: 27.0615074634552
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 7
+Training time: 24.19 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_256U_max_unified_run2-OUT-epoch=02-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.7508)
+F1-macro Test: tensor(0.7494)
+F1 for each class: tensor([0.7308, 0.7680])
+Training + Testing time: 27.291833639144897
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 31.94 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_256U_max_unified_run3-OUT-epoch=04-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7756)
+F1-macro Test: tensor(0.7753)
+F1 for each class: tensor([0.7834, 0.7671])
+Training + Testing time: 34.71796011924744
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 26.93 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_1L_256U_max_unified_run4-OUT-epoch=03-Val_f1-ma=0.70.ckpt
+Acc Test: tensor(0.7673)
+F1-macro Test: tensor(0.7668)
+F1 for each class: tensor([0.7556, 0.7780])
+Training + Testing time: 29.827899932861328
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.762 -- std: 0.009
+Test F1-macro: 0.762 -- std: 0.010
+Test F1 per class: [0.756 0.767]
+Training time: 25.19 -- std: 4.21
+Total time: 28.20 -- std: 4.11
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 17
+Training time: 53.34 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_64U_max_unified_run0-OUT-epoch=12-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7624)
+F1-macro Test: tensor(0.7624)
+F1 for each class: tensor([0.7632, 0.7616])
+Training + Testing time: 56.030044078826904
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 8
+Training time: 27.49 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_64U_max_unified_run1-OUT-epoch=03-Val_f1-ma=0.73.ckpt
+Acc Test: tensor(0.7690)
+F1-macro Test: tensor(0.7655)
+F1 for each class: tensor([0.7368, 0.7941])
+Training + Testing time: 29.959317922592163
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 12
+Training time: 38.07 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_64U_max_unified_run2-OUT-epoch=07-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.7673)
+F1-macro Test: tensor(0.7659)
+F1 for each class: tensor([0.7478, 0.7841])
+Training + Testing time: 41.07985973358154
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 6
+Training time: 20.33 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_64U_max_unified_run3-OUT-epoch=01-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7426)
+F1-macro Test: tensor(0.7425)
+F1 for each class: tensor([0.7459, 0.7391])
+Training + Testing time: 22.977540731430054
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 9
+Training time: 29.98 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_64U_max_unified_run4-OUT-epoch=04-Val_f1-ma=0.74.ckpt
+Acc Test: tensor(0.7607)
+F1-macro Test: tensor(0.7559)
+F1 for each class: tensor([0.7217, 0.7902])
+Training + Testing time: 32.95767426490784
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.760 -- std: 0.009
+Test F1-macro: 0.758 -- std: 0.009
+Test F1 per class: [0.743 0.774]
+Training time: 33.84 -- std: 11.28
+Total time: 36.60 -- std: 11.32
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 13
+Training time: 40.73 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_128U_max_unified_run0-OUT-epoch=08-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7607)
+F1-macro Test: tensor(0.7605)
+F1 for each class: tensor([0.7530, 0.7680])
+Training + Testing time: 44.14418172836304
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 6
+Training time: 21.08 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_128U_max_unified_run1-OUT-epoch=01-Val_f1-ma=0.81.ckpt
+Acc Test: tensor(0.7706)
+F1-macro Test: tensor(0.7706)
+F1 for each class: tensor([0.7710, 0.7702])
+Training + Testing time: 23.748616456985474
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 5
+Training time: 19.72 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_128U_max_unified_run2-OUT-epoch=00-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7475)
+F1-macro Test: tensor(0.7440)
+F1 for each class: tensor([0.7140, 0.7740])
+Training + Testing time: 22.52187466621399
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 10
+Training time: 33.94 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_128U_max_unified_run3-OUT-epoch=05-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.7640)
+F1 for each class: tensor([0.7621, 0.7660])
+Training + Testing time: 35.99478006362915
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 26.71 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_128U_max_unified_run4-OUT-epoch=03-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.7673)
+F1-macro Test: tensor(0.7668)
+F1 for each class: tensor([0.7556, 0.7780])
+Training + Testing time: 29.35689616203308
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.762 -- std: 0.008
+Test F1-macro: 0.761 -- std: 0.009
+Test F1 per class: [0.751 0.771]
+Training time: 28.44 -- std: 7.93
+Total time: 31.15 -- std: 8.06
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 9
+Training time: 30.96 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_256U_max_unified_run0-OUT-epoch=04-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7541)
+F1-macro Test: tensor(0.7531)
+F1 for each class: tensor([0.7690, 0.7372])
+Training + Testing time: 34.63495993614197
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 8
+Training time: 27.55 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_256U_max_unified_run1-OUT-epoch=03-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.7723)
+F1-macro Test: tensor(0.7722)
+F1 for each class: tensor([0.7677, 0.7767])
+Training + Testing time: 30.606037616729736
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 5
+Training time: 18.31 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_256U_max_unified_run2-OUT-epoch=00-Val_f1-ma=0.72.ckpt
+Acc Test: tensor(0.7525)
+F1-macro Test: tensor(0.7516)
+F1 for each class: tensor([0.7664, 0.7368])
+Training + Testing time: 21.138610124588013
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 10
+Training time: 34.17 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_256U_max_unified_run3-OUT-epoch=05-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.7574)
+F1-macro Test: tensor(0.7572)
+F1 for each class: tensor([0.7640, 0.7504])
+Training + Testing time: 37.15838575363159
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 6
+Training time: 21.58 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_2L_256U_max_unified_run4-OUT-epoch=01-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.7637)
+F1 for each class: tensor([0.7727, 0.7547])
+Training + Testing time: 25.45075249671936
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.760 -- std: 0.007
+Test F1-macro: 0.760 -- std: 0.008
+Test F1 per class: [0.768 0.751]
+Training time: 26.52 -- std: 5.85
+Total time: 29.80 -- std: 5.87
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 12
+Training time: 39.07 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_64U_max_unified_run0-OUT-epoch=07-Val_f1-ma=0.78.ckpt
+Acc Test: tensor(0.7805)
+F1-macro Test: tensor(0.7800)
+F1 for each class: tensor([0.7687, 0.7912])
+Training + Testing time: 41.94014382362366
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 8
+Training time: 28.04 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_64U_max_unified_run1-OUT-epoch=03-Val_f1-ma=0.72.ckpt
+Acc Test: tensor(0.7706)
+F1-macro Test: tensor(0.7702)
+F1 for each class: tensor([0.7608, 0.7797])
+Training + Testing time: 31.05937695503235
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 10
+Training time: 33.00 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_64U_max_unified_run2-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.7639)
+F1 for each class: tensor([0.7589, 0.7690])
+Training + Testing time: 35.50586223602295
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 6
+Training time: 21.28 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_64U_max_unified_run3-OUT-epoch=01-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7805)
+F1-macro Test: tensor(0.7804)
+F1 for each class: tensor([0.7750, 0.7858])
+Training + Testing time: 24.051685571670532
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 5
+Training time: 17.61 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_64U_max_unified_run4-OUT-epoch=03-Val_f1-ma=0.71.ckpt
+Acc Test: tensor(0.7591)
+F1-macro Test: tensor(0.7585)
+F1 for each class: tensor([0.7465, 0.7704])
+Training + Testing time: 20.15840172767639
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.771 -- std: 0.009
+Test F1-macro: 0.771 -- std: 0.009
+Test F1 per class: [0.762 0.779]
+Training time: 27.80 -- std: 7.75
+Total time: 30.54 -- std: 7.81
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 5
+Training time: 18.02 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_128U_max_unified_run0-OUT-epoch=00-Val_f1-ma=0.70.ckpt
+Acc Test: tensor(0.7607)
+F1-macro Test: tensor(0.7586)
+F1 for each class: tensor([0.7359, 0.7813])
+Training + Testing time: 21.345993280410767
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 5
+Training time: 17.64 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_128U_max_unified_run1-OUT-epoch=00-Val_f1-ma=0.75.ckpt
+Acc Test: tensor(0.7310)
+F1-macro Test: tensor(0.7291)
+F1 for each class: tensor([0.7519, 0.7063])
+Training + Testing time: 20.183227062225342
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 6
+Training time: 20.94 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_128U_max_unified_run2-OUT-epoch=01-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.7739)
+F1-macro Test: tensor(0.7720)
+F1 for each class: tensor([0.7514, 0.7927])
+Training + Testing time: 23.938377380371094
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 7
+Training time: 23.07 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_128U_max_unified_run3-OUT-epoch=02-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7723)
+F1-macro Test: tensor(0.7718)
+F1 for each class: tensor([0.7612, 0.7823])
+Training + Testing time: 26.480453729629517
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 7
+Training time: 23.65 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_128U_max_unified_run4-OUT-epoch=02-Val_f1-ma=0.76.ckpt
+Acc Test: tensor(0.7706)
+F1-macro Test: tensor(0.7706)
+F1 for each class: tensor([0.7687, 0.7725])
+Training + Testing time: 26.74416470527649
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.762 -- std: 0.016
+Test F1-macro: 0.760 -- std: 0.016
+Test F1 per class: [0.754 0.767]
+Training time: 20.66 -- std: 2.49
+Total time: 23.74 -- std: 2.64
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 8
+Training time: 28.61 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_256U_max_unified_run0-OUT-epoch=03-Val_f1-ma=0.83.ckpt
+Acc Test: tensor(0.7624)
+F1-macro Test: tensor(0.7623)
+F1 for each class: tensor([0.7670, 0.7576])
+Training + Testing time: 32.87200450897217
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 15
+Training time: 49.91 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_256U_max_unified_run1-OUT-epoch=10-Val_f1-ma=0.80.ckpt
+Acc Test: tensor(0.7459)
+F1-macro Test: tensor(0.7451)
+F1 for each class: tensor([0.7594, 0.7308])
+Training + Testing time: 52.874802112579346
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 7
+Training time: 25.06 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_256U_max_unified_run2-OUT-epoch=02-Val_f1-ma=0.73.ckpt
+Acc Test: tensor(0.7261)
+F1-macro Test: tensor(0.7219)
+F1 for each class: tensor([0.7559, 0.6880])
+Training + Testing time: 28.023954153060913
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 18
+Training time: 58.07 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_256U_max_unified_run3-OUT-epoch=13-Val_f1-ma=0.79.ckpt
+Acc Test: tensor(0.7657)
+F1-macro Test: tensor(0.7655)
+F1 for each class: tensor([0.7585, 0.7724])
+Training + Testing time: 61.97711896896362
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 10
+Training time: 34.35 secs
+Best model path: /content/drive/MyDrive/ADG/HomoGraphs_HND/NoTemp_w10/GAT/max_unified/GAT_3L_256U_max_unified_run4-OUT-epoch=05-Val_f1-ma=0.77.ckpt
+Acc Test: tensor(0.7558)
+F1-macro Test: tensor(0.7558)
+F1 for each class: tensor([0.7582, 0.7533])
+Training + Testing time: 37.37654185295105
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.751 -- std: 0.014
+Test F1-macro: 0.750 -- std: 0.016
+Test F1 per class: [0.76 0.74]
+Training time: 39.20 -- std: 12.70
+Total time: 42.62 -- std: 12.77
+************************************************
+
+
