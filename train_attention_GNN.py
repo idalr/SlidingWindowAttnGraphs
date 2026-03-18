@@ -265,6 +265,10 @@ def main_run(config_file , settings_file):
             filter_type = None
         else:
             filter_type = type_graph
+            if filter_type == 'max':
+                degree = 0.5
+            elif filter_type == 'mean':
+                degree = 1.0
 
         with open(file_results + '.txt', 'a') as f:
             print("================================================", file=f)
@@ -287,7 +291,7 @@ def main_run(config_file , settings_file):
             start_creation = time.time()
             if unified_flag == True:
                 dataset_train = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_train,
-                                                                 filter_type=type_graph, data_loader=loader_train,
+                                                                 filter_type=type_graph, data_loader=loader_train, degree=degree,
                                                                  model_ckpt=path_checkpoint, mode="train",
                                                                  binarized=flag_binary, multi_layer_model=multi_flag)
             else:
@@ -303,7 +307,7 @@ def main_run(config_file , settings_file):
                 start_creation = time.time()
                 if unified_flag == True:
                     dataset_val = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_val,
-                                                                   filter_type=type_graph, data_loader=loader_val,
+                                                                   filter_type=type_graph, data_loader=loader_val, degree=degree,
                                                                    model_ckpt=path_checkpoint, mode="val",
                                                                    binarized=flag_binary, multi_layer_model=multi_flag)
                 else:
@@ -318,7 +322,7 @@ def main_run(config_file , settings_file):
             start_creation = time.time()
             if unified_flag == True:
                 dataset_test = UnifiedAttentionGraphs_Class(root=path_root, filename=filename_test,
-                                                                filter_type=type_graph, data_loader=loader_test,
+                                                                filter_type=type_graph, data_loader=loader_test, degree=degree,
                                                                 model_ckpt=path_checkpoint, mode="test",
                                                                 binarized=flag_binary, multi_layer_model=multi_flag)
             else:

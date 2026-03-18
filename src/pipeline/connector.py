@@ -38,7 +38,7 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
     total_edges = []
     total_nodes = []
     printed = 0
-    index = 0
+    #index = 0
 
     if with_filtering:
         # additional set up
@@ -97,7 +97,7 @@ def filtering_matrices(full_attn_weights, all_article_identifiers, list_valid_se
         if print_samples > 0:
             if printed < print_samples and len(cropped_matrix) >= 10:
                 # a printing function
-                print_filtering_matrix(df, all_article_identifiers[index], list_valid_sents[index])
+                ###print_filtering_matrix(df, all_article_identifiers[index], list_valid_sents[index])
                 # a plotting function
                 if with_filtering:
                     print(f"After thresholding (mean:{mean.mean()}, - std: {std.mean()}")
@@ -168,6 +168,7 @@ def plot_filtering_matrix(cropped_matrix,
     axarr[1].matshow(cropped_matrix.cpu().detach().numpy(), vmin=0, vmax=max_v.max(), cmap=color)
     axarr[1].set_title('Full Attention Weights')
     plt.show()
+    plt.savefig('full.png')
 
     if filtering_type:
         f, axarr = plt.subplots(1, 2, figsize=(10, 4.5))
@@ -182,3 +183,4 @@ def plot_filtering_matrix(cropped_matrix,
         axarr[0].set_title('Mean Filtering')
         axarr[1].set_title('Max Filtering')
         plt.show()
+        plt.savefig('filter.png')
