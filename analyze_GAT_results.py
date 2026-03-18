@@ -20,7 +20,7 @@ def parse_runs(text, filename, num_class=2):
     Returns:
         list of dicts with per-run metrics
     """
-    dataset, method, window, *_, type_graph, _ = filename.split("_")
+    method, window, *_, type_graph, _ = filename.split("_")
     runs = []
 
     # Split blocks by config
@@ -38,7 +38,6 @@ def parse_runs(text, filename, num_class=2):
 
         for run_num, run_text in run_matches:
             run_data = {"file": filename,
-                        "dataset": dataset,
                         "method": method,
                         "window": window,
                         "type_graph": type_graph,
@@ -73,12 +72,11 @@ def parse_runs(text, filename, num_class=2):
 
 def parse_blocks(text, filename, num_class=2):
     blocks = re.findall(r"\*{48}\n(.*?)\n\*{48}", text, re.DOTALL)
-    dataset, method, window, *_, type_graph, _ = filename.split("_")
+    method, window, *_, type_graph, _ = filename.split("_")
     results = []
 
     for block in blocks:
         data = {"file": filename,
-                "dataset": dataset,
                 "method": method,
                 "window": window,
                 "type_graph": type_graph,
