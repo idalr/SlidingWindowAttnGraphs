@@ -110,6 +110,7 @@ class Classifier_Lighting(pl.LightningModule):
         # ---- final formatting ----
         if large_dataset:
             preds = torch.cat(preds)
+            full_attn_weights = torch.cat(full_attn_weights)
         else:
             if not cpu_store:
                 preds = torch.Tensor(preds)
