@@ -70,8 +70,14 @@ Average node degree:        12.9993
 Average nodes per graph:    20.26
 Average edges per graph:    263.41
 ================================================
-
-
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w50/full_unified/processed/
+Graph dir size: 92M
+Total graphs: 1235
+Average node degree:        59.1887
+Average nodes per graph:    20.26
+Average edges per graph:    1199.35
+================================================
 ================================================
 Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w50/max_unified/processed/
 Graph dir size: 44M
