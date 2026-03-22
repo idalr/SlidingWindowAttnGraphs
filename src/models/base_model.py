@@ -161,9 +161,9 @@ class MHASummarizer(Summarizer_Lighting):
                                                                  dropout=attn_dropout,
                                                                  activation_attention=activation_attention)
 
-        # sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
-        # self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
-        # self.save_hyperparameters(ignore=["invert_vocab_sent"])  ### for loading later
+        sent_dict_disk = pd.read_csv(path_invert_vocab_sent + "vocab_sentences.csv")
+        self.invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
+        self.save_hyperparameters(ignore=["invert_vocab_sent"])  ### for loading later
 
     def training_step(self, batch, batch_idx):
         return_val = super(MHASummarizer, self).training_step(batch, batch_idx)
