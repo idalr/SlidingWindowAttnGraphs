@@ -1,0 +1,47 @@
+cuda_visible_devices: "0"
+device: gpu
+
+dataset_name: GovReport
+logger_name: GR_df_logger_cw.csv
+model_name: Extended_NoTemp  # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
+setting_file: GRsum
+type_model: GAT
+binarized: False
+baseline: False                             # Always False for attention-based learned graphs
+type_graph: mean                            # "max" or "mean", depending on the type of statistical filtering to use
+unified_nodes: True
+saving_file: True                           # save graph dataset
+multi_layer: False
+
+data_paths:
+  path_logger: /scratch2/rldallitsako/HomoGraphs_GovReports/
+  results_folder: /home/rldallitsako/Attention-DocumentGraphs-Rin/GNN_Results/new-Summarizer/
+  root_graph_dataset: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/
+
+load_data_paths:
+  in_path: "/scratch2/rldallitsako/datasets/GovReport-Sum/"
+  data_train: ""
+  labels_train: ""
+  data_test: ""
+  labels_test: ""
+  with_val: True                            # True if validation set is available, False otherwise
+
+model_arch_args:
+  num_classes: 2
+  lr: 0.001
+  dropout: 0.2
+  dim_features : [64, 128, 256]
+  n_layers: [1, 2, 3]
+  num_runs: 5
+
+batch_size: 32
+with_cw: True
+max_len: 1000
+
+trainer_args:
+  max_epochs: 50
+  enable_progress_bar: False
+
+early_args:
+  patience: 5
+  min_delta: 0.001

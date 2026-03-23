@@ -208,6 +208,56 @@ class Summarizer_Lighting(pl.LightningModule):
 
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
+    def ori_predict(self, test_loader, cpu_store=True, flag_file=True):
+        self.eval()
+        preds = []
+        full_attn_weights = []
+        all_labels = []
+        all_doc_ids = []
+        all_article_identifiers = []
+        with torch.no_grad():
+            for data in test_loader:
+                #out, att_w = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device),
+                #                  data['matrix_mask'].to(self.device))
+                #full_attn_weights.extend(att_w)
+                all_doc_ids.extend(data['documents_ids'])
+                #pred = out.view(-1, 2)
+                #labels_ = data['labels'].view(-1)
+
+                ##mask_not_ignore = (labels_ != -1)
+                #pred = pred[mask_not_ignore]
+                ##labels_ = labels_[mask_not_ignore]
+                #pred = pred.argmax(dim=1)
+
+                #if cpu_store:
+                #    pred = pred.detach().cpu().numpy()
+                #preds += list(pred)
+
+                ###labels_list = [row[row != -1] for row in data['labels']]
+                ###all_labels.extend(labels_list)
+                #all_labels.extend(labels_)
+
+                ###doc_ids_list = [row[row != -1] for row in data['documents_ids']]
+                ###all_doc_ids.extend(doc_ids_list)
+
+                labels_list = []
+                doc_ids_list = []
+
+                for l, d in zip(data['labels'], data['documents_ids']):
+                    mask = l != -1
+                    labels_list.append(l[mask])
+                    doc_ids_list.append(d[mask])
+
+                all_doc_ids.extend(doc_ids_list)
+                all_labels.extend(labels_list)
+
+                all_article_identifiers.extend(data['article_id'])
+
+            #if not cpu_store:
+                #preds = torch.Tensor(preds)
+
+        return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
+
     def predict_to_file(self, test_loader, cpu_store=True, saving_file=False, filename="", path_root=""):
         #### run only with batch size 1
         self.eval()
