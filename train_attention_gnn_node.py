@@ -184,7 +184,7 @@ def main_run(config_file, settings_file):
                                                             df_val=None, task="summarization")
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint, weights_only=False)
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt

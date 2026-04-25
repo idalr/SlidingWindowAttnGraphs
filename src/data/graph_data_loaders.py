@@ -347,7 +347,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         all_batches = self.data_loader
 
         print("Loading MHASummarizer model...")
-        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt, weights_only=False)
         model_window = model_lightning.window
         max_len = model_lightning.max_len
         print("Model correctly loaded.")
