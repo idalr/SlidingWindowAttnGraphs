@@ -42,17 +42,6 @@ def predict_sentences(model, loader, cpu_store=True):
     return preds, all_labels
 
 
-def get_gold_summaries(ds_path="ccdv/govreport-summarization"):
-    ds = load_dataset(path=ds_path, split="test")
-    df = pd.DataFrame({
-        "Article_ID": range(len(ds)),
-        "Summary": ds["summary"]
-    })
-    df["Article_ID"] = df["Article_ID"].astype(int)
-    df["Summary"] = df["Summary"].astype(str)
-    return df
-
-
 def compare_similariry(model, loader, path_invert_vocab, df_, scorer, maxf1=0.55, minf1=0.5, cpu_store=True):
     if scorer == 'rouge':
         rougeLF1 = []
@@ -80,10 +69,6 @@ def compare_similariry(model, loader, path_invert_vocab, df_, scorer, maxf1=0.55
     sent_dict_disk = pd.read_csv(path_invert_vocab + "vocab_sentences.csv")
     invert_vocab_sent = {k: v for k, v in zip(sent_dict_disk['Sentence_id'], sent_dict_disk['Sentence'])}
 
-    # TODO: allow alternative - check if diff from current
-    df_gold_ = get_gold_summaries()
-    gold_summary_lookup = dict(zip(df_gold_["Article_ID"], df_gold_["Summary"]))
-
     for batch_idx, data in enumerate(tqdm(loader, desc="Evaluating ROUGE/BERTScore")):
         pred_batch = preds[batch_idx]
 
@@ -109,7 +94,6 @@ def compare_similariry(model, loader, path_invert_vocab, df_, scorer, maxf1=0.55
                 joint_wo_duplicates += key_matched2vocab + " "
 
         # Get reference summary
-        #summary_matched = df_.where(df_['Article_ID'] == data['article_id'].item()).dropna()['Summary'].values[0]
         summary_lookup = dict(zip(df_["Article_ID"], df_["Summary"]))
         summary_matched = summary_lookup[data["article_id"].item()]
 
@@ -153,8 +137,8 @@ def compare_similariry(model, loader, path_invert_vocab, df_, scorer, maxf1=0.55
               "Mean ROUGE L-F1:", np.mean(rougeLF1))
         return flat_preds, flat_labels, max_id_article, min_id_article, max_f1, min_f1, rouge1F1, rouge2F1, rougeLF1
     elif scorer == 'bertscore':
-        print("Mean BERTScore precision:", BP.mean().item(), "Mean BERTScore recall", BR.mean().item(),
-              "Mean BERTScore L-F1:", BF1.mean().item())
+        print("Mean BERTScore precision:", np.mean(BP).item(), "Mean BERTScore recall", np.mean(BR).item(),
+              "Mean BERTScore L-F1:", np.mean(BF1).item())
         return flat_preds, flat_labels, max_id_article, min_id_article, max_f1, min_f1, BP, BR, BF1
 
 

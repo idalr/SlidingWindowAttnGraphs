@@ -106,6 +106,7 @@ def main_run(config_file, num_print,
     gat_folder = os.path.join(path_logger, model_name, "GAT", type_graph + "_unified")
     model_list = [f.rsplit(".ckpt")[0] for f in os.listdir(gat_folder) if f.endswith(".ckpt") ]
     gat_checkpoint = max(model_list, key=extract_val_f1)
+    print("Selected model:", gat_checkpoint)
     gat_path = os.path.join(gat_folder, gat_checkpoint + ".ckpt")
     match = re.search(r'_(\d+)L_(\d+)U_', gat_checkpoint)
     if match:
@@ -141,8 +142,8 @@ def main_run(config_file, num_print,
         print("Analyzing Rouge scores...")
         preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = compare_similariry(
             gat_model, test_loader, path_vocab, df_test, scorer='rouge', maxf1=0.55, minf1=0.49)
-        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes,
-                           f"Test - {num_layers}L-{model_name} {type_graph} Graphs")
+        _, _= eval_results(torch.tensor(preds), all_labels, num_classes,
+                           f"Test - {model_name} {type_graph} Graphs")
 
         sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
         sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
@@ -159,10 +160,10 @@ def main_run(config_file, num_print,
         _, _= eval_results(torch.tensor(preds), all_labels, num_classes,
                            f"Test - {model_name} {type_graph} Graphs")
 
-        sns.boxplot(data=(P, R, F1), orient='v')
-        sns.stripplot(data=(P, R, F1), marker="o", alpha=0.15, color="black", orient='v')
-        plt.title(f"[{num_layers}L-{model_name}] Distribution of BERTScore Presicion/Recall/F1 scores", fontsize=12)
-        plt.xticks(ticks=[0, 1, 2], labels=['Presicion', 'Recall', 'F1'])
+        sns.boxplot(data=[P, R, F1], orient='v')
+        sns.stripplot(data=[P, R, F1], marker="o", alpha=0.15, color="black", orient='v')
+        plt.title(f"[{model_name}] Distribution of BERTScore Presicion/Recall/F1 scores", fontsize=12)
+        plt.xticks(ticks=[0, 1, 2], labels=['Precision', 'Recall', 'F1'])
         plt.ylabel("Score", fontsize=10)
         plt.xlabel("BERTScorer Scorer", fontsize=10)
         plt.show()
