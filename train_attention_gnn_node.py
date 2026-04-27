@@ -190,16 +190,12 @@ def main_run(config_file, settings_file):
         ### Model performance in validation and test partitions -- register results on file_results.txt
         if config_file["load_data_paths"]["with_val"] == True:
             preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(
-                loader_val, cpu_store=False)
-            acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
-            if unified_flag == True:
-                del full_attn_weights_v
+                loader_val, cpu_store=False, return_attn=False, return_doc_ids=False)
+            _, _ = eval_results(preds_v, all_labels_v, num_classes, "Val")
 
         preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False)
-        acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-        if unified_flag == True:
-            del full_attn_weights_test
+            loader_test, cpu_store=False, return_attn=False, return_doc_ids=False)
+        _, _ = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
         if config_file["load_data_paths"]["with_val"] == True:
             filename_val = "post_predict_val_documents.csv"
@@ -217,8 +213,8 @@ def main_run(config_file, settings_file):
             ### Forward pass to get predictions from loaded MHA model
             print("Predicting Train")
             _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.ori_predict(loader_train,
-                                                                                                cpu_store=False,
-                                                                                                   )#flag_file=True)
+                                                                                                cpu_store=False, flag_file=True, return_attn=False
+                                                                                                   )
             post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
@@ -233,8 +229,8 @@ def main_run(config_file, settings_file):
             if config_file["load_data_paths"]["with_val"] == True:
                 print("\nPredicting Val")
                 _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.ori_predict(loader_val,
-                                                                                                    cpu_store=False,
-                                                                                                       )#flag_file=True)
+                                                                                                    cpu_store=False, flag_file=True, return_attn=False
+                                                                                                       )
                 post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
@@ -248,7 +244,7 @@ def main_run(config_file, settings_file):
 
             print("\nPredicting Test")
             _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.ori_predict(
-                loader_test, cpu_store=False, flag_file=True)
+                loader_test, cpu_store=False, flag_file=True, return_attn=False)
             post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):

@@ -176,85 +176,118 @@ class Summarizer_Lighting(pl.LightningModule):
 
         return {"loss": loss, "f1-ma": f1_ma, 'acc': acc}
 
-    def predict(self, test_loader, cpu_store=True):
+    def predict(self, test_loader, cpu_store=True, flag_file=False,
+                return_attn=True, return_doc_ids=True, large_dataset=False):
         self.eval()
+
         preds = []
-        full_attn_weights = []
         all_labels = []
-        all_doc_ids = []
         all_article_identifiers = []
+
+        # optional outputs
+        full_attn_weights = [] if return_attn else None
+        all_doc_ids = [] if return_doc_ids else None
+
         with torch.no_grad():
             for data in test_loader:
-                out, att_w = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device),
-                                  data['matrix_mask'].to(self.device))
-                full_attn_weights.extend(att_w)
-                all_doc_ids.extend(data['documents_ids'])
-                pred = out.view(-1, 2)
-                labels_ = data['labels'].view(-1)
 
-                mask_not_ignore = (labels_ != -1)
-                pred = pred[mask_not_ignore]
+                # -------------------------------
+                # labels / masks (node-level)
+                # -------------------------------
+                labels_ = data["labels"].view(-1)
+                mask_not_ignore = labels_ != -1
                 labels_ = labels_[mask_not_ignore]
-                pred = pred.argmax(dim=1)
 
-                if cpu_store:
-                    pred = pred.detach().cpu().numpy()
-                preds += list(pred)
-                all_labels.extend(labels_)
-                all_article_identifiers.extend(data['article_id'])
+                # -------------------------------
+                # forward OR file mode
+                # -------------------------------
+                if not flag_file:
+                    out, att_w = self(
+                        data["documents_ids"].to(self.device),
+                        data["src_key_padding_mask"].to(self.device),
+                        data["matrix_mask"].to(self.device),
+                    )
 
+                    # node classification logits
+                    pred = out.view(-1, out.size(-1))
+                    pred = pred[mask_not_ignore]
+                    pred = pred.argmax(dim=1)
+
+                else:
+                    # predictions already provided
+                    pred = data["predictions"].view(-1)
+                    pred = pred[mask_not_ignore]
+                    att_w = None
+
+                # -------------------------------
+                # doc ids (masked node-level)
+                # -------------------------------
+                if return_doc_ids:
+                    doc_ids_ = data["documents_ids"].view(-1)
+                    doc_ids_ = doc_ids_[mask_not_ignore]
+
+                # -------------------------------
+                # Track I: large dataset
+                # -------------------------------
+                if large_dataset:
+                    if cpu_store:
+                        preds.append(pred.detach().cpu())
+                        all_labels.append(labels_.detach().cpu())
+                        if return_doc_ids:
+                            all_doc_ids.append(doc_ids_.detach().cpu())
+                    else:
+                        preds.append(pred)
+                        all_labels.append(labels_)
+                        if return_doc_ids:
+                            all_doc_ids.append(doc_ids_)
+
+                    if return_attn and not flag_file:
+                        full_attn_weights.append(att_w.detach().cpu() if cpu_store else att_w)
+
+                    all_article_identifiers.extend(data["article_id"])
+
+                    if not flag_file:
+                        del out, att_w
+                    del pred
+                    torch.cuda.empty_cache()
+
+                # -------------------------------
+                # Track II: normal dataset
+                # -------------------------------
+                else:
+                    if return_doc_ids:
+                        if cpu_store:
+                            all_doc_ids.extend(doc_ids_.detach().cpu())
+                        else:
+                            all_doc_ids.extend(doc_ids_)
+
+                    if not flag_file and return_attn:
+                        full_attn_weights.extend(att_w)
+
+                    if cpu_store:
+                        pred = pred.detach().cpu().numpy()
+
+                    preds += list(pred)
+                    all_labels.extend(labels_)
+                    all_article_identifiers.extend(data["article_id"])
+
+        # -------------------------------
+        # final formatting
+        # -------------------------------
+        if large_dataset:
+            preds = torch.cat(preds)
+
+            if cpu_store:
+                all_labels = torch.cat(all_labels)
+                if return_doc_ids:
+                    all_doc_ids = torch.cat(all_doc_ids)
+
+            if return_attn and full_attn_weights is not None and len(full_attn_weights) > 0:
+                full_attn_weights = torch.cat(full_attn_weights)
+
+        else:
             if not cpu_store:
-                preds = torch.Tensor(preds)
-
-        return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
-
-    def ori_predict(self, test_loader, cpu_store=True, flag_file=True):
-        self.eval()
-        preds = []
-        full_attn_weights = []
-        all_labels = []
-        all_doc_ids = []
-        all_article_identifiers = []
-        with torch.no_grad():
-            for data in test_loader:
-                #out, att_w = self(data['documents_ids'].to(self.device), data['src_key_padding_mask'].to(self.device),
-                #                  data['matrix_mask'].to(self.device))
-                #full_attn_weights.extend(att_w)
-                all_doc_ids.extend(data['documents_ids'])
-                #pred = out.view(-1, 2)
-                #labels_ = data['labels'].view(-1)
-
-                ##mask_not_ignore = (labels_ != -1)
-                #pred = pred[mask_not_ignore]
-                ##labels_ = labels_[mask_not_ignore]
-                #pred = pred.argmax(dim=1)
-
-                #if cpu_store:
-                #    pred = pred.detach().cpu().numpy()
-                #preds += list(pred)
-
-                ###labels_list = [row[row != -1] for row in data['labels']]
-                ###all_labels.extend(labels_list)
-                #all_labels.extend(labels_)
-
-                ###doc_ids_list = [row[row != -1] for row in data['documents_ids']]
-                ###all_doc_ids.extend(doc_ids_list)
-
-                labels_list = []
-                doc_ids_list = []
-
-                for l, d in zip(data['labels'], data['documents_ids']):
-                    mask = l != -1
-                    labels_list.append(l[mask])
-                    doc_ids_list.append(d[mask])
-
-                all_doc_ids.extend(doc_ids_list)
-                all_labels.extend(labels_list)
-
-                all_article_identifiers.extend(data['article_id'])
-
-            #if not cpu_store:
-                #preds = torch.Tensor(preds)
+                preds = torch.tensor(preds)
 
         return preds, full_attn_weights, all_labels, all_doc_ids, all_article_identifiers
 
