@@ -12,7 +12,8 @@ import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
 from nltk.tokenize import sent_tokenize
-from src.pipeline.eval import retrieve_parameters, eval_results
+from src.pipeline.eval import eval_results
+from src.pipeline.connector import retrieve_parameters
 from src.data.preprocess_data import load_data
 from src.data.text_loaders import create_loaders
 from src.data.utils import check_dataframe, get_class_weights
@@ -124,27 +125,32 @@ def main_run(config_file, settings_file):
         else:
             df_train, df_test = load_data(**config_file["load_data_paths"])
 
-        ids2remove_train = check_dataframe(df_train, task='classification')
+        ids2remove_train = check_dataframe(df_train, task='summarization')
         for id_remove in ids2remove_train:
             df_train = df_train.drop(id_remove)
         df_train.reset_index(drop=True, inplace=True)
         print("Train shape:", df_train.shape)
 
         if config_file["load_data_paths"]["with_val"] == True:
-            ids2remove_val = check_dataframe(df_val, task='classification')
+            ids2remove_val = check_dataframe(df_val, task='summarization')
             for id_remove in ids2remove_val:
                 df_val = df_val.drop(id_remove)
             df_val.reset_index(drop=True, inplace=True)
             print("Val shape:", df_val.shape)
 
-        ids2remove_test = check_dataframe(df_test, task='classification')
+        ids2remove_test = check_dataframe(df_test, task='summarization')
         for id_remove in ids2remove_test:
             df_test = df_test.drop(id_remove)
         df_test.reset_index(drop=True, inplace=True)
         print("Test shape:", df_test.shape)
 
+
+        ################# minirun
+        #df_train, df_val, df_test = df_train.head(200), df_val.head(200), df_test.head(200)
+
+
         if config_file["with_cw"] == True:
-            my_class_weights, labels_counter = get_class_weights(df_train)
+            my_class_weights, labels_counter = get_class_weights(df_train, task="summarization")
             calculated_cw = my_class_weights
             print("\nClass weights - from training partition:", my_class_weights)
             print("Class counter:", labels_counter)
@@ -158,7 +164,7 @@ def main_run(config_file, settings_file):
         except:
             print("Calculating max number of sentences...")
             sent_lengths = []
-            for i, doc in enumerate(df_train['article_text']):
+            for i, doc in enumerate(df_train['Cleaned_Article']):
                 sent_in_doc = sent_tokenize(doc)
                 sent_lengths.append(len(sent_in_doc))
             max_len = max(sent_lengths)
@@ -178,22 +184,18 @@ def main_run(config_file, settings_file):
                                                             df_val=None, task="summarization")
 
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
-        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
+        model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint, weights_only=False)
         print("Done")
 
         ### Model performance in validation and test partitions -- register results on file_results.txt
         if config_file["load_data_paths"]["with_val"] == True:
             preds_v, full_attn_weights_v, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(
-                loader_val, cpu_store=False)
-            acc_v, f1_all_v = eval_results(preds_v, all_labels_v, num_classes, "Val")
-            if unified_flag == True:
-                del full_attn_weights_v
+                loader_val, cpu_store=False, return_attn=False, return_doc_ids=False)
+            _, _ = eval_results(preds_v, all_labels_v, num_classes, "Val")
 
         preds_test, full_attn_weights_test, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False)
-        acc_test, f1_all_test = eval_results(preds_test, all_labels_test, num_classes, "Test")
-        if unified_flag == True:
-            del full_attn_weights_test
+            loader_test, cpu_store=False, return_attn=False, return_doc_ids=False)
+        _, _ = eval_results(preds_test, all_labels_test, num_classes, "Test")
 
         if config_file["load_data_paths"]["with_val"] == True:
             filename_val = "post_predict_val_documents.csv"
@@ -210,15 +212,15 @@ def main_run(config_file, settings_file):
 
             ### Forward pass to get predictions from loaded MHA model
             print("Predicting Train")
-            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.predict(loader_train,
-                                                                                                cpu_store=False,
-                                                                                                flag_file=True)
+            _, _, all_labels_t, all_doc_ids_t, all_article_identifiers_t = model_lightning.ori_predict(loader_train,
+                                                                                                cpu_store=False, flag_file=True, return_attn=False
+                                                                                                   )
             post_predict_train_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_t, all_labels_t, all_doc_ids_t):
                 post_predict_train_docs.loc[len(post_predict_train_docs)] = {
                     "article_id": article_id.item(),
-                    "label": label.item(),
+                    "label": label.tolist(), #item(),
                     "doc_as_ids": doc_as_ids.tolist()
                 }
             post_predict_train_docs.to_csv(path_dataset + filename_train, index=False)
@@ -226,29 +228,29 @@ def main_run(config_file, settings_file):
 
             if config_file["load_data_paths"]["with_val"] == True:
                 print("\nPredicting Val")
-                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.predict(loader_val,
-                                                                                                    cpu_store=False,
-                                                                                                    flag_file=True)
+                _, _, all_labels_v, all_doc_ids_v, all_article_identifiers_v = model_lightning.ori_predict(loader_val,
+                                                                                                    cpu_store=False, flag_file=True, return_attn=False
+                                                                                                       )
                 post_predict_val_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 for article_id, label, doc_as_ids in zip(all_article_identifiers_v, all_labels_v, all_doc_ids_v):
                     post_predict_val_docs.loc[len(post_predict_val_docs)] = {
                         "article_id": article_id.item(),
-                        "label": label.item(),
+                        "label": label.tolist(), #item(),
                         "doc_as_ids": doc_as_ids.tolist()
                     }
                 post_predict_val_docs.to_csv(path_dataset + filename_val, index=False)
                 print("Finished and saved in:", path_dataset + filename_val)
 
             print("\nPredicting Test")
-            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-                loader_test, cpu_store=False, flag_file=True)
+            _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.ori_predict(
+                loader_test, cpu_store=False, flag_file=True, return_attn=False)
             post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
             for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
                 post_predict_test_docs.loc[len(post_predict_test_docs)] = {
                     "article_id": article_id.item(),
-                    "label": label.item(),
+                    "label": label.tolist(), #item(),
                     "doc_as_ids": doc_as_ids.tolist()
                 }
             post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)

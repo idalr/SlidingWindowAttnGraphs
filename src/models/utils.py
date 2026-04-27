@@ -3,6 +3,10 @@ import numpy as np
 from torch import nn
 
 def retrieve_from_dict(dict, list_ids):
+
+    ##print("Example keys:", list(dict.keys())[:10])
+    ##print("Incoming ids:", list_ids[:10])
+
     return [dict[id.item()] for id in list_ids]
 
 def scaled_dot_product(q, k, v, mask=None, temperature=1, dropout=0.0, training=True, attention="softmax"):

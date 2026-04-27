@@ -1,0 +1,64 @@
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_Anneal/max_unified/processed
+Graph dir size: 8.5G
+Total graphs: 19424
+Average node degree:        2.8163
+Average nodes per graph:    281.99
+Average edges per graph:    794.16
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_NoTemp/max_unified/processed
+Graph dir size: 8.5G
+Total graphs: 19424
+Average node degree:        2.4971
+Average nodes per graph:    281.99
+Average edges per graph:    704.16
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_NoTemp/mean_unified/processed
+Graph dir size: 12G
+Total graphs: 19424
+Average node degree:        20.2065
+Average nodes per graph:    281.99
+Average edges per graph:    5698.04
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_Anneal/mean_unified/processed
+Graph dir size: 12G
+Total graphs: 19424
+Average node degree:        18.0553
+Average nodes per graph:    281.99
+Average edges per graph:    5091.42
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_ReLu/max_unified/processed
+Graph dir size: 8.5G
+Total graphs: 19424
+Average node degree:        2.6014
+Average nodes per graph:    281.99
+Average edges per graph:    733.57
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_ReLu/mean_unified/processed
+Graph dir size: 12G
+Total graphs: 19424
+Average node degree:        17.6573
+Average nodes per graph:    281.99
+Average edges per graph:    4979.19
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_Sigmoid/mean_unified/processed
+Graph dir size: 14G
+Total graphs: 19424
+Average node degree:        28.7200
+Average nodes per graph:    281.99
+Average edges per graph:    8098.77
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/datasets/AttnGraphs_GovReports/Extended_Sigmoid/max_unified/processed
+Graph dir size: 8.6G
+Total graphs: 19424
+Average node degree:        3.1239
+Average nodes per graph:    281.99
+Average edges per graph:    880.90
+================================================

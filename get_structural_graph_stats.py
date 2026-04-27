@@ -41,9 +41,9 @@ def main_run(args):
     avg_edges_per_graph = total_edges / num_graphs if num_graphs > 0 else 0
 
     dir_size = subprocess.check_output(["du", "-sh", data_dir]).split()[0].decode()
-    file_results = 'graph_stat_ana'
+    file_results = os.path.join(data_dir, 'graph_stats.txt')
 
-    with open(file_results + '.txt', 'a') as f:
+    with open(file_results, 'a') as f:
         print("================================================")
         print("================================================", file=f)
         print(f"Analyzed folder: {data_dir}", file=f)
