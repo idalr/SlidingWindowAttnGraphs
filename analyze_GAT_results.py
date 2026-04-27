@@ -1,12 +1,10 @@
+import argparse
 import re
 import os
 import pandas as pd
 from itertools import combinations
 from scipy.stats import ttest_ind, f_oneway  # for independent runs comparison
-
-folder_path = "./GNN_Results/Classifier_Results/BBC"
-dataset_name = "BBC"
-num_class = 5
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 
 def parse_runs(text, filename, num_class=2):
@@ -123,61 +121,10 @@ def parse_blocks(text, filename, num_class=2):
 
     return results
 
-all_results = []
-
-# # Loop through files
-# for file in os.listdir(folder_path):
-#     if file.endswith("unified.txt"):
-#         with open(os.path.join(folder_path, file), "r") as f:
-#             text = f.read()
-#             all_results.extend(parse_blocks(text, file, num_class))
-#
-# # Convert to DataFrame
-# df = pd.DataFrame(all_results)
-# # Save
-# df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_merged_results.csv", index=False)
-# print(df.head())
-
-# # for AVG
-# ## Wilcoxon
-# from scipy.stats import wilcoxon
-# wilcoxon(group1, group2)
-# ## Confidence intervals
-# import math
-# def ci(mean, std, n=5):
-#     margin = 1.96 * (std / math.sqrt(n))
-#     return (mean - margin, mean + margin)
-# ci1 = ci(0.744, 0.006)
-# ci2 = ci(0.755, 0.008)
-# print(ci1, ci2) # If intervals don’t overlap → likely significant difference
-# ## Cohen's - effect size
-# import numpy as np
-# def cohens_d(a, b):
-#     return (np.mean(a) - np.mean(b)) / np.sqrt((np.std(a)**2 + np.std(b)**2) / 2) # between 0 and 1
-# df.groupby("hidden_dim")["f1_mean"].mean()
-# df.groupby("layers")["f1_mean"].mean()
-
-all_runs = []
-
-# Parse all files
-for file in os.listdir(folder_path):
-    if file.endswith("unified.txt"):
-        with open(os.path.join(folder_path, file), "r") as f:
-            text = f.read()
-            all_runs.extend(parse_runs(text, file, num_class))
-
-# Convert to DataFrame
-df = pd.DataFrame(all_runs)
-# df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_per_run_results.csv", index=False)
-# print("Saved per-run results.")
-# print(df.head())
 
 # ------------------------------------------------
 # Compute ANOVA and Tukey
 # ------------------------------------------------
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
-import pandas as pd
-
 def run_tukey_df(df, config_cols, metric):
     """
     Run Tukey HSD and return a clean DataFrame.
@@ -202,7 +149,6 @@ def run_tukey_df(df, config_cols, metric):
 
     return tukey_df
 
-from scipy.stats import f_oneway
 
 def compute_anova_by_config(df, config_cols, cols_to_compare, alpha=0.05):
     results = []
@@ -255,37 +201,124 @@ def get_valid_config_combinations(config_cols):
         for combo in combinations(config_cols, r)
     ]
 
-# df: per-run results DataFrame
-config_cols = ["method", "type_graph", "layers", "hidden_dim"]  # columns identifying configs
-cols_to_compare = ["acc", "f1_macro", "train_time"] #, "f1_class_0", "f1_class_1"]  # metrics
+############################### main
 
-all_anova = []
-all_tukey = []
+def parse_dataset_name(folder_path):
+    valid_datasets = {"AX", "arXiv", "BBC", "HND", "GR", "GovReports"}
 
-for cfg in get_valid_config_combinations(config_cols):
-    anova_res, tukey_res = compute_anova_by_config(df, cfg, cols_to_compare)
+    # match dataset token as a standalone path/token chunk
+    match = re.search(r'(?<![A-Za-z0-9])(AA|EE|BB|DD)(?![A-Za-z0-9])', folder_path)
 
-    all_anova.append(anova_res)
+    if not match:
+        raise ValueError(
+            f"Could not extract dataset name from path: {folder_path!r}. "
+            f"Expected one of: {sorted(valid_datasets)}"
+        )
 
-    if tukey_res:
-        all_tukey.extend(tukey_res)
+    dataset_name = match.group(1)
 
-anova_df = pd.concat(all_anova, ignore_index=True)
+    if dataset_name not in valid_datasets:
+        raise ValueError(f"Invalid dataset name extracted: {dataset_name}")
 
-if all_tukey:
-    tukey_df = pd.concat(all_tukey, ignore_index=True)
-else:
-    tukey_df = pd.DataFrame()
+    if dataset_name == "BBC":
+        num_class = 11
+    elif dataset_name == "AX" or dataset_name == "arXiv":
+        num_class = 11
+    else:
+        num_class = 2
 
-# Save
-anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_anova_results.csv", index=False)
-tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_tukey_results.csv", index=False)
+    return dataset_name, num_class
 
-print("ANOVA results:")
-print(anova_df.head())
+# TODO: retrieve and against baseline
 
-print("\nTukey results:")
-print(tukey_df.head())
+def main_run(folder_path, analyze_configs, analyze_cols, save_files=True):
+
+    dataset_name, num_class = parse_dataset_name(folder_path)
+
+    all_runs = []
+    # Parse all files
+    for file in os.listdir(folder_path):
+        if file.endswith("unified.txt"):
+            with open(os.path.join(folder_path, file), "r") as f:
+                text = f.read()
+                all_runs.extend(parse_runs(text, file, num_class))
+    # Convert to DataFrame
+    df_runs = pd.DataFrame(all_runs)
+
+    if save_files:
+        df_runs.to_csv(f'{dataset_name}_GAT_results.csv', index=False)
+
+    if analyze_configs is not None:
+
+        all_anova = []
+        all_tukey = []
+
+        for cfg in get_valid_config_combinations(analyze_configs):
+            anova_res, tukey_res = compute_anova_by_config(df_runs, cfg, analyze_cols)
+
+            all_anova.append(anova_res)
+
+            if tukey_res:
+                all_tukey.extend(tukey_res)
+
+        anova_df = pd.concat(all_anova, ignore_index=True)
+
+        if all_tukey:
+            tukey_df = pd.concat(all_tukey, ignore_index=True)
+        else:
+            tukey_df = pd.DataFrame()
+
+        # save analyses to files
+        anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_anova_results.csv", index=False)
+        tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_tukey_results.csv", index=False)
+
+
+if __name__ == "__main__":
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        "--folder_path",
+        type=str,
+        required=True,
+        help="path to the input directory",
+    )
+    arg_parser.add_argument(
+        "--analyze_configs",
+        nargs="+",
+        type=str,
+        default=None,
+        help="configs for comparing results:",
+    )
+    arg_parser.add_argument(
+        "--analyze_cols",
+        nargs="+",
+        type=str,
+        default=None,
+        help="targeted metrics for comparing results: ['method', 'type_graph', 'layers', 'hidden_dim']",
+    )
+    arg_parser.add_argument(
+        "--save_files",
+        stored=False,
+        help="add to save the parsed result file: ['acc', 'f1_macro', 'train_time']",
+    )
+    args = arg_parser.parse_args()
+
+    # parse analyse_configs
+    if args.analyze_configs is None:
+        analyze_configs = None
+    elif len(args.analyze_configs) == 1:
+        analyze_configs = args.analyze_configs[0]
+    else:
+        analyze_configs = args.analyze_configs
+
+    # parse analyze_cols
+    if args.analyze_cols is None:
+        analyze_cols = None
+    elif len(args.analyze_cols) == 1:
+        analyze_cols = args.analyze_cols[0]
+    else:
+        analyze_cols = args.analyze_cols
+
+    main_run(args)
 
 # p-adj → corrected p-value
 # reject = True → significant difference
