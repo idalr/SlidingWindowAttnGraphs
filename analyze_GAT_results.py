@@ -2,9 +2,22 @@ import argparse
 import re
 import os
 import pandas as pd
+import numpy as np
 from itertools import combinations
-from scipy.stats import ttest_ind, f_oneway  # for independent runs comparison
+from scipy.stats import ttest_ind, f_oneway, ttest_rel  # for independent runs comparison
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.stats.multitest import multipletests
+
+FILENAME_CONVENTION = {
+    "method": 0,
+    "window": 1,
+    "type_graph": -2
+} # as in GAT result file name, separated by "_", e.g., NoTemp_w30_0.813_2GAT_max_unified
+
+
+def parse_filename(filename, convention):
+    parts = filename.split("_")
+    return {k: parts[i] for k, i in convention.items()}
 
 
 def parse_runs(text, filename, num_class=2):
@@ -18,7 +31,11 @@ def parse_runs(text, filename, num_class=2):
     Returns:
         list of dicts with per-run metrics
     """
-    method, window, *_, type_graph, _ = filename.split("_")
+    info = parse_filename(filename, FILENAME_CONVENTION)
+    method = info["method"]
+    window = info["window"]
+    type_graph = info["type_graph"]
+
     runs = []
 
     # Split blocks by config
@@ -125,7 +142,16 @@ def parse_blocks(text, filename, num_class=2):
 # ------------------------------------------------
 # Compute ANOVA and Tukey
 # ------------------------------------------------
-def run_tukey_df(df, config_cols, metric):
+
+def get_valid_config_combinations(config_cols):
+    return [
+        list(combo)
+        for r in range(1, len(config_cols) + 1)
+        for combo in combinations(config_cols, r)
+    ]
+
+
+def compute_tukey(df, config_cols, metric):
     """
     Run Tukey HSD and return a clean DataFrame.
     Supports multi-column configs.
@@ -184,9 +210,9 @@ def compute_anova_by_config(df, config_cols, cols_to_compare, alpha=0.05):
             "groups": group_labels
         })
 
-        # 🔥 NEW: run Tukey if significant
+        # run Tukey if significant
         if is_significant:
-            tukey_df = run_tukey_df(df, config_cols, metric)
+            tukey_df = compute_tukey(df, config_cols, metric)
             tukey_df["config"] = "+".join(config_cols)
             tukey_df["metric"] = metric
             tukey_results.append(tukey_df)
@@ -194,20 +220,71 @@ def compute_anova_by_config(df, config_cols, cols_to_compare, alpha=0.05):
     return pd.DataFrame(results), tukey_results
 
 
-def get_valid_config_combinations(config_cols):
-    return [
-        list(combo)
-        for r in range(1, len(config_cols) + 1)
-        for combo in combinations(config_cols, r)
-    ]
+def build_config_label(df, analyze_configs):
+    return df[analyze_configs].astype(str).agg("_".join, axis=1)
 
-############################### main
+
+def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_paired=False, alpha=0.05):
+    baselines = pd.read_csv(baselines_path, usecols=["Model", "Test score"])
+    baselines['method'] = baselines['Model'].apply(lambda x: x.split('_')[1])
+    baselines_df = baselines.rename(columns={"Test score": "acc"}).drop(columns=['Model'])
+
+    rest_configs = analyze_configs.copy()
+    rest_configs = [c for c in rest_configs if c != "method"]
+    results_df["config"] = build_config_label(results_df, rest_configs)
+
+    results = []
+    for method in results_df["method"].unique():
+
+        base_scores = baselines_df[baselines_df["method"] == method]["acc"].values
+        res_model_df = results_df[results_df["method"] == method]
+
+        print(f"{method}\nAverage baseline accuracy: {np.mean(base_scores)}")
+        print(f"Average GAT accuracy: {np.mean(res_model_df['acc'])}")
+
+        for config in res_model_df["config"].unique():
+
+            res_model_scores = res_model_df[res_model_df["config"] == config]["acc"].values
+
+            # safety check
+            n = min(len(res_model_scores), len(base_scores))
+            res_model_scores = res_model_scores[:n]
+            base_scores = base_scores[:n]
+
+            if use_paired:
+                stat, p_val = ttest_rel(base_scores, res_model_scores)
+            else: # t-test (independent; safer unless runs are aligned)
+                stat, p_val = ttest_ind(base_scores, res_model_scores, equal_var=False)
+            is_significant = p_val < alpha
+
+            results.append({
+                "method": method,
+                "config": config,
+                "p_value": p_val,
+                "significant": is_significant,
+            })
+
+    # multiple comparison correction per model (optional but recommended)
+    final = []
+
+    for model in set(r["method"] for r in results):
+        model_res = [r for r in results if r["method"] == model]
+        p_vals = [r["p_value"] for r in model_res]
+
+        _, p_corr, _, _ = multipletests(p_vals, method="holm")
+
+        for r, pc in zip(model_res, p_corr):
+            r["p_value"] = pc
+            final.append(r)
+
+    return pd.DataFrame(final)
+
 
 def parse_dataset_name(folder_path):
-    valid_datasets = {"AX", "arXiv", "BBC", "HND", "GR", "GovReports"}
+    valid_datasets = {"AX", "arXiv", "BBC", "HND-windows", "GR", "GovReports"} ######################################################
 
     # match dataset token as a standalone path/token chunk
-    match = re.search(r'(?<![A-Za-z0-9])(AA|EE|BB|DD)(?![A-Za-z0-9])', folder_path)
+    match = re.search(r'(?<![A-Za-z0-9])(AX|arXiv|BBC|HND-windows|GR|GovReports)(?![A-Za-z0-9])', folder_path) #####################################
 
     if not match:
         raise ValueError(
@@ -229,54 +306,66 @@ def parse_dataset_name(folder_path):
 
     return dataset_name, num_class
 
-# TODO: retrieve and against baseline
 
-def main_run(folder_path, analyze_configs, analyze_cols, save_files=True):
+def main_run(results_path, analyze_configs, analyze_cols, baselines_path, save_files=True):
 
-    dataset_name, num_class = parse_dataset_name(folder_path)
+    dataset_name, num_class = parse_dataset_name(results_path)
+    print(f"...Analyzing dataset: {dataset_name}")
 
     all_runs = []
     # Parse all files
-    for file in os.listdir(folder_path):
+    for file in os.listdir(results_path):
         if file.endswith("unified.txt"):
-            with open(os.path.join(folder_path, file), "r") as f:
+            with open(os.path.join(results_path, file), "r") as f:
                 text = f.read()
                 all_runs.extend(parse_runs(text, file, num_class))
     # Convert to DataFrame
     df_runs = pd.DataFrame(all_runs)
 
     if save_files:
-        df_runs.to_csv(f'{dataset_name}_GAT_results.csv', index=False)
+        df_runs.to_csv(os.path.join(results_path, dataset_name + '_GAT_results.csv'), index=False)
+        print("Saved parsed GNN results to file.")
+
+    if baselines_path is not None:
+        ttest_baselines_df = compute_baselines_ttest(baselines_path, df_runs, analyze_configs)
+        if save_files:
+            if not os.path.exists("GNN_Analyses"):
+                os.mkdir("GNN_Analyses")
+            ttest_baselines_df.to_csv(f"./GNN_Analyses/{dataset_name}_baselines_ttest.csv", index=False)
+            print("Saved baselines ttest to file.")
+
 
     if analyze_configs is not None:
 
         all_anova = []
         all_tukey = []
-
         for cfg in get_valid_config_combinations(analyze_configs):
             anova_res, tukey_res = compute_anova_by_config(df_runs, cfg, analyze_cols)
-
             all_anova.append(anova_res)
-
+            # if any significant, extend tukey_res
             if tukey_res:
                 all_tukey.extend(tukey_res)
-
         anova_df = pd.concat(all_anova, ignore_index=True)
 
+        # build tukey_df
         if all_tukey:
             tukey_df = pd.concat(all_tukey, ignore_index=True)
         else:
             tukey_df = pd.DataFrame()
 
         # save analyses to files
-        anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_anova_results.csv", index=False)
-        tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_tukey_results.csv", index=False)
+        if not os.path.exists("GNN_Analyses"):
+            os.mkdir("GNN_Analyses")
+        anova_df.to_csv(f"./GNN_Analyses/{dataset_name}_anova_results.csv", index=False)
+        tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}_tukey_results.csv", index=False) if tukey_df is not None else None
+        print("Saved ANOVA to file.")
+        print("Saved Tukey to file.")
 
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
-        "--folder_path",
+        "--results_path",
         type=str,
         required=True,
         help="path to the input directory",
@@ -286,19 +375,25 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         default=None,
-        help="configs for comparing results:",
+        help="configs for comparing results: ['method', 'type_graph', 'layers', 'hidden_dim']",
     )
     arg_parser.add_argument(
         "--analyze_cols",
         nargs="+",
         type=str,
         default=None,
-        help="targeted metrics for comparing results: ['method', 'type_graph', 'layers', 'hidden_dim']",
+        help="targeted metrics for comparing results: ['acc', 'f1_macro', 'train_time']",
+    )
+    arg_parser.add_argument(
+        "--baselines_path",
+        type=str,
+        default=None,
+        help="path to the baseline MHA csv",
     )
     arg_parser.add_argument(
         "--save_files",
-        stored=False,
-        help="add to save the parsed result file: ['acc', 'f1_macro', 'train_time']",
+        action="store_true",
+        help="add to save the parsed result file",
     )
     args = arg_parser.parse_args()
 
@@ -318,7 +413,7 @@ if __name__ == "__main__":
     else:
         analyze_cols = args.analyze_cols
 
-    main_run(args)
+    main_run(**vars(args))
 
 # p-adj → corrected p-value
 # reject = True → significant difference
