@@ -226,18 +226,22 @@ def build_config_label(df, analyze_configs):
 
 def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_paired=False, alpha=0.05):
     baselines = pd.read_csv(baselines_path, usecols=["Model", "Test score"])
-    baselines['method'] = baselines['Model'].apply(lambda x: x.split('_')[1])
+    baselines['window'] = baselines['Model'].apply(lambda x: x.split('_')[2]) #######################################################
     baselines_df = baselines.rename(columns={"Test score": "acc"}).drop(columns=['Model'])
 
     rest_configs = analyze_configs.copy()
-    rest_configs = [c for c in rest_configs if c != "method"]
+    rest_configs = [c for c in rest_configs if c != "window"] #########################
     results_df["config"] = build_config_label(results_df, rest_configs)
 
     results = []
-    for method in results_df["method"].unique():
+    for method in results_df["window"].unique():
 
-        base_scores = baselines_df[baselines_df["method"] == method]["acc"].values
-        res_model_df = results_df[results_df["method"] == method]
+        base_scores = baselines_df[baselines_df["window"] == method]["acc"].values
+        if len(base_scores) == 0:
+            print(f"{method} → no baseline found, skipping")
+            continue
+
+        res_model_df = results_df[results_df["window"] == method]
 
         print(f"{method}\nAverage baseline accuracy: {np.mean(base_scores)}")
         print(f"Average GAT accuracy: {np.mean(res_model_df['acc'])}")
