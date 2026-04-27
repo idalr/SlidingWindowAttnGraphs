@@ -226,29 +226,29 @@ def build_config_label(df, analyze_configs):
 
 def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_paired=False, alpha=0.05):
     baselines = pd.read_csv(baselines_path, usecols=["Model", "Test score"])
-    baselines['window'] = baselines['Model'].apply(lambda x: x.split('_')[2]) #######################################################
+    baselines['method'] = baselines['Model'].apply(lambda x: x.split('_')[1]) # for model_name Extended_<method>
     baselines_df = baselines.rename(columns={"Test score": "acc"}).drop(columns=['Model'])
 
     rest_configs = analyze_configs.copy()
-    rest_configs = [c for c in rest_configs if c != "window"] #########################
+    rest_configs = [c for c in rest_configs if c != "method"]
     results_df["config"] = build_config_label(results_df, rest_configs)
 
     results = []
-    for method in results_df["window"].unique():
+    for method in results_df["method"].unique():
 
-        base_scores = baselines_df[baselines_df["window"] == method]["acc"].values
+        base_scores = baselines_df[baselines_df["method"] == method]["acc"].dropna().values
         if len(base_scores) == 0:
             print(f"{method} → no baseline found, skipping")
             continue
 
-        res_model_df = results_df[results_df["window"] == method]
+        res_model_df = results_df[results_df["method"] == method]
 
         print(f"{method}\nAverage baseline accuracy: {np.mean(base_scores)}")
         print(f"Average GAT accuracy: {np.mean(res_model_df['acc'])}")
 
         for config in res_model_df["config"].unique():
 
-            res_model_scores = res_model_df[res_model_df["config"] == config]["acc"].values
+            res_model_scores = res_model_df[res_model_df["config"] == config]["acc"].dropna().values
 
             # safety check
             n = min(len(res_model_scores), len(base_scores))
@@ -285,10 +285,10 @@ def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_pai
 
 
 def parse_dataset_name(folder_path):
-    valid_datasets = {"AX", "arXiv", "BBC", "HND-windows", "GR", "GovReports"} ######################################################
+    valid_datasets = {"AX", "arXiv", "BBC", "HND", "GR", "GovReports"}
 
     # match dataset token as a standalone path/token chunk
-    match = re.search(r'(?<![A-Za-z0-9])(AX|arXiv|BBC|HND-windows|GR|GovReports)(?![A-Za-z0-9])', folder_path) #####################################
+    match = re.search(r'(?<![A-Za-z0-9])(AX|arXiv|BBC|HND|GR|GovReports)(?![A-Za-z0-9])', folder_path)
 
     if not match:
         raise ValueError(
@@ -311,7 +311,7 @@ def parse_dataset_name(folder_path):
     return dataset_name, num_class
 
 
-def main_run(results_path, analyze_configs, analyze_cols, baselines_path, save_files=True):
+def main_run(results_path, baselines_path, analyze_configs, analyze_cols, calculate_anova_tukey=False, save_files=True):
 
     dataset_name, num_class = parse_dataset_name(results_path)
     print(f"...Analyzing dataset: {dataset_name}")
@@ -339,7 +339,7 @@ def main_run(results_path, analyze_configs, analyze_cols, baselines_path, save_f
             print("Saved baselines ttest to file.")
 
 
-    if analyze_configs is not None:
+    if calculate_anova_tukey and analyze_configs is not None:
 
         all_anova = []
         all_tukey = []
@@ -418,7 +418,3 @@ if __name__ == "__main__":
         analyze_cols = args.analyze_cols
 
     main_run(**vars(args))
-
-# p-adj → corrected p-value
-# reject = True → significant difference
-# meandiff → how much better/worse
