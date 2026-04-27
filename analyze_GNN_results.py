@@ -375,6 +375,12 @@ if __name__ == "__main__":
         help="path to the input directory",
     )
     arg_parser.add_argument(
+        "--baselines_path",
+        type=str,
+        default=None,
+        help="path to the baseline MHA csv",
+    )
+    arg_parser.add_argument(
         "--analyze_configs",
         nargs="+",
         type=str,
@@ -389,10 +395,9 @@ if __name__ == "__main__":
         help="targeted metrics for comparing results: ['acc', 'f1_macro', 'train_time']",
     )
     arg_parser.add_argument(
-        "--baselines_path",
-        type=str,
-        default=None,
-        help="path to the baseline MHA csv",
+        "--calculate_anova_tukey",
+        action="store_true",
+        help="add to calculate AnOVA and Tukey HSD",
     )
     arg_parser.add_argument(
         "--save_files",

@@ -92,6 +92,12 @@ To conduct analyses of your choice on the test split from the best model (with h
 `num_print` defines number of samples prints from each split.
 `random_sampling` enables random samples instead of the first `<num_print>` instances for t-SNE analysis.
 
+To parse and compare GNN results
+*required: a folder of GNN results*.
+```
+python analyze_GNN_results.py --result_path '/path/to/GNN_results/folder' [optional --baselines_path '/path/to/dataset/logger.csv'] [optional --analyze_configs <config1> <config2>] [optional --analyze_cols <col1> <col2>] [optional --calculate_anova_tukey] [optional --save_files]
+```
+
 The following analyses is available: `tsne`, `rouge_score`, `bert_score` and `sent_dist`.
 ```
 python analyze_summaries.py -s config/<folder>/<your_GAT_config_file>.yaml [optional --num_print <int>] [optional --random_sampling] [optional --tsne] [optional --rouge_score] [optional --bert_score] [optional --sent_dist]
