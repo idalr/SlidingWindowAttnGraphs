@@ -224,7 +224,7 @@ def build_config_label(df, analyze_configs):
     return df[analyze_configs].astype(str).agg("_".join, axis=1)
 
 
-def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_paired=False, alpha=0.05):
+def compute_mha_baselines_ttest(baselines_path, results_df, analyze_configs, use_paired=False, alpha=0.05):
     baselines = pd.read_csv(baselines_path, usecols=["Model", "Test score"])
     baselines['method'] = baselines['Model'].apply(lambda x: x.split('_')[1]) # for model_name Extended_<method>
     baselines_df = baselines.rename(columns={"Test score": "acc"}).drop(columns=['Model'])
@@ -243,8 +243,8 @@ def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_pai
 
         res_model_df = results_df[results_df["method"] == method]
 
-        print(f"{method}\nAverage baseline accuracy: {np.mean(base_scores)}")
-        print(f"Average GAT accuracy: {np.mean(res_model_df['acc'])}")
+        print(f"{method}\nAverage baseline accuracy: {np.mean(base_scores):.4f}")
+        print(f"Average GAT accuracy: {np.mean(res_model_df['acc']):.4f}")
 
         for config in res_model_df["config"].unique():
 
@@ -264,6 +264,8 @@ def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_pai
             results.append({
                 "method": method,
                 "config": config,
+                "MHA_mean": np.mean(base_scores),
+                "GAT_mean": np.mean(res_model_df['acc']),
                 "p_value": p_val,
                 "significant": is_significant,
             })
@@ -279,6 +281,121 @@ def compute_baselines_ttest(baselines_path, results_df, analyze_configs, use_pai
 
         for r, pc in zip(model_res, p_corr):
             r["p_value"] = pc
+            final.append(r)
+
+    return pd.DataFrame(final)
+
+
+def compute_heuristic_ttest_all_vs_all(
+    heur_baselines_path,
+    num_class,
+    results_df,
+    analyze_configs,
+    use_paired=False,
+    alpha=0.05,
+    correction="holm",
+):
+    """
+    Compare every baseline method against every experimental method/config.
+    """
+    # extract heuristic results
+    all_runs = []
+    for file in os.listdir(heur_baselines_path):
+        if file.endswith(".txt"):
+            with open(os.path.join(heur_baselines_path, file), "r") as f:
+                text = f.read()
+                all_runs.extend(parse_runs(text, file, num_class))
+    heuristics_df = pd.DataFrame(all_runs)
+
+    # build config labels
+    rest_configs = [c for c in analyze_configs if c != "method"]
+    results_df = results_df.copy()
+    results_df["config"] = build_config_label(results_df, rest_configs)
+
+    results = []
+    heuristic_methods = heuristics_df["method"].dropna().unique()
+    gat_methods = results_df["method"].dropna().unique()
+
+    for h_method in heuristic_methods:
+        h_scores_full = (
+            heuristics_df.loc[heuristics_df["method"] == h_method, "acc"]
+            .dropna()
+            .values
+        )
+        if len(h_scores_full) == 0:
+            print(f"{heuristics_df} → no baseline scores found, skipping")
+            continue
+
+        for gat_method in gat_methods:
+            gat_method_df = results_df[results_df["method"] == gat_method]
+            if gat_method_df.empty:
+                continue
+            print(
+                f"\nHeuristic baseline: {h_method} (mean={np.mean(h_scores_full):.4f}) "
+                f"vs GAT: {gat_method} (mean={np.mean(gat_method_df['acc']):.4f})"
+            )
+
+            for config in gat_method_df["config"].unique():
+                g_scores_full = (
+                    gat_method_df.loc[gat_method_df["config"] == config, "acc"]
+                    .dropna()
+                    .values
+                )
+                if len(g_scores_full) == 0:
+                    continue
+
+                # copy
+                h_scores = h_scores_full.copy()
+                gat_scores = g_scores_full.copy()
+
+                # compute t-test
+                if use_paired:
+                    n = min(len(h_scores), len(gat_scores))
+                    if n < 2:
+                        continue
+                    h_scores = h_scores[:n]
+                    gat_scores = gat_scores[:n]
+                    stat, p_val = ttest_rel(h_scores, gat_scores)
+                else:
+                    if len(h_scores) < 2 or len(gat_scores) < 2:
+                        continue
+                    stat, p_val = ttest_ind(h_scores, gat_scores, equal_var=False)
+
+                results.append({
+                    "heuristic": h_method,
+                    "GAT": gat_method,
+                    "config": config,
+                    "heuristic_mean": np.mean(h_scores),
+                    "GAT_mean": np.mean(gat_scores),
+                    "p_value": p_val,
+                    "significant": p_val < alpha,
+                })
+
+    # Multiple-comparison correction
+    if len(results) == 0:
+        return pd.DataFrame(columns=[
+            "heuristic", "GAT", "config",
+            "heuristic_mean", "GAT_mean",
+            "p_value", "significant"
+        ])
+
+    final = []
+
+    # Correct within each (heuristic, GAT) family
+    grouped_keys = set((r["heuristic"], r["GAT"]) for r in results)
+
+    for h_method, g_method in grouped_keys:
+        subset = [
+            r for r in results
+            if r["heuristic"] == h_method and r["GAT"] == g_method
+        ]
+        p_vals = [r["p_value"] for r in subset]
+
+        _, p_corr, _, _ = multipletests(p_vals, alpha=alpha, method=correction)
+
+        for r, pc in zip(subset, p_corr):
+            r["p_value"] = pc
+            r["significant"] = pc < alpha
             final.append(r)
 
     return pd.DataFrame(final)
@@ -311,7 +428,7 @@ def parse_dataset_name(folder_path):
     return dataset_name, num_class
 
 
-def main_run(results_path, baselines_path, analyze_configs, analyze_cols, calculate_anova_tukey=False, save_files=True):
+def main_run(results_path, mha_baselines_path, heur_baselines_path, analyze_configs, analyze_cols, calculate_anova_tukey=False, save_files=True):
 
     dataset_name, num_class = parse_dataset_name(results_path)
     print(f"...Analyzing dataset: {dataset_name}")
@@ -330,14 +447,21 @@ def main_run(results_path, baselines_path, analyze_configs, analyze_cols, calcul
         df_runs.to_csv(os.path.join(results_path, dataset_name + '_GAT_results.csv'), index=False)
         print("Saved parsed GNN results to file.")
 
-    if baselines_path is not None:
-        ttest_baselines_df = compute_baselines_ttest(baselines_path, df_runs, analyze_configs)
+    if mha_baselines_path is not None:
+        mha_ttest_baselines_df = compute_mha_baselines_ttest(mha_baselines_path, df_runs, analyze_configs)
         if save_files:
-            if not os.path.exists("GNN_Analyses"):
-                os.mkdir("GNN_Analyses")
-            ttest_baselines_df.to_csv(f"./GNN_Analyses/{dataset_name}_baselines_ttest.csv", index=False)
-            print("Saved baselines ttest to file.")
+            if not os.path.exists(f"GNN_Analyses/{dataset_name}/"):
+                os.mkdir(f"GNN_Analyses/{dataset_name}/")
+            mha_ttest_baselines_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_MHA_baseline_ttest.csv", index=False)
+            print("Saved MHA baselines ttest to file.")
 
+    if heur_baselines_path is not None:
+        heur_ttest_baselines_df = compute_heuristic_ttest_all_vs_all(heur_baselines_path, num_class, df_runs, analyze_configs)
+        if save_files:
+            if not os.path.exists(f"GNN_Analyses/{dataset_name}/"):
+                os.mkdir(f"GNN_Analyses/{dataset_name}/")
+            heur_ttest_baselines_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_heuristic_baseline_ttest.csv", index=False)
+            print("Saved heuristic baselines ttest to file.")
 
     if calculate_anova_tukey and analyze_configs is not None:
 
@@ -358,10 +482,10 @@ def main_run(results_path, baselines_path, analyze_configs, analyze_cols, calcul
             tukey_df = pd.DataFrame()
 
         # save analyses to files
-        if not os.path.exists("GNN_Analyses"):
-            os.mkdir("GNN_Analyses")
-        anova_df.to_csv(f"./GNN_Analyses/{dataset_name}_anova_results.csv", index=False)
-        tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}_tukey_results.csv", index=False) if tukey_df is not None else None
+        if not os.path.exists(f"GNN_Analyses/{dataset_name}/"):
+            os.mkdir(f"GNN_Analyses/{dataset_name}/")
+        anova_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_anova_results.csv", index=False)
+        tukey_df.to_csv(f"./GNN_Analyses/{dataset_name}/{dataset_name}_tukey_results.csv", index=False) if tukey_df is not None else None
         print("Saved ANOVA to file.")
         print("Saved Tukey to file.")
 
@@ -375,10 +499,16 @@ if __name__ == "__main__":
         help="path to the input directory",
     )
     arg_parser.add_argument(
-        "--baselines_path",
+        "--mha_baselines_path",
         type=str,
         default=None,
-        help="path to the baseline MHA csv",
+        help="path to the MHA baseline csv",
+    )
+    arg_parser.add_argument(
+        "--heur_baselines_path",
+        type=str,
+        default=None,
+        help="path to the heuristic baselines folder",
     )
     arg_parser.add_argument(
         "--analyze_configs",
