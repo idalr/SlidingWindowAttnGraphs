@@ -1,0 +1,120 @@
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w10/full_unified/processed/
+Graph dir size: 56M
+Total graphs: 1235
+Average node degree:        16.9645
+Average nodes per graph:    20.26
+Average edges per graph:    343.75
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w10/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        3.4025
+Average nodes per graph:    20.26
+Average edges per graph:    68.95
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w10/mean_unified/processed/
+Graph dir size: 46M
+Total graphs: 1235
+Average node degree:        5.5886
+Average nodes per graph:    20.26
+Average edges per graph:    113.24
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w20/full_unified/processed/
+Graph dir size: 67M
+Total graphs: 1235
+Average node degree:        29.8912
+Average nodes per graph:    20.26
+Average edges per graph:    605.69
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w20/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        2.9655
+Average nodes per graph:    20.26
+Average edges per graph:    60.09
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w20/mean_unified/processed/
+Graph dir size: 47M
+Total graphs: 1235
+Average node degree:        7.3379
+Average nodes per graph:    20.26
+Average edges per graph:    148.69
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w40/full_unified/processed/
+Graph dir size: 85M
+Total graphs: 1235
+Average node degree:        51.3106
+Average nodes per graph:    20.26
+Average edges per graph:    1039.71
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w40/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        3.1644
+Average nodes per graph:    20.26
+Average edges per graph:    64.12
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w40/mean_unified/processed/
+Graph dir size: 52M
+Total graphs: 1235
+Average node degree:        12.9993
+Average nodes per graph:    20.26
+Average edges per graph:    263.41
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w50/full_unified/processed/
+Graph dir size: 92M
+Total graphs: 1235
+Average node degree:        59.1887
+Average nodes per graph:    20.26
+Average edges per graph:    1199.35
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w50/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        2.8849
+Average nodes per graph:    20.26
+Average edges per graph:    58.46
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w50/mean_unified/processed/
+Graph dir size: 52M
+Total graphs: 1235
+Average node degree:        12.5504
+Average nodes per graph:    20.26
+Average edges per graph:    254.31
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w100/full_unified/processed/
+Graph dir size: 107M
+Total graphs: 1235
+Average node degree:        77.0928
+Average nodes per graph:    20.26
+Average edges per graph:    1562.14
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w100/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        2.8250
+Average nodes per graph:    20.26
+Average edges per graph:    57.24
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/NoTemp_w100/mean_unified/processed/
+Graph dir size: 55M
+Total graphs: 1235
+Average node degree:        15.6393
+Average nodes per graph:    20.26
+Average edges per graph:    316.90
+================================================

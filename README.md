@@ -1,10 +1,12 @@
-# Context-Aware Attention-Based Graph Representations for Document Classification and Summarization
+# From Global to Local: Learning Context-Aware Graph Representations for Document Classification and Summarization
+
+This repository contains the code implementation of [arXiv.2603.00021](https://arxiv.org/abs/2603.00021).
 
 It is the extension of the previous work on [Attention Document-Graph](https://github.com/buguemar/AttnGraphs/), 
 supervised by the original authors, as an individual master's project at Hasso Plattner Institute (HPI) and University of Potsdam.
 
 ### 📝 Abstract
-This work extends the recent efforts by [Bugueño and de Melo (2025)](https://arxiv.org/abs/2508.00864) in graph-based document modeling by introducing a simple, data-driven approach to capture local and mid-range sentence relations. Using dynamic sliding-window attention, we build graphs that retain key semantic and structural dependencies. Then, we train GAT models on these graphs for two NLP tasks, i.e., document classification and extractive summarization, showing that automatic graph construction methods can yield strong performance with minimal custom-tailoring and economical resources.
+Recent NLP systems commonly represent documents as linear token sequences. Although this captures sequential order, it can hinder modeling long-range dependencies and global document structure, especially for long texts. This paper proposes a data-driven method to automatically construct graph-based document representations. Building upon the recent work of [Bugueño and de Melo (2025)](https://arxiv.org/abs/2508.00864), we leverage the dynamic sliding-window attention module to effectively capture local and mid-range semantic dependencies between sentences, as well as structural relations within documents. Graph Attention Networks (GATs) trained on our learned graphs achieve competitive results on document classification while requiring lower computational resources than previous approaches. We further present an exploratory evaluation of the proposed graph construction method for extractive document summarization, highlighting both its potential and current limitations.
 
 ---
 
@@ -12,7 +14,7 @@ This work extends the recent efforts by [Bugueño and de Melo (2025)](https://ar
 
 This repository follows the structure of the original repository with additional files and folders related to the extractive summarization task.
 
-```bash
+```
 ├── config/
 │   ├── Classifier/                         # Config files including parameters for training our attention-based classifier model
 │   └── Summerizer/                         # Config files including parameters for training our attention-based summarizer model
@@ -91,6 +93,12 @@ To conduct analyses of your choice on the test split from the best model (with h
 
 `num_print` defines number of samples prints from each split.
 `random_sampling` enables random samples instead of the first `<num_print>` instances for t-SNE analysis.
+
+To parse and compare GNN results
+*required: a folder of GNN results*.
+```
+python analyze_GNN_results.py --result_path '/path/to/GNN_results/folder' [optional --baselines_path '/path/to/dataset/logger.csv'] [optional --analyze_configs <config1> <config2>] [optional --analyze_cols <col1> <col2>] [optional --calculate_anova_tukey] [optional --save_files]
+```
 
 The following analyses is available: `tsne`, `rouge_score`, `bert_score` and `sent_dist`.
 ```

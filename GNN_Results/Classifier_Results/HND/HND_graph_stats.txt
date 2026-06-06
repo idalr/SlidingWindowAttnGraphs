@@ -1,0 +1,96 @@
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Anneal_w30/full_unified/processed/
+Graph dir size: 77M
+Total graphs: 1235
+Average node degree:        41.5867
+Average nodes per graph:    20.26
+Average edges per graph:    842.68
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Anneal_w30/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        3.2666
+Average nodes per graph:    20.26
+Average edges per graph:    66.19
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Anneal_w30/mean_unified/processed/
+Graph dir size: 51M
+Total graphs: 1235
+Average node degree:        10.9952
+Average nodes per graph:    20.26
+Average edges per graph:    222.80
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Extended_NoTemp_w30/full_unified/processed/
+Graph dir size: 77M
+Total graphs: 1235
+Average node degree:        41.5867
+Average nodes per graph:    20.26
+Average edges per graph:    842.68
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Extended_NoTemp_w30/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        2.9689
+Average nodes per graph:    20.26
+Average edges per graph:    60.16
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Extended_NoTemp_w30/mean_unified/processed/
+Graph dir size: 50M
+Total graphs: 1235
+Average node degree:        10.0651
+Average nodes per graph:    20.26
+Average edges per graph:    203.95
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/ReLu_w30/full_unified/processed/
+Graph dir size: 77M
+Total graphs: 1235
+Average node degree:        41.5867
+Average nodes per graph:    20.26
+Average edges per graph:    842.68
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/ReLu_w30/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        2.9096
+Average nodes per graph:    20.26
+Average edges per graph:    58.96
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/ReLu_w30/mean_unified/processed/
+Graph dir size: 50M
+Total graphs: 1235
+Average node degree:        9.9032
+Average nodes per graph:    20.26
+Average edges per graph:    200.67
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Sigmoid_w30/full_unified/processed/
+Graph dir size: 77M
+Total graphs: 1235
+Average node degree:        41.5867
+Average nodes per graph:    20.26
+Average edges per graph:    842.68
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Sigmoid_w30/max_unified/processed/
+Graph dir size: 44M
+Total graphs: 1235
+Average node degree:        3.1779
+Average nodes per graph:    20.26
+Average edges per graph:    64.40
+================================================
+================================================
+Analyzed folder: /content/drive/MyDrive/ADG/AttnGraphs_HND/Sigmoid_w30/mean_unified/processed/
+Graph dir size: 50M
+Total graphs: 1235
+Average node degree:        10.6159
+Average nodes per graph:    20.26
+Average edges per graph:    215.11
+================================================

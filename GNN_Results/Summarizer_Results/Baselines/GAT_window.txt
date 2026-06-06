@@ -1,0 +1,615 @@
+================================================
+Heuristic Graph Creation Time: window
+================================================
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 7
+Training time: 221.25 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_64U_window_run0-OUT-epoch=02-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.5871)
+F1-macro Test: tensor(0.4519)
+F1 for each class: tensor([0.7241, 0.1797])
+Training + Testing time: 225.352477312088
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 9
+Training time: 263.28 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_64U_window_run1-OUT-epoch=04-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5391)
+F1-macro Test: tensor(0.4279)
+F1 for each class: tensor([0.6801, 0.1756])
+Training + Testing time: 267.557409286499
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 9
+Training time: 265.81 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_64U_window_run2-OUT-epoch=04-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5719)
+F1-macro Test: tensor(0.4447)
+F1 for each class: tensor([0.7105, 0.1789])
+Training + Testing time: 270.72805643081665
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 12
+Training time: 346.47 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_64U_window_run3-OUT-epoch=07-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5780)
+F1-macro Test: tensor(0.4483)
+F1 for each class: tensor([0.7159, 0.1807])
+Training + Testing time: 351.04523158073425
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 17
+Training time: 477.37 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_64U_window_run4-OUT-epoch=12-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5659)
+F1-macro Test: tensor(0.4425)
+F1 for each class: tensor([0.7048, 0.1802])
+Training + Testing time: 481.88822054862976
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.568 -- std: 0.016
+Test F1-macro: 0.443 -- std: 0.008
+Test F1 per class: [0.707 0.179]
+Training time: 314.84 -- std: 90.82
+Total time: 319.31 -- std: 90.89
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 10
+Training time: 292.37 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_128U_window_run0-OUT-epoch=05-Val_f1-ma=0.44-v1.ckpt
+Acc Test: tensor(0.5866)
+F1-macro Test: tensor(0.4536)
+F1 for each class: tensor([0.7232, 0.1839])
+Training + Testing time: 297.77322697639465
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 17
+Training time: 475.69 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_128U_window_run1-OUT-epoch=12-Val_f1-ma=0.47.ckpt
+Acc Test: tensor(0.6314)
+F1-macro Test: tensor(0.4754)
+F1 for each class: tensor([0.7615, 0.1894])
+Training + Testing time: 480.5492100715637
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 13
+Training time: 368.45 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_128U_window_run2-OUT-epoch=08-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5603)
+F1-macro Test: tensor(0.4400)
+F1 for each class: tensor([0.6995, 0.1806])
+Training + Testing time: 373.2656285762787
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 12
+Training time: 346.48 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_128U_window_run3-OUT-epoch=07-Val_f1-ma=0.40.ckpt
+Acc Test: tensor(0.4953)
+F1-macro Test: tensor(0.4041)
+F1 for each class: tensor([0.6372, 0.1709])
+Training + Testing time: 351.58455443382263
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 6
+Training time: 186.81 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_128U_window_run4-OUT-epoch=01-Val_f1-ma=0.46.ckpt
+Acc Test: tensor(0.6338)
+F1-macro Test: tensor(0.4740)
+F1 for each class: tensor([0.7639, 0.1840])
+Training + Testing time: 192.05991053581238
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.581 -- std: 0.051
+Test F1-macro: 0.449 -- std: 0.026
+Test F1 per class: [0.717 0.182]
+Training time: 333.96 -- std: 94.67
+Total time: 339.05 -- std: 94.51
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 1  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 10
+Training time: 291.78 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_256U_window_run0-OUT-epoch=05-Val_f1-ma=0.46.ckpt
+Acc Test: tensor(0.6144)
+F1-macro Test: tensor(0.4675)
+F1 for each class: tensor([0.7472, 0.1878])
+Training + Testing time: 298.6904399394989
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 8
+Training time: 238.25 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_256U_window_run1-OUT-epoch=03-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5842)
+F1-macro Test: tensor(0.4519)
+F1 for each class: tensor([0.7212, 0.1825])
+Training + Testing time: 244.9200370311737
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 10
+Training time: 293.11 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_256U_window_run2-OUT-epoch=05-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.6028)
+F1-macro Test: tensor(0.4614)
+F1 for each class: tensor([0.7373, 0.1855])
+Training + Testing time: 300.09601521492004
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 6
+Training time: 187.32 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_256U_window_run3-OUT-epoch=01-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5627)
+F1-macro Test: tensor(0.4395)
+F1 for each class: tensor([0.7023, 0.1768])
+Training + Testing time: 194.1009554862976
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 241.41 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_1L_256U_window_run4-OUT-epoch=03-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.5917)
+F1-macro Test: tensor(0.4553)
+F1 for each class: tensor([0.7279, 0.1827])
+Training + Testing time: 248.2066433429718
+
+************************************************
+RESULTS FOR N_LAYERS: 1  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.591 -- std: 0.017
+Test F1-macro: 0.455 -- std: 0.009
+Test F1 per class: [0.727 0.183]
+Training time: 250.38 -- std: 39.36
+Total time: 257.20 -- std: 39.43
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 12
+Training time: 352.88 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_64U_window_run0-OUT-epoch=07-Val_f1-ma=0.46.ckpt
+Acc Test: tensor(0.6180)
+F1-macro Test: tensor(0.4679)
+F1 for each class: tensor([0.7505, 0.1853])
+Training + Testing time: 357.98755526542664
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 21
+Training time: 578.61 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_64U_window_run1-OUT-epoch=16-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5909)
+F1-macro Test: tensor(0.4531)
+F1 for each class: tensor([0.7276, 0.1786])
+Training + Testing time: 583.8364269733429
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 5
+Training time: 164.43 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_64U_window_run2-OUT-epoch=00-Val_f1-ma=0.42.ckpt
+Acc Test: tensor(0.5487)
+F1-macro Test: tensor(0.4298)
+F1 for each class: tensor([0.6902, 0.1694])
+Training + Testing time: 170.4424810409546
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 9
+Training time: 267.62 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_64U_window_run3-OUT-epoch=04-Val_f1-ma=0.42.ckpt
+Acc Test: tensor(0.5459)
+F1-macro Test: tensor(0.4308)
+F1 for each class: tensor([0.6867, 0.1750])
+Training + Testing time: 273.0934154987335
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 18
+Training time: 508.16 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_64U_window_run4-OUT-epoch=13-Val_f1-ma=0.47.ckpt
+Acc Test: tensor(0.6388)
+F1-macro Test: tensor(0.4779)
+F1 for each class: tensor([0.7677, 0.1880])
+Training + Testing time: 513.0267977714539
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.588 -- std: 0.037
+Test F1-macro: 0.452 -- std: 0.019
+Test F1 per class: [0.725 0.179]
+Training time: 374.34 -- std: 152.02
+Total time: 379.68 -- std: 151.71
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 14
+Training time: 399.12 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_128U_window_run0-OUT-epoch=09-Val_f1-ma=0.46.ckpt
+Acc Test: tensor(0.6250)
+F1-macro Test: tensor(0.4700)
+F1 for each class: tensor([0.7567, 0.1833])
+Training + Testing time: 406.4607090950012
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 18
+Training time: 754.09 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_128U_window_run1-OUT-epoch=13-Val_f1-ma=0.47.ckpt
+Acc Test: tensor(0.6402)
+F1-macro Test: tensor(0.4771)
+F1 for each class: tensor([0.7691, 0.1850])
+Training + Testing time: 766.2928509712219
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 8
+Training time: 725.47 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_128U_window_run2-OUT-epoch=03-Val_f1-ma=0.42.ckpt
+Acc Test: tensor(0.5411)
+F1-macro Test: tensor(0.4283)
+F1 for each class: tensor([0.6823, 0.1743])
+Training + Testing time: 744.6516287326813
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 8
+Training time: 837.07 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_128U_window_run3-OUT-epoch=06-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.6055)
+F1-macro Test: tensor(0.4613)
+F1 for each class: tensor([0.7400, 0.1825])
+Training + Testing time: 857.2833375930786
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 5
+Training time: 548.55 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_128U_window_run4-OUT-epoch=00-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5554)
+F1-macro Test: tensor(0.4340)
+F1 for each class: tensor([0.6961, 0.1719])
+Training + Testing time: 568.8597645759583
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.593 -- std: 0.039
+Test F1-macro: 0.454 -- std: 0.020
+Test F1 per class: [0.729 0.179]
+Training time: 652.86 -- std: 157.93
+Total time: 668.71 -- std: 160.99
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 2  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 29
+Training time: 2741.76 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_256U_window_run0-OUT-epoch=24-Val_f1-ma=0.51.ckpt
+Acc Test: tensor(0.7419)
+F1-macro Test: tensor(0.5162)
+F1 for each class: tensor([0.8467, 0.1857])
+Training + Testing time: 2766.0548729896545
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 10
+Training time: 974.76 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_256U_window_run1-OUT-epoch=05-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.5970)
+F1-macro Test: tensor(0.4566)
+F1 for each class: tensor([0.7328, 0.1803])
+Training + Testing time: 999.2587504386902
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 18
+Training time: 1744.93 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_256U_window_run2-OUT-epoch=13-Val_f1-ma=0.48.ckpt
+Acc Test: tensor(0.6726)
+F1-macro Test: tensor(0.4908)
+F1 for each class: tensor([0.7950, 0.1866])
+Training + Testing time: 1770.2880864143372
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 34
+Training time: 3253.13 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_256U_window_run3-OUT-epoch=29-Val_f1-ma=0.52.ckpt
+Acc Test: tensor(0.7640)
+F1-macro Test: tensor(0.5242)
+F1 for each class: tensor([0.8620, 0.1865])
+Training + Testing time: 3276.928599357605
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 5
+Training time: 558.79 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_2L_256U_window_run4-OUT-epoch=00-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5932)
+F1-macro Test: tensor(0.4526)
+F1 for each class: tensor([0.7300, 0.1751])
+Training + Testing time: 582.2668464183807
+
+************************************************
+RESULTS FOR N_LAYERS: 2  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.674 -- std: 0.071
+Test F1-macro: 0.488 -- std: 0.030
+Test F1 per class: [0.793 0.183]
+Training time: 1854.67 -- std: 1020.61
+Total time: 1878.96 -- std: 1020.62
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 64
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 12
+Training time: 1207.00 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_64U_window_run0-OUT-epoch=08-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.6035)
+F1-macro Test: tensor(0.4605)
+F1 for each class: tensor([0.7382, 0.1828])
+Training + Testing time: 1226.2956342697144
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 11
+Training time: 1095.75 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_64U_window_run1-OUT-epoch=06-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5573)
+F1-macro Test: tensor(0.4374)
+F1 for each class: tensor([0.6971, 0.1777])
+Training + Testing time: 1114.5272917747498
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 10
+Training time: 1041.07 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_64U_window_run2-OUT-epoch=05-Val_f1-ma=0.43.ckpt
+Acc Test: tensor(0.5640)
+F1-macro Test: tensor(0.4404)
+F1 for each class: tensor([0.7034, 0.1774])
+Training + Testing time: 1059.6370923519135
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 17
+Training time: 1677.39 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_64U_window_run3-OUT-epoch=12-Val_f1-ma=0.46.ckpt
+Acc Test: tensor(0.6106)
+F1-macro Test: tensor(0.4638)
+F1 for each class: tensor([0.7444, 0.1832])
+Training + Testing time: 1695.6631820201874
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 8
+Training time: 822.23 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_64U_window_run4-OUT-epoch=03-Val_f1-ma=0.43-v1.ckpt
+Acc Test: tensor(0.5624)
+F1-macro Test: tensor(0.4396)
+F1 for each class: tensor([0.7020, 0.1772])
+Training + Testing time: 841.2752912044525
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 64
+Test Acc: 0.580 -- std: 0.023
+Test F1-macro: 0.448 -- std: 0.011
+Test F1 per class: [0.717 0.18 ]
+Training time: 1168.69 -- std: 283.51
+Total time: 1187.48 -- std: 283.30
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 128
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 10
+Training time: 1013.39 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_128U_window_run0-OUT-epoch=05-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.5929)
+F1-macro Test: tensor(0.4558)
+F1 for each class: tensor([0.7289, 0.1826])
+Training + Testing time: 1035.0439493656158
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 10
+Training time: 1015.29 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_128U_window_run1-OUT-epoch=10-Val_f1-ma=0.44.ckpt
+Acc Test: tensor(0.5891)
+F1-macro Test: tensor(0.4536)
+F1 for each class: tensor([0.7257, 0.1816])
+Training + Testing time: 1037.5024826526642
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 8
+Training time: 831.40 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_128U_window_run2-OUT-epoch=03-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.6012)
+F1-macro Test: tensor(0.4591)
+F1 for each class: tensor([0.7363, 0.1818])
+Training + Testing time: 852.7506897449493
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 18
+Training time: 1755.37 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_128U_window_run3-OUT-epoch=13-Val_f1-ma=0.48.ckpt
+Acc Test: tensor(0.6682)
+F1-macro Test: tensor(0.4901)
+F1 for each class: tensor([0.7914, 0.1888])
+Training + Testing time: 1777.1705226898193
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 14
+Training time: 1362.05 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_128U_window_run4-OUT-epoch=14-Val_f1-ma=0.45.ckpt
+Acc Test: tensor(0.6150)
+F1-macro Test: tensor(0.4650)
+F1 for each class: tensor([0.7483, 0.1816])
+Training + Testing time: 1383.3857727050781
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 128
+Test Acc: 0.613 -- std: 0.029
+Test F1-macro: 0.465 -- std: 0.013
+Test F1 per class: [0.746 0.183]
+Training time: 1195.50 -- std: 328.45
+Total time: 1217.17 -- std: 328.48
+************************************************
+
+
+
+TRAINING MODELS SETTING #LAYERS: 3  HIDDEN DIM: 256
+
+----------- Run #0-----------
+
+
+Training stopped on epoch: 0
+Training time: 4686.30 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_256U_window_run0-OUT-epoch=45-Val_f1-ma=0.52.ckpt
+Acc Test: tensor(0.7759)
+F1-macro Test: tensor(0.5293)
+F1 for each class: tensor([0.8700, 0.1885])
+Training + Testing time: 4715.758015155792
+
+----------- Run #1-----------
+
+
+Training stopped on epoch: 31
+Training time: 3010.84 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_256U_window_run1-OUT-epoch=26-Val_f1-ma=0.51.ckpt
+Acc Test: tensor(0.7396)
+F1-macro Test: tensor(0.5180)
+F1 for each class: tensor([0.8448, 0.1912])
+Training + Testing time: 3039.8717017173767
+
+----------- Run #2-----------
+
+
+Training stopped on epoch: 21
+Training time: 2155.79 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_256U_window_run2-OUT-epoch=16-Val_f1-ma=0.49.ckpt
+Acc Test: tensor(0.6894)
+F1-macro Test: tensor(0.4989)
+F1 for each class: tensor([0.8079, 0.1898])
+Training + Testing time: 2183.8945972919464
+
+----------- Run #3-----------
+
+
+Training stopped on epoch: 30
+Training time: 2905.13 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_256U_window_run3-OUT-epoch=25-Val_f1-ma=0.51.ckpt
+Acc Test: tensor(0.7323)
+F1-macro Test: tensor(0.5153)
+F1 for each class: tensor([0.8396, 0.1910])
+Training + Testing time: 2934.211144208908
+
+----------- Run #4-----------
+
+
+Training stopped on epoch: 20
+Training time: 2010.44 secs
+Best model path: /scratch/mbugueno/HomoGraphs_GovReports/Heuristic/GAT/window/GAT_3L_256U_window_run4-OUT-epoch=15-Val_f1-ma=0.48.ckpt
+Acc Test: tensor(0.6733)
+F1-macro Test: tensor(0.4904)
+F1 for each class: tensor([0.7957, 0.1852])
+Training + Testing time: 2038.8806335926056
+
+************************************************
+RESULTS FOR N_LAYERS: 3  HIDDEN DIM_FEATURES: 256
+Test Acc: 0.722 -- std: 0.037
+Test F1-macro: 0.510 -- std: 0.014
+Test F1 per class: [0.832 0.189]
+Training time: 2953.70 -- std: 952.25
+Total time: 2982.52 -- std: 952.68
+************************************************
+
+

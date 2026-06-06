@@ -2,7 +2,7 @@ cuda_visible_devices: "0"
 device: gpu
 
 dataset_name: GR
-logger_name: BBC-logger_filename.csv
+logger_name: logger_filename.csv
 model_name: model_name_to_be_logged  # Options: MHA_ReLu, MHA_Anneal, MHA_Sigmoid
 setting_file: /path/to/config/file/of/the/corresponding/MHA-Model/
 type_model: GAT

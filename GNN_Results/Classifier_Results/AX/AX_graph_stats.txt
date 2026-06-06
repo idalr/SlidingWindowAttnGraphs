@@ -1,0 +1,32 @@
+================================================
+Analyzed folder: /scratch2/rldallitsako/AttnGraphs_AX/NoTemp_w30/max_unified/processed
+Graph dir size: 26G
+Total graphs: 32309
+Average node degree:        2.5044
+Average nodes per graph:    511.69
+Average edges per graph:    1281.45
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/AttnGraphs_AX/NoTemp_w30/mean_unified/processed
+Graph dir size: 40G
+Total graphs: 32309
+Average node degree:        28.6547
+Average nodes per graph:    511.69
+Average edges per graph:    14662.28
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/AttnGraphs_AX/ReLu_w30/max_unified/processed
+Graph dir size: 26G
+Total graphs: 32309
+Average node degree:        2.3713
+Average nodes per graph:    511.69
+Average edges per graph:    1213.34
+================================================
+================================================
+Analyzed folder: /scratch2/rldallitsako/AttnGraphs_AX/ReLu_w30/mean_unified/processed
+Graph dir size: 45G
+Total graphs: 32309
+Average node degree:        37.4891
+Average nodes per graph:    511.69
+Average edges per graph:    19182.73
+================================================

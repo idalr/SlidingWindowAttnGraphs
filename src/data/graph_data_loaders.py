@@ -7,6 +7,7 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 from src.models.base_model import MHASummarizer, retrieve_from_dict, MHAClassifier
 from src.data.graph_utils import solve_by_creating_edge, filtering_matrix
+from src.data.utils import clean_tokenization_sent
 
 
 class UnifiedAttentionGraphs_Class(Dataset):
@@ -346,7 +347,7 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         all_batches = self.data_loader
 
         print("Loading MHASummarizer model...")
-        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt)
+        model_lightning = MHASummarizer.load_from_checkpoint(self.model_ckpt, weights_only=False)
         model_window = model_lightning.window
         max_len = model_lightning.max_len
         print("Model correctly loaded.")
@@ -362,13 +363,26 @@ class UnifiedAttentionGraphs_Sum(Dataset):
         for batch_sample in tqdm(all_batches, total=len(all_batches)):
             pred_batch, full_matrix_batch = model_lightning.predict_single(batch_sample)
 
-            for pred, full_matrix in zip(pred_batch, full_matrix_batch):
-                doc_ids = all_doc_as_ids[ide]
-                label = all_labels[ide]
-                doc_ids = [int(element) for element in doc_ids[1:-1].split(",")]
+            for i, (pred, full_matrix) in enumerate(zip(pred_batch, full_matrix_batch)):
+                #doc_ids = all_doc_as_ids[ide]
+                #label = all_labels[ide]
+
+                doc_ids = batch_sample['documents_ids'][i]
+                label = batch_sample['labels'][i]
+
+                label_mask = label != -1
+                #doc_ids, label = doc_ids[mask], label[mask]
+                label = label[label_mask]
+
+                doc_id_mask = doc_ids != 0
+                doc_ids = doc_ids[doc_id_mask]
+
+                #label = [int(element) for element in label[1:-1].split(",")]
+                #doc_ids = [int(element) for element in doc_ids[1:-1].split(",")]
                 doc_ids = torch.tensor(doc_ids)
-                valid_sents = len(label)
-                valid_sents = min(valid_sents, max_len)
+                valid_sents = min(len(label), max_len)
+
+                assert len(doc_ids) == len(label), "Mismatch!"
 
                 try:
                     cropped_doc = doc_ids[:valid_sents]
@@ -381,6 +395,14 @@ class UnifiedAttentionGraphs_Sum(Dataset):
                 else:
                     filtered_matrix = filtering_matrix(full_matrix, valid_sents=valid_sents, window=model_window,
                                                        degree_std=self.K, with_filtering=False)
+
+                # print("\n--- SANITY CHECK ---")
+                # print("len(label):", len(label))
+                # print("len(doc_ids):", len(doc_ids))
+                # print("valid_sents:", valid_sents)
+                # print("filtered_matrix size:", len(filtered_matrix))
+                # print("first labels:", label[:5])
+                # print("first doc_ids:", doc_ids[:5])
 
                 """"calculating edges"""
                 match_ids = {k: v.item() for k, v in zip(range(len(filtered_matrix)), cropped_doc)} #key pos-i, value orig. sentence-id

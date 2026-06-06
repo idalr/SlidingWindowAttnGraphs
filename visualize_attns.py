@@ -33,13 +33,15 @@ def main_run(config_file , settings_file, num_print, random_sampling):
         task = 'summarization'
         text_col = 'Cleaned_Article'
 
+    if dataset_name == 'HND':
+        use_sent_tokenizer = True
+    else:
+        use_sent_tokenizer = False
+
     if config_file["load_data_paths"]["with_val"] == True:
         df_train, df_val, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
-
-    ### minirun
-    df_train, df_val, df_test = df_train[:10], df_val[:10], df_test[:10]
 
     ids2remove_train = check_dataframe(df_train, task=task)
     for id_remove in ids2remove_train:
@@ -109,11 +111,13 @@ def main_run(config_file , settings_file, num_print, random_sampling):
                                                                             config_file["batch_size"],
                                                                             tokenizer_from_scratch=False,
                                                                             path_ckpt=path_vocab,
-                                                                            df_val=df_val, task=task)
+                                                                            df_val=df_val, task=task,
+                                                                            sent_tokenizer=use_sent_tokenizer)
     else:
         loader_train, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
                                                          with_val=False, tokenizer_from_scratch=False,
-                                                         path_ckpt=path_vocab, df_val=None, task=task)
+                                                         path_ckpt=path_vocab, df_val=None, task=task,
+                                                         sent_tokenizer=use_sent_tokenizer)
 
     print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
     if dataset_name == "HND" or dataset_name == "BBC" or dataset_name == 'arXiv':

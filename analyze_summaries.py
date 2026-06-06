@@ -26,16 +26,20 @@ from src.graphs.gnn_model import GAT_NC_model
 os.environ["TOKENIZERS_PARALLELISM"] = "False"
 
 
-def main_run(config_file, settings_file, num_print,
+def main_run(config_file, num_print,
              random_sampling=False, tsne=False, rouge_score=False, bert_score=False, sent_dist=False):
     # Load configuration file and set parameters
     os.environ["CUDA_VISIBLE_DEVICES"] = config_file["cuda_visible_devices"]
     logger_name = config_file["logger_name"]
+    type_model = config_file["type_model"]
     flag_binary = config_file["binarized"]
+    unified_flag = config_file["unified_nodes"]
+    multi_flag = config_file["multi_layer"]
 
     root_graph = config_file["data_paths"]["root_graph_dataset"]
     path_logger = config_file["data_paths"]["path_logger"]
     path_vocab = config_file["load_data_paths"]["in_path"]
+    path_results = config_file["data_paths"]["results_folder"]
 
     num_classes = config_file["model_arch_args"]["num_classes"]
     lr = config_file["model_arch_args"]["lr"]
@@ -45,13 +49,18 @@ def main_run(config_file, settings_file, num_print,
     type_graph = config_file["type_graph"]
     max_len = config_file["max_len"]
 
+    if unified_flag == True:
+        path_root = os.path.join(root_graph, model_name,type_graph + "_unified")
+    else:
+        path_root = os.path.join(root_graph, model_name, type_graph)
+
     if config_file["load_data_paths"]["with_val"] == True:
         df_train, _, df_test = load_data(**config_file["load_data_paths"])
     else:
         df_train, df_test = load_data(**config_file["load_data_paths"])
 
     if config_file["with_cw"] == True:
-        my_class_weights, labels_counter = get_class_weights(df_train)
+        my_class_weights, labels_counter = get_class_weights(df_train, task="summarization")
         calculated_cw = my_class_weights
         print("\nClass weights - from training partition:", my_class_weights)
         print("Class counter:", labels_counter)
@@ -59,43 +68,46 @@ def main_run(config_file, settings_file, num_print,
         print("\n-- No class weights specificied --\n")
         calculated_cw = None
 
+    _, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
+                                          with_val=False, tokenizer_from_scratch=False,
+                                          path_ckpt=path_vocab,
+                                          df_val=None, task="summarization")
+
     filename_test = "post_predict_test_documents.csv"
-    path_dataset = os.path.join(root_graph, "raw")
+    path_dataset = os.path.join(path_root, "raw")
     path_filename_test = os.path.join(path_dataset, filename_test)
     if os.path.exists(path_filename_test):
-        print("Test file Requirements already satified in ", root_graph + "/raw/")
+        print("Test file Requirements already satified in ", path_root + "/raw/")
     else:
-        _, loader_test, _, _ = create_loaders(df_train, df_test, max_len, config_file["batch_size"],
-                                                         with_val=False, tokenizer_from_scratch=False,
-                                                         path_ckpt=path_vocab,
-                                                         df_val=None, task="summarization")
-
         print("\nLoading", model_name, "({0:.3f}".format(model_score), ") from:", path_checkpoint)
         model_lightning = MHASummarizer.load_from_checkpoint(path_checkpoint)
         print("Done")
 
         print("\nPredicting Test")
+        post_predict_test_docs_path = os.path.join(path_dataset, filename_test)
         _, _, all_labels_test, all_doc_ids_test, all_article_identifiers_test = model_lightning.predict(
-            loader_test, cpu_store=False, flag_file=True)
+            loader_test, cpu_store=False) #, flag_file=True)
         post_predict_test_docs = pd.DataFrame(columns=["article_id", "label", "doc_as_ids"])
-        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
+        post_predict_test_docs.to_csv(post_predict_test_docs_path, index=False)
         for article_id, label, doc_as_ids in zip(all_article_identifiers_test, all_labels_test, all_doc_ids_test):
             post_predict_test_docs.loc[len(post_predict_test_docs)] = {
                 "article_id": article_id.item(),
                 "label": label.item(),
                 "doc_as_ids": doc_as_ids.tolist()
             }
-        post_predict_test_docs.to_csv(path_dataset + filename_test, index=False)
-        print("Finished and saved in:", path_dataset + filename_test)
+        post_predict_test_docs.to_csv(post_predict_test_docs_path, index=False)
+        print("Finished and saved in:", post_predict_test_docs_path)
 
-        dataset_test = UnifiedAttentionGraphs_Sum(root_graph, filename_test, filter_type=type_graph,
-                                                  data_loader=loader_test, model_ckpt=path_checkpoint,
-                                                  mode="test", binarized=flag_binary)
+    dataset_test = UnifiedAttentionGraphs_Sum(root_graph, filename_test, filter_type=type_graph,
+                                              data_loader=loader_test, model_ckpt=path_checkpoint,
+                                              mode="test", binarized=flag_binary)
 
     # Get GAT model with the best val_f1 score in the class folder
-    gat_folder = os.path.join(root_graph, model_name, type_graph + "_unified")
-    model_list = [f for f in os.listdir(gat_folder) if f.endswith(".ckpt") ]
+    gat_folder = os.path.join(path_logger, model_name, "GAT", type_graph + "_unified")
+    model_list = [f.rsplit(".ckpt")[0] for f in os.listdir(gat_folder) if f.endswith(".ckpt") ]
     gat_checkpoint = max(model_list, key=extract_val_f1)
+    print("Selected model:", gat_checkpoint)
+    gat_path = os.path.join(gat_folder, gat_checkpoint + ".ckpt")
     match = re.search(r'_(\d+)L_(\d+)U_', gat_checkpoint)
     if match:
         num_layers = int(match.group(1))
@@ -109,8 +121,8 @@ def main_run(config_file, settings_file, num_print,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     gat_model = GAT_NC_model(dataset_test.num_node_features, num_hidden, num_classes, num_layers, lr,
                          dropout=0.2, class_weights=calculated_cw, with_edge_attr=True)
-    print ("Loading model from:", gat_folder+gat_checkpoint)
-    checkpoint = torch.load(gat_folder+gat_checkpoint, map_location=torch.device('cpu'))
+    print ("Loading model from:", gat_path)
+    checkpoint = torch.load(gat_path, map_location=torch.device('cpu'))
     gat_model.load_state_dict(checkpoint['state_dict'])
     gat_model = gat_model.to(device)
     _ = gat_model(batch.x.float().to(device), batch.edge_index.to(device), batch.edge_attr.to(device), batch.batch.to(device))
@@ -130,12 +142,12 @@ def main_run(config_file, settings_file, num_print,
         print("Analyzing Rouge scores...")
         preds, all_labels, max_id, min_id, max_f1, min_f1, rouge1, rouge2, rougeL = compare_similariry(
             gat_model, test_loader, path_vocab, df_test, scorer='rouge', maxf1=0.55, minf1=0.49)
-        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes,
-                           f"Test - {num_layers}L-{model_name} {type_graph} Graphs")
+        _, _= eval_results(torch.tensor(preds), all_labels, num_classes,
+                           f"Test - {model_name} {type_graph} Graphs")
 
         sns.boxplot(data=(rouge1, rouge2, rougeL), orient='v')
         sns.stripplot(data=(rouge1, rouge2, rougeL), marker="o", alpha=0.15, color="black", orient='v')
-        plt.title(f"[{num_layers}L-{model_name}] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
+        plt.title(f"[{model_name}] Distribution of Rouge-1/-2/-L F1-scores", fontsize=12)
         plt.xticks(ticks=[0, 1, 2], labels=['Rouge-1', 'Rouge-2', 'Rouge-L'])
         plt.ylabel("Score", fontsize=10)
         plt.xlabel("Rouge Scorer", fontsize=10)
@@ -145,13 +157,13 @@ def main_run(config_file, settings_file, num_print,
         print("Analyzing BERTScore score...")
         preds, all_labels, max_id, min_id, max_f1, min_f1, P, R, F1 = compare_similariry(
             gat_model, test_loader, path_vocab, df_test, scorer='bertscore', maxf1=0.55, minf1=0.49)
-        _, _= eval_results(torch.Tensor(preds), all_labels, num_classes,
-                           f"Test - {num_layers}L-{model_name} {type_graph} Graphs")
+        _, _= eval_results(torch.tensor(preds), all_labels, num_classes,
+                           f"Test - {model_name} {type_graph} Graphs")
 
-        sns.boxplot(data=(P, R, F1), orient='v')
-        sns.stripplot(data=(P, R, F1), marker="o", alpha=0.15, color="black", orient='v')
-        plt.title(f"[{num_layers}L-{model_name}] Distribution of BERTScore Presicion/Recall/F1 scores", fontsize=12)
-        plt.xticks(ticks=[0, 1, 2], labels=['Presicion', 'Recall', 'F1'])
+        sns.boxplot(data=[P, R, F1], orient='v')
+        sns.stripplot(data=[P, R, F1], marker="o", alpha=0.15, color="black", orient='v')
+        plt.title(f"[{model_name}] Distribution of BERTScore Presicion/Recall/F1 scores", fontsize=12)
+        plt.xticks(ticks=[0, 1, 2], labels=['Precision', 'Recall', 'F1'])
         plt.ylabel("Score", fontsize=10)
         plt.xlabel("BERTScorer Scorer", fontsize=10)
         plt.show()
@@ -245,4 +257,7 @@ if __name__ == "__main__":
     with open(args.settings_file) as fd:
         config_file = yaml.load(fd, Loader=yaml.SafeLoader)
 
-    main_run(config_file, args.settings_file, **vars(args))
+    kwargs = vars(args).copy()
+    kwargs.pop("settings_file", None)
+
+    main_run(config_file=config_file, **kwargs)
